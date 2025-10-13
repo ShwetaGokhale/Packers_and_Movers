@@ -1,0 +1,321 @@
+        const goodsTableBody = document.getElementById('goodsTableBody');
+        const addGoodsItemBtn = document.getElementById('addGoodsItemBtn');
+        let goodsItemsData = [];
+
+        {% if editing %}
+            goodsItemsData = [
+                {% for item in goods_items %}
+                    {
+                        unit: "{{ item.unit|escapejs }}",
+                        quantity: {{ item.quantity|default:0 }},
+                        rate: {{ item.rate|default:0 }},
+                        amount: {{ item.gi_amount|default:0 }},
+                        from_party: "{{ item.from_party.id|default:'' }}",  // Fixed: use ID instead of object
+                        to_party: "{{ item.to_party.id|default:'' }}",      // Fixed: use ID instead of object
+                        goods_id: "{{ item.GI_ID }}"
+                    }{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ];
+        {% endif %}
+
+        // Consignees (from_party)
+        const allConsignees = [
+            {% for consignee in consignees %}
+                {
+                    id: "{{ consignee.id }}",
+                    consignee_name: "{{ consignee.consignee_name|escapejs }}"
+                }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        // --- Add Goods Row Handler ---
+        function renderGoodsItemsTable() {
+            if (!goodsTableBody) return;
+
+            goodsTableBody.innerHTML = '';
+
+            if (goodsItemsData.length === 0) {
+                const row = goodsTableBody.insertRow();
+                row.innerHTML = `
+                    <tr class="example-row" style="background-color: #fff3cd;">
+                        <td><input type="text" placeholder="Unit" disabled></td>
+                        <td><input type="number" placeholder="Quantity" disabled value="0"></td>
+                        <td><input type="number" placeholder="Rate" disabled value="0"></td>
+                        <td><input type="number" placeholder="Amount" disabled value="0"></td>
+                        <td><input type="text" placeholder="From Party" disabled></td>
+                        <td><input type="text" placeholder="To Party" disabled></td>
+                        <td style="text-align: center; color: #999;">Example</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            goodsItemsData.forEach((item, index) => {
+                const quantity = parseFloat(item.quantity) || 0;
+                const rate = parseFloat(item.rate) || 0;
+                const giAmount = (quantity * rate).toFixed(2);
+
+                // Correct From Party (Consignee)
+                const fromPartyOptions = allConsignees.map(consignee =>
+                    `<option value="${consignee.id}" ${String(item.from_party) === String(consignee.id) ? 'selected' : ''}>${consignee.consignee_name}</option>`
+                ).join('');
+
+                // To Party options (ALSO Consignee)
+                const toPartyOptions = allConsignees.map(consignee =>
+                    `<option value="${consignee.id}" ${String(item.to_party) === String(consignee.id) ? 'selected' : ''}>${consignee.consignee_name}</option>`
+                ).join('');
+
+                const row = goodsTableBody.insertRow();
+                row.innerHTML = `
+                    <td>
+                        <select data-field="unit" data-index="${index}">
+                            <option value="">Select</option>
+                            <option value="10kg" ${item.unit === '10kg' ? 'selected' : ''}>10 KG</option>
+                            <option value="15kg" ${item.unit === '15kg' ? 'selected' : ''}>15 KG</option>
+                            <option value="20kg" ${item.unit === '20kg' ? 'selected' : ''}>20 KG</option>
+                        </select>
+                    </td>
+                    <td><input type="number" value="${item.quantity || 0}" data-field="quantity" data-index="${index}"></td>
+                    <td><input type="number" value="${item.rate || 0}" data-field="rate" data-index="${index}"></td>
+                    <td><input type="text" value="${giAmount}" disabled class="gi-amount-display" data-index="${index}"></td>
+                    <td>
+                        <select data-field="from_party" data-index="${index}">
+                            <option value="">Select From Party</option>
+                            ${fromPartyOptions}
+                        </select>
+                    </td>
+                    <td>
+                        <select data-field="to_party" data-index="${index}">
+                            <option value="">Select To Party</option>
+                            ${toPartyOptions}
+                        </select>
+                    </td>
+                    <td style="white-space: nowrap;">
+                        <button type="button" class="table-action-btn edit-goods-item-btn" data-index="${index}" title="Edit Item">
+                            <i class="fa-solid fa-pencil"></i>
+                        </button>
+                        <button type="button" class="table-action-btn remove-goods-item-btn" data-index="${index}" title="Remove Item">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+
+                // Add event listeners
+                row.querySelectorAll('input:not(.gi-amount-display), select').forEach(el => {
+                    el.addEventListener('input', function() {
+                        const idx = parseInt(this.dataset.index);
+                        const field = this.dataset.field;
+                        
+                        if (field === 'quantity' || field === 'rate') {
+                            goodsItemsData[idx][field] = parseFloat(this.value) || 0;
+                        } else {
+                            goodsItemsData[idx][field] = this.value;
+                        }
+                        
+                        // Recalculate GI amount
+                        if (field === 'quantity' || field === 'rate') {
+                            const qty = parseFloat(goodsItemsData[idx].quantity) || 0;
+                            const rt = parseFloat(goodsItemsData[idx].rate) || 0;
+                            const amount = (qty * rt).toFixed(2);
+                            row.querySelector('.gi-amount-display').value = amount;
+                            goodsItemsData[idx].amount = amount;
+                        }
+                        
+                        updateGoodsInfoHiddenField();
+                        updateGIAmountTotals();
+                    });
+                });
+
+                row.querySelector('.edit-goods-item-btn').addEventListener('click', function() {
+                    const firstInput = row.querySelector('input[data-field="quantity"]');
+                    if (firstInput) firstInput.focus();
+                });
+
+                row.querySelector('.remove-goods-item-btn').addEventListener('click', function() {
+                    const idx = parseInt(this.dataset.index);
+                    showConfirmationModal("Remove this goods item?", (confirmed) => {
+                        if (confirmed) {
+                            goodsItemsData.splice(idx, 1);
+                            renderGoodsItemsTable();
+                            updateGoodsInfoHiddenField();
+                            updateGIAmountTotals();
+                        }
+                    });
+                });
+            });
+
+            // Add Total Fare row
+            if (goodsItemsData.length > 0) {
+                const totalFare = goodsItemsData.reduce((sum, item) => 
+                    sum + (parseFloat(item.quantity) * parseFloat(item.rate)), 0);
+                
+                const totalRow = goodsTableBody.insertRow();
+                totalRow.id = 'totalFareRow';
+                totalRow.innerHTML = `
+                    <td colspan="3" style="text-align: right; font-weight: bold; padding-right: 10px;">Total Fare:</td>
+                    <td><input type="text" value="${totalFare.toFixed(2)}" disabled id="totalFareSummary"></td>
+                    <td colspan="3"></td>
+                `;
+            }
+        }
+
+        function addGoodsItemRow() {
+            const currentCnid = cnidInputField ? cnidInputField.value : '';
+            if (!currentCnid || currentCnid === 'Error' || currentCnid === 'N/A') {
+                showSuccessPopup("Please ensure a valid CNID is present before adding goods items");
+                return;
+            }
+
+            goodsItemsData.push({
+                cnid: currentCnid,
+                unit: '10kg',
+                quantity: 0,
+                rate: 0,
+                amount: 0,
+                from_party: '',
+                to_party: ''
+            });
+            
+            // Remove example row if exists
+            const exampleRow = document.querySelector('.example-row');
+            if (exampleRow) exampleRow.remove();
+            
+            renderGoodsItemsTable();
+            updateGoodsInfoHiddenField();
+            updateGIAmountTotals();
+            
+            // Focus on first input of new row
+            const newRowIndex = goodsItemsData.length - 1;
+            const newRow = goodsTableBody.rows[newRowIndex];
+            if (newRow) {
+                const firstInput = newRow.querySelector('input[data-field="quantity"]');
+                if (firstInput) firstInput.focus();
+            }
+        }
+
+        function updateGoodsInfoHiddenField() {
+            const validItems = goodsItemsData.filter(item => 
+                item.quantity > 0 || item.rate > 0 || item.unit);
+            
+            document.getElementById('{{ form.goods_info.id_for_label }}').value = 
+                JSON.stringify(validItems);
+        }
+
+        function updateGIAmountTotals() {
+            let totalGIAmount = 0;
+            goodsItemsData.forEach(item => {
+                const quantity = parseFloat(item.quantity) || 0;
+                const rate = parseFloat(item.rate) || 0;
+                totalGIAmount += (quantity * rate);
+            });
+
+            if (totalFareSummaryInput) {
+                totalFareSummaryInput.value = totalGIAmount.toFixed(2);
+            }
+            if (totalFareHiddenInput) {
+                totalFareHiddenInput.value = totalGIAmount.toFixed(2);
+            }
+        }
+
+        // Initialize goods table
+        renderGoodsItemsTable();
+
+        // Event listener for Add Goods button
+        if (addGoodsItemBtn) {
+            addGoodsItemBtn.addEventListener('click', addGoodsItemRow);
+        }
+//---------------------------------------------------------------------------
+        
+
+
+        function addGoodsItemRow() {
+            const currentCnid = cnidInputField ? cnidInputField.value : ''; // Added null check
+            if (!currentCnid || currentCnid === 'Error' || currentCnid === 'N/A') {
+                showSuccessPopup("Please ensure a valid CNID is present before adding goods items. Refresh the page if needed.");
+                return;
+            }
+
+            goodsItemsData.push({
+                cnid: currentCnid, // Use current CNID
+                unit: '',
+                quantity: 0,   // Default to 0 for numbers
+                rate: 0,       // Default to 0 for numbers
+                amount: 0,     // Default to 0 for numbers
+                from_party: null, // Default to null for FKs (ID will be sent as null/empty string)
+                to_party: null    // Default to null for FKs (ID will be sent as null/empty string)
+            });
+            renderGoodsItemsTable();
+            updateGoodsInfoHiddenField();
+            // Remove the example row after the first actual item is added
+            const exampleRow = document.querySelector('.goods-info-table .example-row');
+            if (exampleRow && goodsItemsData.length > 0) {
+                exampleRow.remove();
+            }
+
+            function updateGoodsInfoHiddenField() {
+            const validItems = goodsItemsData.filter(item => 
+                item.quantity > 0 || item.rate > 0 || item.unit);
+            
+            document.getElementById('{{ form.goods_info.id_for_label }}').value = 
+                JSON.stringify(validItems);
+        }   
+        renderGoodsItemsTable();
+            const newRowIndex = goodsItemsData.length - 1;
+            // Focus on the first relevant input of the new row
+            const newRowFirstInput = goodsTableBody.rows[newRowIndex].querySelector('input[data-field="quantity"]');
+            if (newRowFirstInput) {
+                newRowFirstInput.focus();
+            }
+            updateGIAmountTotals();
+        }
+
+
+<tbody id="goodsTableBody">
+                            {% if editing %}
+                                {% for item in goods_items %}
+                                <tr data-gi-id="{{ item.GI_ID }}">
+                                    <td>
+                                        <select name="unit" data-index="{{ forloop.counter0 }}">
+                                            <option value="10kg" {% if item.unit == "10kg" %}selected{% endif %}>10 KG</option>
+                                            <option value="15kg" {% if item.unit == "15kg" %}selected{% endif %}>15 KG</option>
+                                            <option value="20kg" {% if item.unit == "20kg" %}selected{% endif %}>20 KG</option>
+                                        </select>
+                                    </td>
+                                    <td><input type="number" name="quantity" value="{{ item.quantity }}" data-index="{{ forloop.counter0 }}"></td>
+                                    <td><input type="number" name="rate" value="{{ item.rate }}" data-index="{{ forloop.counter0 }}"></td>
+                                    <td><input type="number" name="gi_amount" value="{{ item.gi_amount }}" readonly data-index="{{ forloop.counter0 }}"></td>
+                                    <td>
+                                        <select name="from_party" data-index="{{ forloop.counter0 }}">
+                                            <option value="">Select</option>
+                                            {% for c in consignees %}
+                                                <option value="{{ c.id }}" {% if item.from_party.id == c.id %}selected{% endif %}>{{ c.consignee_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select name="to_party" data-index="{{ forloop.counter0 }}">
+                                            <option value="">Select</option>
+                                            {% for c in consignees %}
+                                                <option value="{{ c.id }}" {% if item.to_party.id == c.id %}selected{% endif %}>{{ c.consignee_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="remove-goods-item-btn" style="color: red;" title="Remove Item" data-index="{{ forloop.counter0 }}">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr class="example-row" style="background-color: #e6dddd;">
+                                    <td><input type="text" placeholder="Unit" disabled></td>
+                                    <td><input type="number" value="0" disabled></td>
+                                    <td><input type="number" value="0" disabled></td>
+                                    <td><input type="number" value="0" disabled></td>
+                                    <td><input type="text" disabled></td>
+                                    <td><input type="text" disabled></td>
+                                    <td style="text-align:center; color:#808080;"></td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>

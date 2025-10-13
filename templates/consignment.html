@@ -1,0 +1,3327 @@
+{% extends "base.html" %}
+{% block content %}
+{% load static %}
+<!--<script src="{% static 'java.js' %}"></script>-->
+<style>
+    /* Adjusted main content container margin to account for fixed header */
+    .form-container {
+        background-color: #ffffff;
+        padding: 30px 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 1000px;
+        box-sizing: border-box;
+        margin: 0 auto 30px auto;
+        /* Changed top margin from 30px to 0 */
+        flex-grow: 1;
+        /* Allow form to take up remaining space */
+    }
+
+    h2 {
+        text-align: center;
+        color: #4a148c;
+        margin-bottom: 25px;
+        animation: slideUp 0.8s ease forwards;
+        transform: translateY(20px);
+    }
+
+    form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px 45px;
+        animation: slideUp 0.8s ease forwards;
+        transform: translateY(20px);
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(100%);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    form p {
+        margin: 0;
+    }
+
+    label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+    }
+
+    input,
+    select,
+    textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 14px;
+        background-color: #f9f9f9;
+        /* Remove default spin buttons from number inputs */
+    }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    textarea {
+        resize: vertical;
+    }
+
+    .full-width {
+        grid-column: 1 / 3;
+    }
+
+    /* Styles for input/select group with add button */
+    .input-with-button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* .input-with-button input, */
+    /* .input-with-button select, */
+    /* .input-with-button textarea { */
+    /* flex: 1; */
+    /* } */
+    .add-btn {
+        padding: 6px 12px;
+        background-color: #4CAF50;
+        border: none;
+        color: white;
+        font-size: 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.3s ease;
+    }
+
+    .add-btn i {
+        pointer-events: none;
+    }
+
+    .add-btn:hover {
+        background-color: #388e3c;
+    }
+
+    button[type="submit"] {
+        grid-column: 1 / 3;
+        padding: 12px;
+        background-color: #6a1b9a;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    button[type="submit"]:hover {
+        background-color: #4a148c;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        form {
+            grid-template-columns: 1fr;
+        }
+
+        .full-width,
+        button[type="submit"] {
+            grid-column: 1 / 2;
+        }
+
+        .main-nav {
+            flex-direction: column;
+            padding: 10px;
+            align-items: flex-start;
+            /* Align nav items to start on small screens */
+        }
+
+        .main-nav a,
+        .dropdown .dropbtn {
+            margin: 5px 0;
+            width: calc(100% - 20px);
+            /* Make links span almost full width */
+            text-align: left;
+            /* Align text to left in stacked mode */
+        }
+
+        .dropdown-content {
+            position: static;
+            /* Remove absolute positioning on small screens */
+            width: 100%;
+            /* Take full width on small screens */
+            box-shadow: none;
+            /* Remove shadow to blend better */
+            border-top: 1px solid #eee;
+            /* Add a separator */
+        }
+    }
+
+    /* --- START OF ENHANCED MODAL STYLES (INCLUDING SPECIFIC VEHICLE MODAL) --- */
+
+    /* Modal Overlay Styles - HIDDEN BY DEFAULT */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        /* Darker, more prominent overlay */
+        display: none;
+        /* Changed to none */
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        backdrop-filter: blur(5px);
+        /* Subtle blur effect on background */
+        animation: fadeInOverlay 0.3s forwards;
+        /* Fade in animation */
+    }
+
+    /* Modal Content Styles */
+    .modal-content {
+        background: linear-gradient(135deg, #f0f4f8, #e9ecf0);
+        /* Subtle gradient background */
+        padding: 30px;
+        /* Increased padding */
+        border-radius: 15px;
+        /* More rounded corners */
+        width: 90%;
+        max-width: 450px;
+        /* Adjusted max-width for a good size */
+        position: relative;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        /* Stronger shadow for depth */
+        animation: slideInModal 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+        /* Pop-out animation */
+        border: 1px solid #dcdcdc;
+        /* Subtle border */
+        max-height: 90vh;
+        /* Allow modal to take up more vertical space */
+        overflow-y: auto;
+        /* Enable scrolling for content overflow */
+    }
+
+    @keyframes fadeInOverlay {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideInModal {
+        from {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* Modal Close Button */
+    .modal-close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: none;
+        border: none;
+        font-size: 30px;
+        /* Larger close icon */
+        cursor: pointer;
+        color: #777;
+        /* Softer color */
+        transition: color 0.2s ease, transform 0.2s ease;
+    }
+
+    .modal-close-btn:hover {
+        color: #333;
+        /* Darker on hover */
+        transform: rotate(90deg);
+        /* Spin on hover */
+    }
+
+    /* Modal Heading */
+    .modal-content h3 {
+        text-align: center;
+        color: #6a1b9a;
+        /* Deep purple, consistent with header */
+        margin-bottom: 25px;
+        /* Increased margin */
+        font-size: 1.8em;
+        /* Larger font size */
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
+        /* Subtle text shadow */
+    }
+
+    /* Modal Form Group */
+    .modal-form-group {
+        margin-bottom: 20px;
+        /* Increased spacing between form groups */
+    }
+
+    .modal-form-group label {
+        display: block;
+        /* Label on its own line */
+        margin-bottom: 8px;
+        /* Space below label */
+        font-weight: 600;
+        /* Bolder label text */
+        color: #444;
+        /* Slightly darker label color */
+        font-size: 0.95rem;
+    }
+
+    .modal-form-group input[type="text"],
+    .modal-form-group input[type="date"],
+    .modal-form-group textarea,
+    /* Ensure textarea is styled */
+    .modal-form-group select {
+        width: 100%;
+        /* Full width within modal content */
+        padding: 12px;
+        /* Increased padding */
+        border: 1px solid #cdd4da;
+        /* Softer border */
+        border-radius: 8px;
+        /* More rounded input fields */
+        font-size: 1rem;
+        /* Standard font size */
+        box-sizing: border-box;
+        /* Include padding in width */
+        outline: none;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        background-color: #fcfdff;
+        /* Very light input background */
+    }
+
+    .modal-form-group input[type="text"]:focus,
+    .modal-form-group input[type="date"]:focus,
+    .modal-form-group textarea:focus,
+    .modal-form-group select:focus {
+        border-color: #8e24aa;
+        /* Purple border on focus */
+        box-shadow: 0 0 0 3px rgba(142, 36, 170, 0.25);
+        /* Glow effect on focus */
+    }
+
+    /* Modal Button (Add/Update) */
+    .modal-add-btn {
+        display: block;
+        width: 100%;
+        padding: 14px;
+        /* Increased padding */
+        background: linear-gradient(to right, #8e24aa, #6a1b9a);
+        /* Gradient button */
+        color: white;
+        border: none;
+        border-radius: 8px;
+        /* More rounded button */
+        font-size: 1.1rem;
+        /* Larger font size */
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        /* Stronger shadow */
+        transition: all 0.3s ease;
+        letter-spacing: 0.5px;
+        /* Slightly increased letter spacing */
+        margin-top: 25px;
+        /* More space above the button */
+    }
+
+    .modal-add-btn:hover {
+        background: linear-gradient(to left, #8e24aa, #6a1b9a);
+        /* Reverse gradient on hover */
+        transform: translateY(-2px);
+        /* Slight lift on hover */
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        /* Deeper shadow on hover */
+    }
+
+    /* Modal Table (Inside Modals) */
+    .modal-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 25px;
+        /* Increased margin from modal inputs */
+        border-radius: 10px;
+        /* Rounded corners for modal table */
+        overflow: hidden;
+        /* Ensures rounded corners apply */
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        /* Subtle shadow */
+    }
+
+    .modal-table th,
+    .modal-table td {
+        border: 1px solid #e0e0e0;
+        /* Lighter borders */
+        padding: 10px;
+        /* Slightly more padding */
+        text-align: left;
+        font-size: 0.9em;
+        vertical-align: middle;
+    }
+
+    .modal-table th {
+        background-color: #7b1fa2;
+        /* Deep purple header for modal tables */
+        color: white;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    /* Specific rounded corners for modal table headers */
+    .modal-table th:first-child {
+        border-top-left-radius: 10px;
+    }
+
+    .modal-table th:last-child {
+        border-top-right-radius: 10px;
+    }
+
+
+    .modal-table td.actions {
+        display: flex;
+        gap: 15px;
+        /* Adjusted gap */
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .modal-table td.actions button {
+        font-size: 1.1em;
+        /* Slightly smaller for table icons */
+        transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+        padding: 5px;
+        /* Small padding for click area */
+    }
+
+    .modal-table td.actions .select-btn {
+        color: #2196F3;
+        /* Blue for select */
+    }
+
+    .modal-table td.actions .select-btn:hover {
+        color: #1976D2;
+        transform: scale(1.15);
+    }
+
+    .modal-table td.actions .delete-btn {
+        color: #f44336;
+        /* Red for delete */
+    }
+
+    .modal-table td.actions .delete-btn:hover {
+        color: #d32f2f;
+        transform: scale(1.15);
+    }
+
+    /* Loading Indicator */
+    .loading-indicator {
+        text-align: center;
+        margin-top: 20px;
+        color: #6a1b9a;
+        font-style: italic;
+        display: none;
+        font-weight: 500;
+        animation: pulse 1.5s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+        0% {
+            opacity: 0.6;
+        }
+
+        50% {
+            opacity: 1;
+        }
+
+        100% {
+            opacity: 0.6;
+        }
+    }
+
+    /* Messages within Modals (e.g., vehicleMessage) */
+    .modal-content>div[style*="color"] {
+        /* Targets message divs in modals */
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 5px;
+        font-weight: bold;
+        text-align: center;
+        font-size: 0.9em;
+    }
+
+    #vehicleMessage {
+        color: #28a745;
+        /* Green for success */
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+    }
+
+    /* For error messages, if any, you might want to add a red style */
+    /* .error-message-style { color: #dc3545; background-color: #f8d7da; border: 1px solid #f5c6cb; } */
+
+
+    /* Styles for Goods Information Table */
+    .goods-info-container {
+        margin-top: 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        background-color: #fdfdfd;
+    }
+
+    .goods-info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 10px;
+    }
+
+    .goods-info-table th,
+    .goods-info-table td {
+        border: 1px solid #eee;
+        padding: 8px;
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .goods-info-table th {
+        background-color: #f9f9f9;
+        font-weight: bold;
+        color: #555;
+    }
+
+    /* NEW: Styles for Goods Information Table Columns */
+    .goods-info-table th:nth-child(1),
+    /* Box */
+    .goods-info-table td:nth-child(1) {
+        width: 13%;
+        /* Increased width for Box */
+    }
+
+    .goods-info-table th:nth-child(2),
+    /* Unit */
+    .goods-info-table td:nth-child(2) {
+        width: 13%;
+    }
+
+    .goods-info-table th:nth-child(3),
+    /* Quantity */
+    .goods-info-table td:nth-child(3) {
+        width: 13%;
+        /* Adjusted for better spacing */
+    }
+
+    .goods-info-table th:nth-child(4),
+    /* Rate */
+    .goods-info-table td:nth-child(4) {
+        width: 13%;
+    }
+
+    .goods-info-table th:nth-child(5),
+    /* total/GI Amount */
+    .goods-info-table td:nth-child(5) {
+        width: 12%;
+    }
+
+    .goods-info-table th:nth-child(6),
+    /* From Party */
+    .goods-info-table td:nth-child(6) {
+        width: 12%;
+        /* Can be wider for party names */
+    }
+
+    .goods-info-table th:nth-child(7),
+    /* To Party */
+    .goods-info-table td:nth-child(7) {
+        width: 13%;
+        /* Can be wider for party names */
+    }
+
+    .goods-info-table th:nth-child(8),
+    /* Actions */
+    .goods-info-table td:nth-child(8) {
+        width: 13%;
+    }
+
+
+    .goods-info-table input[type="text"],
+    .goods-info-table input[type="number"] {
+        width: calc(100% - 16px);
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1em;
+        background-color: #fff;
+        /* Remove default spin buttons from number inputs */
+    }
+
+    .goods-info-table input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .goods-info-table select {
+        /* Added style for select elements in goods table */
+        width: calc(100% - 16px);
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1em;
+        background-color: #fff;
+    }
+
+    .goods-info-table .table-action-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        font-size: 1.2em;
+        cursor: pointer;
+        transition: color 0.3s ease;
+        line-height: 1;
+        margin: 0 5px;
+    }
+
+    .goods-info-table .edit-goods-item-btn {
+        color: #FFC107;
+    }
+
+    .goods-info-table .edit-goods-item-btn:hover {
+        color: #FFA000;
+    }
+
+    .goods-info-table .remove-goods-item-btn {
+        color: #f44336;
+    }
+
+    .goods-info-table .remove-goods-item-btn:hover {
+        color: #d32f2f;
+    }
+
+    /* CSS for centering the "Add Goods Item" button */
+    #addGoodsItemBtn {
+        display: block;
+        margin: 15px auto 0 auto;
+        width: fit-content;
+    }
+
+    /* Custom Confirmation Modal Styles */
+    #confirmationModalOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        /* Darker, more prominent overlay */
+        display: none;
+        /* Changed to none */
+        justify-content: center;
+        align-items: center;
+        z-index: 1002;
+        backdrop-filter: blur(5px);
+        animation: fadeInOverlay 0.3s forwards;
+        /* display: none; */
+        /* Hidden by default */
+    }
+
+    #confirmationModalContent {
+        background: linear-gradient(135deg, #f0f4f8, #e9ecf0);
+        /* Subtle gradient background */
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        width: 90%;
+        max-width: 400px;
+        text-align: center;
+        border: 1px solid #dcdcdc;
+        animation: slideInModal 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+    }
+
+    #confirmationModalContent p {
+        font-size: 1.1em;
+        margin-bottom: 25px;
+        /* Increased margin */
+        color: #333;
+        font-weight: 500;
+    }
+
+    #confirmationModalButtons {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        /* Increased gap */
+    }
+
+    #confirmYesBtn,
+    #confirmNoBtn {
+        padding: 12px 25px;
+        /* Increased padding */
+        border: none;
+        border-radius: 8px;
+        /* More rounded buttons */
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 100px;
+        /* Consistent minimum width */
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        /* Subtle shadow */
+    }
+
+    #confirmYesBtn {
+        background-color: #e53935;
+        /* Brighter red */
+        color: white;
+    }
+
+    #confirmYesBtn:hover {
+        background-color: #c62828;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+    }
+
+    #confirmNoBtn {
+        background-color: #e0e0e0;
+        color: #555;
+    }
+
+    #confirmNoBtn:hover {
+        background-color: #c0c0c0;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+    }
+
+
+    /* --- NEW/ENHANCED SUCCESS POPUP STYLES --- */
+    .success-popup {
+        position: fixed;
+        top: -100px;
+        /* Start off-screen above */
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #4CAF50;
+        /* Green background */
+        color: white;
+        padding: 15px 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        font-weight: 500;
+        text-align: center;
+        z-index: 9999;
+        /* Ensure it's on top */
+        opacity: 0;
+        /* Start hidden */
+        transition: top 0.5s ease-out, opacity 0.5s ease-out;
+        /* Smooth transition */
+        min-width: 250px;
+    }
+
+    .success-popup.show {
+        top: 20px;
+        /* Slide down to 20px from top */
+        opacity: 1;
+        /* Fade in */
+    }
+
+    /* Styles for the custom searchable select/autocomplete */
+    .custom-searchable-select-wrapper {
+        position: relative;
+        flex: 1;
+        /* Allows it to take up available space in flex container */
+        min-width: 200px;
+        /* Ensure it has a minimum width */
+    }
+
+    .custom-searchable-select-wrapper .searchable-input {
+        width: 100%;
+        padding: 10px 35px 10px 10px;
+        /* Added right padding for the icon */
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 14px;
+        background-color: #f9f9f9;
+        box-sizing: border-box;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .custom-searchable-select-wrapper .searchable-input:focus {
+        border-color: #6a1b9a;
+        box-shadow: 0 0 0 2px rgba(106, 27, 154, 0.2);
+    }
+
+    .custom-dropdown-list {
+        position: absolute;
+        top: 100%;
+        /* Position below the input */
+        left: 0;
+        width: 100%;
+        max-height: 200px;
+        /* Max height for scrollable list */
+        overflow-y: auto;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        z-index: 50;
+        /* Ensure it's above other elements */
+        display: none;
+        /* Hidden by default */
+        list-style: none;
+        /* Remove default list styling */
+        padding: 0;
+        margin: 5px 0 0 0;
+        /* Space between input and dropdown */
+    }
+
+    .custom-dropdown-list ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .custom-dropdown-list li {
+        padding: 10px 15px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        border-bottom: 1px solid #eee;
+        /* Subtle separator */
+    }
+
+    .custom-dropdown-list li:last-child {
+        border-bottom: none;
+    }
+
+    .custom-dropdown-list li.selected,
+    .custom-dropdown-list li:hover {
+        background-color: #e0f7fa;
+        /* Light blue/purple hover */
+        color: #4a148c;
+        /* Darker purple text on hover */
+    }
+
+    .dropdown-icon {
+        position: absolute;
+        right: 10px;
+        /* Position from the right edge of the wrapper */
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6a1b9a;
+        /* Icon color */
+        cursor: pointer;
+        font-size: 1.1em;
+        transition: transform 0.2s ease;
+        z-index: 10;
+        /* Ensure it's above the input text */
+    }
+
+    .dropdown-icon.open {
+        transform: translateY(-50%) rotate(180deg);
+        /* Rotate when open */
+    }
+</style>
+<div class="form-container">
+    <!-- <h2>Consignment Note Form</h2> -->
+    <h3 class="text-2xl font-bold italic mb-4 text-purple-800 text-center">Consignment Note Form</h3>
+    <!-- <form id="consignmentForm" method="post" action="{% url 'consignment' %}"> -->
+    <form id="consignmentForm" method="post"
+        action="{% if editing_mode %}{% url 'edit_consignment' cnid %}{% else %}{% url 'consignment' %}{% endif %}">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <!-- Row 1: CNID, Vehicle No and CN No -->
+        <div class="full-width" style="display: flex; gap: 30px; flex-wrap: wrap;">
+            <!-- CNID Field -->
+            <div style="flex: 1; min-width: 280px;">
+                <label for="id_cn_note_id">CNID</label>
+                <input type="text" id="id_cn_note_id" name="cn_note_id" value="{{ cnid }}" readonly>
+            </div>
+            <!-- Vehicle No with Custom Search Dropdown -->
+            <div style="flex: 1; min-width: 280px;">
+                <label for="vehicleSearchInput">Vehicle No</label>
+                <div class="input-with-button">
+                    <div class="custom-searchable-select-wrapper" id="vehicleSearchWrapper">
+                        <!-- Visible Input for Search -->
+                        <input type="text" id="vehicleSearchInput" class="searchable-input"
+                            placeholder="Select or type a Vehicle No">
+                        <!-- Dropdown Icon -->
+                        <i class="fa-solid fa-chevron-down dropdown-icon" id="vehicleDropdownIcon"></i>
+                        <!--  Hidden Input with Pre-filled Value -->
+                        <!-- <input type="hidden" name="{{ form.Vehicle_No.name }}" id="{{ form.Vehicle_No.id_for_label }}"
+                            value="{{ initial_vehicle_id }}"> -->
+                        <!-- <input type="hidden" name="{{ form.Vehicle_No.name }}" id="{{ form.Vehicle_No.id_for_label }}"> -->
+                        <input type="hidden" name="{{ form.Vehicle_No.name }}" id="{{ form.Vehicle_No.id_for_label }}" value="{{ initial_vehicle_id }}">
+
+                        <!-- Dropdown List -->
+                        <div id="vehicleDropdownList" class="custom-dropdown-list"></div>
+                    </div>
+                    <button type="button" class="add-btn" id="addVehicleBtn" title="Add New Vehicle">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                {% if form.Vehicle_No.errors %}
+                <span style="color: red;">{{ form.Vehicle_No.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            <!-- CN No Field -->
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Cn_No.id_for_label }}">{{ form.Cn_No.label }}</label>
+                <div class="input-with-button">
+                    <input type="text" name="{{ form.Cn_No.name }}" id="{{ form.Cn_No.id_for_label }}"
+                        value="{{ form.Cn_No.value|default_if_none:'' }}" placeholder="Enter CN No">
+                </div>
+                {% if form.Cn_No.errors %}
+                <span style="color: red;">{{ form.Cn_No.errors|striptags }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Row 2: Consignee and Consignor in one row -->
+        <div class="full-width" style="display: flex; gap: 30px; flex-wrap: wrap;">
+            <!-- Consignee Field Block -->
+            <div style="flex: 1; min-width: 280px;">
+                <label for="consigneeSearchInput">{{ form.consignee.label }}</label>
+                <div class="input-with-button">
+                    <div class="custom-searchable-select-wrapper" id="consigneeSearchWrapper">
+                        <!-- Visible input for typing search query and displaying selected value -->
+                        <input type="text" id="consigneeSearchInput" class="searchable-input"
+                            placeholder="Select or type Consignee">
+                        <!-- Dropdown icon -->
+                        <i class="fa-solid fa-chevron-down dropdown-icon" id="consigneeDropdownIcon"></i>
+                        <!--  Hidden input with pre-filled Consignee ID -->
+                        <input type="hidden" name="{{ form.consignee.name }}" id="{{ form.consignee.id_for_label }}"
+                            value="{{ initial_consignee_id }}">
+                        <!-- Dropdown list container -->
+                        <div id="consigneeDropdownList" class="custom-dropdown-list"></div>
+                    </div>
+                    <button type="button" class="add-btn" id="addConsigneeBtn" title="Add Consignee">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                {% if form.consignee.errors %}
+                <span style="color: red;">{{ form.consignee.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            <!-- Consigner Field Block -->
+            <div style="flex: 1; min-width: 280px;">
+                <label for="consignerSearchInput">{{ form.consigner.label }}</label>
+                <div class="input-with-button">
+                    <div class="custom-searchable-select-wrapper" id="consignerSearchWrapper">
+                        <!-- Visible input for typing search query and displaying selected value -->
+                        <input type="text" id="consignerSearchInput" class="searchable-input"
+                            placeholder="Select or type Consignor">
+                        <!-- Dropdown icon -->
+                        <i class="fa-solid fa-chevron-down dropdown-icon" id="consignerDropdownIcon"></i>
+                        <!--  Hidden input with pre-filled Consignor ID -->
+                        <input type="hidden" name="{{ form.consigner.name }}" id="{{ form.consigner.id_for_label }}"
+                            value="{{ initial_consigner_id }}">
+                        <!-- Dropdown list container -->
+                        <div id="consignerDropdownList" class="custom-dropdown-list"></div>
+                    </div>
+                    <button type="button" class="add-btn" id="addConsignerBtn" title="Add Consignor">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                {% if form.consigner.errors %}
+                <span style="color: red;">{{ form.consigner.errors|striptags }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Row 3: From Location and To Location -->
+        <div class="full-width" style="display: flex; gap: 30px; flex-wrap: wrap;">
+            <!-- From Location Field Block -->
+            <div style="flex: 1; min-width: 280px;">
+                <label for="fromLocationSearchInput">{{ form.from_location.label }}</label>
+                <div class="input-with-button">
+                    <div class="custom-searchable-select-wrapper" id="fromLocationSearchWrapper">
+                        <!-- Visible input for typing search query and displaying selected value -->
+                        <input type="text" id="fromLocationSearchInput" class="searchable-input"
+                            placeholder="Select or type From Location">
+                        <!-- Dropdown icon -->
+                        <i class="fa-solid fa-chevron-down dropdown-icon" id="fromLocationDropdownIcon"></i>
+                        <!--  Hidden input with pre-filled value -->
+                        <input type="hidden" name="{{ form.from_location.name }}"
+                            id="{{ form.from_location.id_for_label }}" value="{{ initial_from_location_id }}">
+                        <!-- Dropdown list container -->
+                        <div id="fromLocationDropdownList" class="custom-dropdown-list"></div>
+                    </div>
+                    <button type="button" class="add-btn" id="addFromLocationBtn" title="Add Location">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                {% if form.from_location.errors %}
+                <span style="color: red;">{{ form.from_location.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            <!-- To Location Field Block -->
+            <div style="flex: 1; min-width: 280px;">
+                <label for="toLocationSearchInput">{{ form.To_Location.label }}</label>
+                <div class="input-with-button">
+                    <div class="custom-searchable-select-wrapper" id="toLocationSearchWrapper">
+                        <!-- Visible input for typing search query and displaying selected value -->
+                        <input type="text" id="toLocationSearchInput" class="searchable-input"
+                            placeholder="Select or type To Location">
+                        <!-- Dropdown icon -->
+                        <i class="fa-solid fa-chevron-down dropdown-icon" id="toLocationDropdownIcon"></i>
+                        <!--  Hidden input with pre-filled value -->
+                        <input type="hidden" name="{{ form.To_Location.name }}" id="{{ form.To_Location.id_for_label }}"
+                            value="{{ initial_to_location_id }}">
+                        <!-- Dropdown list container -->
+                        <div id="toLocationDropdownList" class="custom-dropdown-list"></div>
+                    </div>
+                    <button type="button" class="add-btn" id="addToLocationBtn" title="Add Location">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                {% if form.To_Location.errors %}
+                <span style="color: red;">{{ form.To_Location.errors|striptags }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Goods Information Section - NOW A TABLE (Moved here) -->
+        <div class="full-width">
+            <label>Goods Information</label>
+            <div class="goods-info-container">
+                <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ccc; border-radius: 5px;">
+                    <table class="goods-info-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th>Unit</th>
+                                <th>Quantity (Kg)</th>
+                                <th>Rate</th>
+                                <th>Total Amount</th>
+                                <th>From Party</th>
+                                <th>To Party</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="goodsTableBody">
+                            {% if editing %}
+                            {% for item in goods_items %}
+                            <tr data-gi-id="{{ item.GI_ID }}">
+                                <!-- ✅ Hidden input to track which GoodsInfo item this is -->
+                                <input type="hidden" name="goods_id" value="{{ item.GI_ID }}">
+
+                                <td>
+                                    <select name="unit" data-index="{{ forloop.counter0 }}">
+                                        <option value="10kg" {% if item.unit == "10kg" %}selected{% endif %}>10 KG
+                                        </option>
+                                        <option value="15kg" {% if item.unit == "15kg" %}selected{% endif %}>15 KG
+                                        </option>
+                                        <option value="20kg" {% if item.unit == "20kg" %}selected{% endif %}>20 KG
+                                        </option>
+                                    </select>
+                                </td>
+                                <td><input type="number" name="quantity" value="{{ item.quantity }}"
+                                        data-index="{{ forloop.counter0 }}"></td>
+                                <td><input type="number" name="rate" value="{{ item.rate }}"
+                                        data-index="{{ forloop.counter0 }}"></td>
+                                <td><input type="number" name="gi_amount" value="{{ item.gi_amount }}" readonly
+                                        data-index="{{ forloop.counter0 }}"></td>
+                                <td>
+                                    <select name="from_party" data-index="{{ forloop.counter0 }}">
+                                        <option value="">Select</option>
+                                        {% for c in consignees %}
+                                        <option value="{{ c.id }}" {% if item.from_party.id == c.id %}selected{% endif %}>
+                                            {{ c.consignee_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td>
+                                    <select name="to_party" data-index="{{ forloop.counter0 }}">
+                                        <option value="">Select</option>
+                                        {% for c in consignees %}
+                                        <option value="{{ c.id }}" {% if item.to_party.id == c.id %}selected{% endif %}>{{
+                                            c.consignee_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td>
+                                    <button type="button" class="remove-goods-item-btn" style="color: red;"
+                                        title="Remove Item" data-index="{{ forloop.counter0 }}">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+
+                            {% endfor %}
+                            {% else %}
+                            <tr class="example-row" style="background-color: #e6dddd;">
+                                <td><input type="text" placeholder="Unit" disabled></td>
+                                <td><input type="number" value="0" disabled></td>
+                                <td><input type="number" value="0" disabled></td>
+                                <td><input type="number" value="0" disabled></td>
+                                <td><input type="text" disabled></td>
+                                <td><input type="text" disabled></td>
+                                <td style="text-align:center; color:#808080;"></td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+
+                </div>
+                <button type="button" class="add-btn" id="addGoodsItemBtn">Add Goods Item</button>
+            </div>
+
+            <input type="hidden" name="{{ form.goods_info.name }}" id="goodsInfoHiddenInput">
+            <input type="hidden" name="{{ form.total_fare.name }}" id="{{ form.total_fare.id_for_label }}">
+
+            {% if form.goods_info.errors %}
+            <span style="color: red;">{{ form.goods_info.errors|striptags }}</span>
+            {% endif %}
+        </div>
+
+
+
+
+        <!-- Other Fields: Exclude those explicitly placed (CNID, Vehicle_No, cn_no, consignee, consigner, from_location, To_Location, goods_info) -->
+        <div class="full-width" style="display: flex; gap: 30px; flex-wrap: wrap;">
+            {# Booking Date #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Booking_Date.id_for_label }}">{{ form.Booking_Date.label }}</label>
+                {{ form.Booking_Date }}
+                {% if form.Booking_Date.errors %}
+                <span style="color: red;">{{ form.Booking_Date.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# Loading Date #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Loading_Date.id_for_label }}">{{ form.Loading_Date.label }}</label>
+                {{ form.Loading_Date }}
+                {% if form.Loading_Date.errors %}
+                <span style="color: red;">{{ form.Loading_Date.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# Unloading Date #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Unloading_Date.id_for_label }}">{{ form.Unloading_Date.label }}</label>
+                {{ form.Unloading_Date }}
+                {% if form.Unloading_Date.errors %}
+                <span style="color: red;">{{ form.Unloading_Date.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# NEW FIELD: Innam #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Innam.id_for_label }}">{{ form.Innam.label }}</label>
+                <input type="number" name="{{ form.Innam.name }}" id="{{ form.Innam.id_for_label }}"
+                    value="{{ form.Innam.value|default:'0' }}">
+                {% if form.Innam.errors %}
+                <span style="color: red;">{{ form.Innam.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# NEW FIELD: Truck Freight #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Truck_Freight.id_for_label }}">Truck Fare</label>
+                <input type="number" name="{{ form.Truck_Freight.name }}" id="{{ form.Truck_Freight.id_for_label }}"
+                    value="{{ form.Truck_Freight.value|default:'0.00' }}">
+                {% if form.Truck_Freight.errors %}
+                <span style="color: red;">{{ form.Truck_Freight.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# NEW FIELD: Extra TF #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Extra_TF.id_for_label }}">{{ form.Extra_TF.label }}</label>
+                <input type="number" name="{{ form.Extra_TF.name }}" id="{{ form.Extra_TF.id_for_label }}"
+                    value="{{ form.Extra_TF.value|default:'0.00' }}">
+                {% if form.Extra_TF.errors %}
+                <span style="color: red;">{{ form.Extra_TF.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# Advance Amount #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Advance_Amount.id_for_label }}">{{ form.Advance_Amount.label }}</label>
+                {{ form.Advance_Amount }}
+                {% if form.Advance_Amount.errors %}
+                <span style="color: red;">{{ form.Advance_Amount.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# Balance Amount #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Balance_Amount.id_for_label }}">To Pay</label>
+                {{ form.Balance_Amount }}
+                {% if form.Balance_Amount.errors %}
+                <span style="color: red;">{{ form.Balance_Amount.errors|striptags }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <button type="submit">Save</button>
+    </form>
+</div>
+<!-- Vehicle Management Modal (Enhanced) -->
+<div id="vehicleModalOverlay" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="closeVehicleModalBtn">&times;</button>
+        <h3>Manage Vehicle Numbers</h3>
+
+        <!-- Vehicle Number -->
+        <div class="modal-form-group">
+            <label for="newVehicleNo">Vehicle Number:</label>
+            <input type="text" id="newVehicleNo" placeholder="e.g., MH01AB1234">
+        </div>
+
+        <!-- Date Added -->
+        <div class="modal-form-group">
+            <label for="newVehicleDate">Date Added:</label>
+            <input type="date" id="newVehicleDate" value="{{ 'now'|date:'Y-m-d' }}">
+        </div>
+
+        <!-- Owner Name -->
+        <div class="modal-form-group">
+            <label for="newOwnerName">Owner Name:</label>
+            <input type="text" id="newOwnerName" placeholder="Owner Name">
+        </div>
+
+        <!-- Owner Phone -->
+        <div class="modal-form-group">
+            <label for="newOwnerPhone">Contact NO.:</label>
+            <input type="text" id="newOwnerPhone" placeholder="Phone Number">
+        </div>
+
+        <!-- Add Button -->
+        <button class="modal-add-btn" id="addNewVehicleBtn">Add Vehicle</button>
+
+        <!-- Loader / Status -->
+        <div id="vehicleLoading" class="loading-indicator">Processing...</div>
+        <div id="vehicleMessage" style="color: green; text-align: center; margin-top: 10px;"></div>
+
+        <!-- Vehicle Table -->
+        <table class="modal-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Vehicle No.</th>
+                    <th>Owner</th>
+                    <th>Phone</th>
+                    <th>Date Added</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="vehicleTableBody">
+                <!-- Vehicle data will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Consignee Management Modal (Enhanced) -->
+<div id="consigneeModalOverlay" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="closeConsigneeModalBtn">&times;</button>
+        <h3>Manage Consignees</h3>
+
+        <div class="modal-form-group">
+            <label for="newConsigneeName">Consignee Name:</label>
+            <input type="text" id="newConsigneeName" placeholder="e.g., ABC Logistics">
+        </div>
+
+        <div class="modal-form-group">
+            <label for="newConsigneeDate">Date Added:</label>
+            <input type="date" id="newConsigneeDate" value="{{ 'now'|date:'Y-m-d' }}">
+        </div>
+
+        <div class="modal-form-group">
+            <label for="newConsigneeAddress">Address:</label>
+            <textarea id="newConsigneeAddress" rows="3" placeholder="Enter consignee address"></textarea>
+        </div>
+
+        <!-- ✅ New Contact No. Field -->
+        <div class="modal-form-group">
+            <label for="newConsigneeContact">Contact No.:</label>
+            <input type="text" id="newConsigneeContact" placeholder="e.g., 9876543210">
+        </div>
+
+        <button class="modal-add-btn" id="addNewConsigneeBtn">Add Consignee</button>
+
+        <div id="consigneeLoading" class="loading-indicator">Processing...</div>
+        <div id="consigneeMessage" style="color: green; text-align: center; margin-top: 10px;"></div>
+
+        <table class="modal-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Consignee Name</th>
+                    <th>Date</th>
+                    <th>Address</th>
+                    <th>Contact No.</th> <!--  Added -->
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="consigneeTableBody">
+                <!-- Consignee data will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Consigner Management Modal (Enhanced) -->
+<div id="consignerModalOverlay" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="closeConsignerModalBtn">&times;</button>
+        <h3>Manage Consigners</h3>
+        <div class="modal-form-group">
+            <label for="newConsignerName">Consigner Name:</label>
+            <input type="text" id="newConsignerName" placeholder="e.g., ABC Logistics">
+        </div>
+        <div class="modal-form-group">
+            <label for="newConsignerDate">Date Added:</label>
+            <input type="date" id="newConsignerDate" value="{{ 'now'|date:'Y-m-d' }}">
+        </div>
+        <div class="modal-form-group">
+            <label for="newConsignerAddress">Address:</label>
+            <textarea id="newConsignerAddress" rows="3" placeholder="Enter consigner address"></textarea>
+        </div>
+        <button class="modal-add-btn" id="addNewConsignerBtn">Add Consigner</button>
+        <div id="consignerLoading" class="loading-indicator">Processing...</div>
+        <div id="consignerMessage" style="color: green; text-align: center; margin-top: 10px;"></div>
+        <table class="modal-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Consigner Name</th>
+                    <th>Date</th>
+                    <th>Address</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="consignerTableBody">
+                <!-- Consigner data will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- Location Management Modal (Enhanced) -->
+<div id="locationModalOverlay" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="closeLocationModalBtn">&times;</button>
+        <h3>Manage Locations</h3>
+        <div class="modal-form-group">
+            <label for="newLocationName">Location Name:</label>
+            <input type="text" id="newLocationName" placeholder="e.g., Nagpur">
+        </div>
+        <div class="modal-form-group">
+            <label for="newLocationDate">Date Added:</label>
+            <input type="date" id="newLocationDate" value="{{ 'now'|date:'Y-m-d' }}">
+        </div>
+        <button class="modal-add-btn" id="addNewLocationBtn">Add Location</button>
+        <div id="locationLoading" class="loading-indicator">Processing...</div>
+        <div id="locationMessage" style="color: green; text-align: center; margin-top: 10px;"></div>
+        <table class="modal-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Location</th>
+                    <th>Date Added</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="locationTableBody">
+                <!-- Location data will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- The Consignment Note Management Modal has been completely removed as requested -->
+<!-- Custom Confirmation Modal (Enhanced) -->
+<div id="confirmationModalOverlay" class="modal-overlay">
+    <div id="confirmationModalContent" class="modal-content">
+        <p id="confirmationMessage"></p>
+        <div id="confirmationModalButtons">
+            <button id="confirmYesBtn">Yes</button>
+            <button id="confirmNoBtn">No</button>
+        </div>
+    </div>
+</div>
+<!-- Success Popup Element (Enhanced) -->
+<div id="successPopup" class="success-popup">
+    Action successful!
+</div>
+<script>
+
+
+    const editingMode = {{ editing_mode|yesno:"true,false" }};
+    console.log("Editing Mode:", editingMode);
+    // --- DOM Content Loaded Event Handler ---
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const truckFreight = document.getElementById("id_Truck_Freight");
+        const innam = document.getElementById("id_Innam");
+        const extraTF = document.getElementById("id_Extra_TF");
+        const advanceAmount = document.getElementById("id_Advance_Amount");
+        const balanceAmount = document.getElementById("id_Balance_Amount");
+
+        function calculateToPay() {
+            const tf = parseFloat(truckFreight.value) || 0;
+            const inna = parseFloat(innam.value) || 0;
+            const extra = parseFloat(extraTF.value) || 0;
+            const advance = parseFloat(advanceAmount.value) || 0;
+
+            const toPay = tf + inna + extra - advance;
+            balanceAmount.value = toPay.toFixed(2);
+        }
+
+        // Attach event listeners to recalculate on change
+        [truckFreight, innam, extraTF, advanceAmount].forEach(input => {
+            input.addEventListener("input", calculateToPay);
+        });
+
+        // Optional: trigger calculation on load if values already present
+        calculateToPay();
+        // --- Common UI Elements and Utilities ---
+        const successPopup = document.getElementById('successPopup');
+        const consignmentForm = document.getElementById('consignmentForm');
+        const goodsInfoHiddenInput = document.getElementById('{{ form.goods_info.id_for_label }}');
+        const totalFareHiddenInput = document.getElementById('{{ form.total_fare.id_for_label }}');
+        const cnidInputField = document.getElementById('id_cn_note_id');
+        const truckFreightInput = document.getElementById('{{ form.Truck_Freight.id_for_label }}');
+        let totalFareSummaryInput = document.getElementById('totalFareSummary');
+
+
+        // Global arrays to hold fetched master data
+        //let goodsItemsData = [];
+
+        let allConsignees = [];
+        let allConsigners = [];
+        let allVehicles = []; // Store all fetched vehicles
+        let allLocations = []; // Store all fetched locations
+
+        // Custom Confirmation Modal elements
+        const confirmationModalOverlay = document.getElementById('confirmationModalOverlay');
+        const confirmationMessage = document.getElementById('confirmationMessage');
+        const confirmYesBtn = document.getElementById('confirmYesBtn');
+        const confirmNoBtn = document.getElementById('confirmNoBtn');
+        let confirmCallback = null;
+
+        // Function to show custom confirmation modal
+        function showConfirmationModal(message, callback) {
+            confirmationMessage.textContent = message;
+            confirmCallback = callback;
+            confirmationModalOverlay.style.display = 'flex';
+        }
+
+        // Event listeners for custom confirmation modal buttons
+        confirmYesBtn.addEventListener('click', () => {
+            if (confirmCallback) {
+                confirmCallback(true);
+            }
+            confirmationModalOverlay.style.display = 'none';
+        });
+
+        confirmNoBtn.addEventListener('click', () => {
+            if (confirmCallback) {
+                confirmCallback(false);
+            }
+            confirmationModalOverlay.style.display = 'none';
+        });
+
+        // Function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrftoken = getCookie('csrftoken');
+        // --- Show/Hide Success Popup ---
+        function showSuccessPopup(message) {
+            console.log("Success:", message);
+            successPopup.textContent = message;
+            successPopup.style.display = 'block'; // Make it visible
+            successPopup.classList.add('show'); // Add 'show' class to trigger animation
+            setTimeout(() => {
+                successPopup.classList.remove('show'); // Remove 'show' class to trigger reverse animation
+                setTimeout(() => {
+                    successPopup.style.display = 'none'; // Hide it completely after animation
+                }, 500); // This should match the transition duration
+            }, 3000); // Display for 3 seconds
+        }
+        // --- Fetch and Display Next CNID (Remains for main form) ---
+        async function fetchAndDisplayNextCNID() {
+            try {
+                const response = await fetch('/dapple/consignments/get_next_cnid/', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken,
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    //  Only fill CNID if it's currently empty (i.e., Add mode)
+                    if (cnidInputField && !cnidInputField.value) {
+                        cnidInputField.value = data.next_cn_id;
+                    }
+                } else {
+                    console.error('Error fetching next CNID:', data.message || 'Unknown error');
+                    if (cnidInputField && !cnidInputField.value) {
+                        cnidInputField.value = 'Error';
+                    }
+                }
+            } catch (error) {
+                console.error('Network error fetching next CNID:', error);
+                if (cnidInputField && !cnidInputField.value) {
+                    cnidInputField.value = 'N/A';
+                }
+            }
+        }
+
+        // --- Reusable Searchable Dropdown Function ---
+        function setupSearchableDropdown(
+            searchInputId,
+            hiddenInputId,
+            dropdownListId,
+            dropdownIconId,
+            dataArray,
+            displayKey,
+            idKey,
+            label = ''
+        ) {
+            const searchInput = document.getElementById(searchInputId);
+            const hiddenInput = document.getElementById(hiddenInputId);
+            const dropdownList = document.getElementById(dropdownListId);
+            const dropdownIcon = document.getElementById(dropdownIconId);
+            let currentFocusedItemIndex = -1;
+
+            if (!searchInput || !hiddenInput || !dropdownList || !dropdownIcon) {
+                console.warn(`Missing elements for searchable dropdown: ${searchInputId}`);
+                return;
+            }
+
+            function handleDropdownInteraction(e) {
+                if (e.type === 'mousedown' || e.type === 'touchstart') {
+                    e.preventDefault();
+                    selectItemFromDropdown(this.dataset.id, this.dataset.value);
+                }
+            }
+
+            function renderFilteredList(searchTerm) {
+                dropdownList.innerHTML = '';
+                const ul = document.createElement('ul');
+
+                const lowerCaseSearchTerm = searchTerm.toLowerCase();
+                const filteredData = dataArray.filter(item =>
+                    item[displayKey].toLowerCase().includes(lowerCaseSearchTerm)
+                );
+
+                if (filteredData.length === 0 && searchTerm !== '') {
+                    const li = document.createElement('li');
+                    li.textContent = `No matching ${displayKey.replace('_name', '').replace('_number', '').toLowerCase()} found.`;
+                    li.style.color = '#777';
+                    li.style.textAlign = 'center';
+                    ul.appendChild(li);
+                } else {
+                    filteredData.forEach((item, index) => {
+                        const li = document.createElement('li');
+                        li.textContent = item[displayKey];
+                        li.setAttribute('data-id', item[idKey]);
+                        li.setAttribute('data-value', item[displayKey]);
+
+                        li.addEventListener('mousedown', handleDropdownInteraction);
+                        li.addEventListener('touchstart', handleDropdownInteraction);
+                        li.addEventListener('click', function () {
+                            selectItemFromDropdown(this.dataset.id, this.dataset.value);
+                        });
+
+                        ul.appendChild(li);
+                    });
+                }
+
+                dropdownList.appendChild(ul);
+
+                if (filteredData.length > 0 || (searchTerm === '' && dataArray.length > 0 && document.activeElement === searchInput)) {
+                    dropdownList.style.display = 'block';
+                    dropdownIcon.classList.add('open');
+                } else {
+                    dropdownList.style.display = 'none';
+                    dropdownIcon.classList.remove('open');
+                }
+
+                currentFocusedItemIndex = -1;
+                //Use this instead to debug safely:
+                //console.log(`[${searchInputId}] Filtered ${filteredData.length} items for search term: '${searchTerm}'`);
+            }
+
+            function selectItemFromDropdown(id, value) {
+
+                searchInput.value = value;
+                hiddenInput.value = id;
+                dropdownList.style.display = 'none';
+                dropdownIcon.classList.remove('open');
+                searchInput.focus();
+                //console.log("Selected vehicle ID set to:", id);
+            }
+
+            const initialId = hiddenInput.value;
+            if (initialId) {
+                const preSelected = dataArray.find(item => item[idKey] == initialId);
+                if (preSelected) {
+                    searchInput.value = preSelected[displayKey];
+                }
+            }
+
+            searchInput.addEventListener('input', function () {
+                renderFilteredList(this.value);
+            });
+
+            searchInput.addEventListener('focus', function () {
+                renderFilteredList(this.value);
+            });
+
+            // Icon click: support both click and touch
+            function handleIconToggle(e) {
+                e.preventDefault();
+                if (dropdownList.style.display === 'block') {
+                    dropdownList.style.display = 'none';
+                    dropdownIcon.classList.remove('open');
+                } else {
+                    renderFilteredList('');
+                    searchInput.focus();
+                }
+            }
+            dropdownIcon.addEventListener('mousedown', handleIconToggle);
+            dropdownIcon.addEventListener('touchstart', handleIconToggle);
+
+            // In setupSearchableDropdown function
+            searchInput.addEventListener('blur', function () {
+                setTimeout(() => {
+                    const activeElement = document.activeElement;
+                    if (!dropdownList.contains(activeElement)) {
+                        dropdownList.style.display = 'none';
+                        dropdownIcon.classList.remove('open');
+
+                        // FIX: Don't clear the hidden input if we have a valid selection
+                        const selectedId = hiddenInput.value;
+                        if (selectedId) return; // Keep the selection if we have an ID
+
+                        // Only clear if no selection exists and text is entered
+                        const enteredText = searchInput.value;
+                        if (enteredText !== '') {
+                            hiddenInput.value = '';
+                        }
+                    }
+                }, 200);
+            });
+
+            searchInput.addEventListener('keydown', function (e) {
+                const items = Array.from(dropdownList.querySelectorAll('li'));
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    currentFocusedItemIndex = (currentFocusedItemIndex + 1) % items.length;
+                    items.forEach((item, idx) => {
+                        item.classList.toggle('selected', idx === currentFocusedItemIndex);
+                    });
+                    items[currentFocusedItemIndex].scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    currentFocusedItemIndex = (currentFocusedItemIndex - 1 + items.length) % items.length;
+                    items.forEach((item, idx) => {
+                        item.classList.toggle('selected', idx === currentFocusedItemIndex);
+                    });
+                    items[currentFocusedItemIndex].scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (currentFocusedItemIndex > -1 && items[currentFocusedItemIndex]) {
+                        items[currentFocusedItemIndex].click();
+                    } else if (items.length === 1 && this.value.toLowerCase() === items[0].textContent.toLowerCase()) {
+                        items[0].click();
+                    }
+                }
+            });
+
+            document.addEventListener('click', function (event) {
+                const isClickInsideSearchWrapper = searchInput.closest('.custom-searchable-select-wrapper')?.contains(event.target);
+                const isClickInsideDropdownList = dropdownList.contains(event.target);
+
+                if (!isClickInsideSearchWrapper && !isClickInsideDropdownList) {
+                    dropdownList.style.display = 'none';
+                    dropdownIcon.classList.remove('open');
+
+                    const selectedId = hiddenInput.value;
+                    const enteredText = searchInput.value;
+                    const foundMatch = dataArray.some(item =>
+                        item[idKey] == selectedId && item[displayKey] === enteredText
+                    );
+
+                    if (!foundMatch && enteredText !== '') {
+                        hiddenInput.value = '';
+                    }
+                }
+            });
+
+            return selectItemFromDropdown;
+        }
+
+//__________________--- Vehicle Management ---__________________________________________________________
+
+        const addVehicleBtn = document.getElementById('addVehicleBtn');
+        const vehicleModalOverlay = document.getElementById('vehicleModalOverlay');
+        const closeVehicleModalBtn = document.getElementById('closeVehicleModalBtn');
+        const addNewVehicleBtn = document.getElementById('addNewVehicleBtn');
+        const newVehicleNoInput = document.getElementById('newVehicleNo');
+        const newVehicleDateInput = document.getElementById('newVehicleDate');
+        const vehicleTableBody = document.getElementById('vehicleTableBody');
+        const vehicleSearchInput = document.getElementById('vehicleSearchInput');
+        //const vehicleIdHiddenInput = document.getElementById('{{ form.Vehicle_No.id_for_label }}');
+        //const vehicleIdHiddenInput = document.getElementById('{{ form.Vehicle_No.id_for_label }}');
+        const vehicleIdHiddenInput = document.getElementById('id_Vehicle_No');
+
+
+        const vehicleDropdownList = document.getElementById('vehicleDropdownList');
+        const vehicleDropdownIcon = document.getElementById('vehicleDropdownIcon');
+        const vehicleLoadingIndicator = document.getElementById('vehicleLoading');
+        const vehicleMessage = document.getElementById('vehicleMessage');
+        const newOwnerNameInput = document.getElementById("newOwnerName");
+        const newOwnerPhoneInput = document.getElementById("newOwnerPhone");
+
+        let selectVehicleGlobal; // To store the returned selection function
+      
+        
+        async function fetchAndRenderVehicles(selectedVehicleId = null) {
+            if (vehicleLoadingIndicator) vehicleLoadingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch('/dapple/vehicles/get/', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken,
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    allVehicles = data.vehicles;
+
+                    // 1️ Re-render the dropdown
+                    selectVehicleGlobal = setupSearchableDropdown(
+                        'vehicleSearchInput',
+                        'id_Vehicle_No',
+                        'vehicleDropdownList',
+                        'vehicleDropdownIcon',
+                        allVehicles,
+                        'vehicle_number',
+                        'id'
+                    );
+                    renderVehicles(allVehicles); 
+                    //  2️ Editing Mode: Pre-fill vehicle number if already selected
+                    if (editingMode && vehicleIdHiddenInput?.value && vehicleSearchInput) {
+                        const matchedVehicle = allVehicles.find(v => v.id === parseInt(vehicleIdHiddenInput.value));
+                        if (matchedVehicle) {
+                            vehicleSearchInput.value = matchedVehicle.vehicle_number;
+                            //console.log(" Pre-filled vehicle number in editing mode:", matchedVehicle.vehicle_number);
+                        } else {
+                            console.warn(" Vehicle ID not found in list:", vehicleIdHiddenInput.value);
+                        }
+                    }
+                    // 3️ Auto-select the newly added vehicle (after add)
+                    if (selectedVehicleId && selectVehicleGlobal) {
+                        const newVehicle = allVehicles.find(v => v.id == selectedVehicleId);
+                        if (newVehicle) {
+                            selectVehicleGlobal(newVehicle.id, newVehicle.vehicle_number);
+                            // console.log(" Vehicle dropdown refreshed and selected:", newVehicle.vehicle_number);
+                        }
+                    }
+                } else {
+                    console.error(' Failed to fetch vehicle list:', data.message);
+                }
+            } catch (err) {
+                console.error(' Network error fetching vehicles:', err);
+            } finally {
+                if (vehicleLoadingIndicator) vehicleLoadingIndicator.style.display = 'none';
+            }
+        }
+
+        function renderVehicles(vehicles) {
+            
+            if (vehicleTableBody) vehicleTableBody.innerHTML = '';
+            
+            if (vehicles.length === 0) {
+                if (vehicleTableBody) vehicleTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No vehicles added yet.</td></tr>';
+            } else {
+                let sNo = 1;
+                vehicles.forEach(vehicle => {
+                    const row = vehicleTableBody.insertRow();
+                    row.insertCell(0).textContent = sNo++;
+                    row.insertCell(1).textContent = vehicle.vehicle_number;
+                    row.insertCell(2).textContent = vehicle.owner_name || '-';
+                    row.insertCell(3).textContent = vehicle.owner_phone || '-';
+                    row.insertCell(4).textContent = vehicle.date_added;
+
+                    const actionsCell = row.insertCell(5);
+                    actionsCell.classList.add('actions');
+
+                    const selectRowBtn = document.createElement('button');
+                    selectRowBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
+                    selectRowBtn.classList.add('table-action-btn', 'select-btn');
+                    selectRowBtn.title = `Select ${vehicle.vehicle_number}`;
+                    selectRowBtn.setAttribute('data-vehicle-id', vehicle.id);
+                    selectRowBtn.setAttribute('data-vehicle-number', vehicle.vehicle_number);
+                    actionsCell.appendChild(selectRowBtn);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                    deleteBtn.classList.add('table-action-btn', 'delete-btn');
+                    deleteBtn.title = `Delete ${vehicle.vehicle_number}`;
+                    deleteBtn.setAttribute('data-vehicle-id', vehicle.id);
+                    actionsCell.appendChild(deleteBtn);
+                });
+                attachVehicleTableButtonListeners();
+            }
+        }
+
+        function attachVehicleTableButtonListeners() {
+            document.querySelectorAll('#vehicleTableBody .select-btn').forEach(button => {
+                button.onclick = function () {
+                    const selectedId = this.getAttribute('data-vehicle-id');
+                    const selectedNum = this.getAttribute('data-vehicle-number');
+                    if (selectVehicleGlobal) {
+                        selectVehicleGlobal(selectedId, selectedNum);
+                    }
+                    if (vehicleModalOverlay) vehicleModalOverlay.style.display = 'none';
+                };
+            });
+
+            document.querySelectorAll('#vehicleTableBody .delete-btn').forEach(button => {
+                button.onclick = async function () {
+                    const vehicleId = this.getAttribute('data-vehicle-id');
+                    showConfirmationModal("Are you sure you want to delete this vehicle?", async (confirmed) => {
+                        if (confirmed) {
+                            console.log(`Attempting to delete vehicle ID: ${vehicleId}`);
+                            await deleteVehicle(vehicleId);
+                        }
+                    });
+                };
+            });
+        }
+
+        async function addNewVehicle() {
+            const vehicleNo = newVehicleNoInput ? newVehicleNoInput.value.trim() : '';
+            const dateAdded = newVehicleDateInput ? newVehicleDateInput.value : '';
+            const ownerName = newOwnerNameInput ? newOwnerNameInput.value.trim() : '';
+            const ownerPhone = newOwnerPhoneInput ? newOwnerPhoneInput.value.trim() : '';
+
+            if (!vehicleNo || !dateAdded) {
+                console.error("Vehicle Number and Date are required.");
+                showSuccessPopup("Error: Vehicle Number and Date are required.");
+                return;
+            }
+
+            if (vehicleLoadingIndicator) vehicleLoadingIndicator.style.display = 'block';
+            if (addNewVehicleBtn) addNewVehicleBtn.disabled = true;
+
+            try {
+                const payload = {
+                    vehicle_number: vehicleNo,
+                    date_added: dateAdded,
+                    owner_name: ownerName,
+                    owner_phone: ownerPhone
+                };
+                //console.log("Sending vehicle payload:", payload);
+                const response = await fetch('/dapple/vehicles/add/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                //console.log("Received vehicle response:", data);
+
+                if (response.ok && data.success) {
+                    showSuccessPopup("Vehicle added successfully!");
+                    if (newVehicleNoInput) newVehicleNoInput.value = '';
+                    if (newVehicleDateInput) newVehicleDateInput.value = new Date().toISOString().slice(0, 10);
+                    if (newOwnerNameInput) newOwnerNameInput.value = '';
+                    if (newOwnerPhoneInput) newOwnerPhoneInput.value = '';
+                    if (vehicleModalOverlay) vehicleModalOverlay.style.display = 'none';
+                    //await fetchAndRenderVehicles();
+                    await fetchAndRenderVehicles(data.vehicle.id);
+                    setTimeout(() => {
+                        if (selectVehicleGlobal) {
+                            selectVehicleGlobal(data.vehicle.id, data.vehicle.vehicle_number);
+                        }
+                    }, 100);
+                    //window.location.href = "{% url 'consignment' %}";
+                } else {
+                    let errorDetail = 'Unknown error';
+                    if (data.message) errorDetail = data.message;
+                    else if (data.errors) {
+                        try {
+                            const errors = JSON.parse(data.errors);
+                            let errorMessages = [];
+                            for (const field in errors) {
+                                errors[field].forEach(err => { errorMessages.push(`${field}: ${err.message || err.code}`); });
+                            }
+                            errorDetail = errorMessages.join('; ');
+                        } catch (e) {
+                            errorDetail = data.errors;
+                        }
+                    }
+                    console.error('Error adding vehicle:', data.errors || data.message || data);
+                    showSuccessPopup(`Error adding vehicle: ${errorDetail}`);
+                }
+            }
+            catch (error) {
+                console.error('Network error adding vehicle:', error);
+                showSuccessPopup(`Network error adding vehicle: ${error.message}`);
+            } finally {
+                if (vehicleLoadingIndicator) vehicleLoadingIndicator.style.display = 'none';
+                if (addNewVehicleBtn) addNewVehicleBtn.disabled = false;
+            }
+
+        }
+
+        async function deleteVehicle(vehicleId) {
+            if (vehicleLoadingIndicator) vehicleLoadingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch(`/dapple/vehicles/delete/${vehicleId}/`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showSuccessPopup("Vehicle deleted successfully!");
+                    //await fetchAndRenderVehicles();
+                    await fetchAndRenderVehicles(data.vehicle.id);
+
+                    if (vehicleIdHiddenInput.value == vehicleId) {
+                        vehicleSearchInput.value = '';
+                        vehicleIdHiddenInput.value = '';
+                        //console.log("Vehicle id :", vehicleIdHiddenInput.value);  
+                    }
+                } else {
+                    const errorMessage = data.message || (data.errors ? JSON.stringify(data.errors) : 'Unknown error');
+                    console.error('Error deleting vehicle:', errorMessage);
+                    showSuccessPopup(`Error deleting vehicle: ${errorMessage}`);
+                }
+
+
+            }
+            catch (error) {
+                console.error('Error deleting vehicle:', error);
+                showSuccessPopup(`Network error deleting vehicle: ${error.message}`);
+            } finally {
+                if (vehicleLoadingIndicator) vehicleLoadingIndicator.style.display = 'none';
+            }
+        }
+       
+//___________________--- Consignee Management ---________________________________________________________
+
+        const addConsigneeBtn = document.getElementById('addConsigneeBtn');
+        const consigneeModalOverlay = document.getElementById('consigneeModalOverlay');
+        const closeConsigneeModalBtn = document.getElementById('closeConsigneeModalBtn');
+        const addNewConsigneeBtn = document.getElementById('addNewConsigneeBtn');
+        const newConsigneeNameInput = document.getElementById('newConsigneeName');
+        const newConsigneeDateInput = document.getElementById('newConsigneeDate');
+        const newConsigneeAddressInput = document.getElementById('newConsigneeAddress');
+        const newConsigneeContactInput = document.getElementById('newConsigneeContact');
+
+        const consigneeTableBody = document.getElementById('consigneeTableBody');
+        const consigneeSearchInput = document.getElementById('consigneeSearchInput');
+        const consigneeIdHiddenInput = document.getElementById('id_consignee'); // Changed from template literal
+        const consigneeDropdownList = document.getElementById('consigneeDropdownList');
+        const consigneeDropdownIcon = document.getElementById('consigneeDropdownIcon');
+        const consigneeLoadingIndicator = document.getElementById('consigneeLoading');
+
+        let selectConsigneeGlobal;
+
+        async function fetchAndRenderConsignees(selectedConsigneeId = null) {
+            if (consigneeLoadingIndicator) consigneeLoadingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch('/dapple/consignees/get/', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    allConsignees = data.consignees;
+
+                    // 1️ Re-render the dropdown
+                    selectConsigneeGlobal = setupSearchableDropdown(
+                        'consigneeSearchInput',
+                        'id_consignee',
+                        'consigneeDropdownList',
+                        'consigneeDropdownIcon',
+                        allConsignees,
+                        'consignee_name',
+                        'id'
+                    );
+
+                    // 2️ Re-render the modal table
+                    renderConsignees(allConsignees);
+
+                    // 3️ Auto-select the newly added consignee if needed
+                    if (selectedConsigneeId && selectConsigneeGlobal) {
+                        const newConsignee = allConsignees.find(c => c.id == selectedConsigneeId);
+                        if (newConsignee) {
+                            selectConsigneeGlobal(newConsignee.id, newConsignee.consignee_name);
+                            //console.log("Consignee dropdown refreshed and selected:", newConsignee.consignee_name);
+                        }
+                    }
+                } else {
+                    console.error('❌ Failed to fetch consignee list:', data.message);
+                }
+            } catch (err) {
+                console.error('❌ Network error fetching consignees:', err);
+            } finally {
+                if (consigneeLoadingIndicator) consigneeLoadingIndicator.style.display = 'none';
+            }
+        }
+
+        function renderConsignees(consignees) {
+            if (consigneeTableBody) consigneeTableBody.innerHTML = '';
+
+            if (consignees.length === 0) {
+                consigneeTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No consignees added yet.</td></tr>';
+            } else {
+                let sNo = 1;
+                consignees.forEach(consignee => {
+                    const row = consigneeTableBody.insertRow();
+                    row.insertCell(0).textContent = sNo++;
+                    row.insertCell(1).textContent = consignee.consignee_name;
+                    row.insertCell(2).textContent = consignee.date_added;
+                    row.insertCell(3).textContent = consignee.consignee_address;
+                    row.insertCell(4).textContent = consignee.contact_no || '-';
+
+                    const actionsCell = row.insertCell(5);
+                    actionsCell.classList.add('actions');
+
+                    const selectBtn = document.createElement('button');
+                    selectBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
+                    selectBtn.classList.add('table-action-btn', 'select-btn');
+                    selectBtn.title = `Select ${consignee.consignee_name}`;
+                    selectBtn.setAttribute('data-consignee-id', consignee.id);
+                    selectBtn.setAttribute('data-consignee-name', consignee.consignee_name);
+                    actionsCell.appendChild(selectBtn);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                    deleteBtn.classList.add('table-action-btn', 'delete-btn');
+                    deleteBtn.title = `Delete ${consignee.consignee_name}`;
+                    deleteBtn.setAttribute('data-consignee-id', consignee.id);
+                    actionsCell.appendChild(deleteBtn);
+                });
+
+                attachConsigneeTableButtonListeners();
+            }
+        }
+
+        function attachConsigneeTableButtonListeners() {
+            document.querySelectorAll('#consigneeTableBody .select-btn').forEach(button => {
+                button.onclick = function () {
+                    const selectedId = this.getAttribute('data-consignee-id');
+                    const selectedName = this.getAttribute('data-consignee-name');
+                    if (selectConsigneeGlobal) {
+                        selectConsigneeGlobal(selectedId, selectedName);
+                    }
+                    if (consigneeModalOverlay) consigneeModalOverlay.style.display = 'none';
+                };
+            });
+
+            document.querySelectorAll('#consigneeTableBody .delete-btn').forEach(button => {
+                button.onclick = async function () {
+                    const consigneeId = this.getAttribute('data-consignee-id');
+                    showConfirmationModal("Are you sure you want to delete this consignee?", async (confirmed) => {
+                        if (confirmed) {
+                            await deleteConsignee(consigneeId);
+                        }
+                    });
+                };
+            });
+        }
+
+        async function addNewConsignee() {
+            const consigneeName = newConsigneeNameInput?.value.trim();
+            const dateAdded = newConsigneeDateInput?.value;
+            const consigneeAddress = newConsigneeAddressInput?.value.trim();
+            const contactNo = newConsigneeContactInput?.value.trim();
+
+            if (!consigneeName || !dateAdded || !consigneeAddress) {
+                showSuccessPopup("Error: Name, Date & Address are required.");
+                return;
+            }
+
+            if (consigneeLoadingIndicator) consigneeLoadingIndicator.style.display = 'block';
+            if (addNewConsigneeBtn) addNewConsigneeBtn.disabled = true;
+
+            try {
+                const payload = {
+                    consignee_name: consigneeName,
+                    date_added: dateAdded,
+                    consignee_address: consigneeAddress,
+                    contact_no: contactNo
+                };
+
+                const response = await fetch('/dapple/consignees/add/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showSuccessPopup("Consignee added successfully!");
+                    newConsigneeNameInput.value = '';
+                    newConsigneeDateInput.value = new Date().toISOString().slice(0, 10);
+                    newConsigneeAddressInput.value = '';
+                    newConsigneeContactInput.value = '';
+                    consigneeModalOverlay.style.display = 'none';
+
+                    await fetchAndRenderConsignees(data.consignee.id);
+
+                    setTimeout(() => {
+                        if (selectConsigneeGlobal) {
+                            selectConsigneeGlobal(data.consignee.id, data.consignee.consignee_name);
+                        }
+                    }, 100);
+                } else {
+                    const errorDetail = data.message || (data.errors ? JSON.stringify(data.errors) : 'Unknown error');
+                    showSuccessPopup(`Error adding consignee: ${errorDetail}`);
+                }
+            } catch (error) {
+                showSuccessPopup(`Network error adding consignee: ${error.message}`);
+            } finally {
+                if (consigneeLoadingIndicator) consigneeLoadingIndicator.style.display = 'none';
+                if (addNewConsigneeBtn) addNewConsigneeBtn.disabled = false;
+            }
+        }
+
+        async function deleteConsignee(consigneeId) {
+            if (consigneeLoadingIndicator) consigneeLoadingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch(`/dapple/consignees/delete/${consigneeId}/`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showSuccessPopup("Consignee deleted successfully!");
+                    await fetchAndRenderConsignees();
+                    if (consigneeIdHiddenInput.value == consigneeId) {
+                        consigneeSearchInput.value = '';
+                        consigneeIdHiddenInput.value = '';
+                    }
+                } else {
+                    const errorMessage = data.message || 'Unknown error';
+                    showSuccessPopup(`Error deleting consignee: ${errorMessage}`);
+                }
+            } catch (error) {
+                showSuccessPopup(`Network error deleting consignee: ${error.message}`);
+            } finally {
+                if (consigneeLoadingIndicator) consigneeLoadingIndicator.style.display = 'none';
+            }
+        }
+
+//_______________________--- Consigner Management ---_________________________________________________________
+        const addConsignerBtn = document.getElementById('addConsignerBtn');
+        const consignerModalOverlay = document.getElementById('consignerModalOverlay');
+        const closeConsignerModalBtn = document.getElementById('closeConsignerModalBtn');
+        const addNewConsignerBtn = document.getElementById('addNewConsignerBtn');
+
+        const newConsignerNameInput = document.getElementById('newConsignerName');
+        const newConsignerDateInput = document.getElementById('newConsignerDate');
+        const newConsignerAddressInput = document.getElementById('newConsignerAddress');
+
+        const consignerTableBody = document.getElementById('consignerTableBody');
+        const consignerSearchInput = document.getElementById('consignerSearchInput');
+        const consignerIdHiddenInput = document.getElementById('id_consigner');
+
+        const consignerDropdownList = document.getElementById('consignerDropdownList');
+        const consignerDropdownIcon = document.getElementById('consignerDropdownIcon');
+        const consignerLoadingIndicator = document.getElementById('consignerLoading');
+
+        let selectConsignerGlobal;
+
+
+        async function fetchAndRenderConsigners(selectedConsignerId = null) {
+            if (consignerLoadingIndicator) consignerLoadingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch('/dapple/consigners/get/', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken,
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    allConsigners = data.consigners;
+
+                    selectConsignerGlobal = setupSearchableDropdown(
+                        'consignerSearchInput',
+                        'id_consigner',
+                        'consignerDropdownList',
+                        'consignerDropdownIcon',
+                        allConsigners,
+                        'consigner_name',
+                        'id'
+                    );
+
+                    if (selectedConsignerId && selectConsignerGlobal) {
+                        const newConsigner = allConsigners.find(c => c.id == selectedConsignerId);
+                        if (newConsigner) {
+                            selectConsignerGlobal(newConsigner.id, newConsigner.consigner_name);
+                            //console.log(" Consigner dropdown refreshed and selected:", newConsigner.consigner_name);
+                        }
+                    }
+
+                    renderConsigners(allConsigners);
+                } else {
+                    console.error('❌ Failed to fetch consigner list:', data.message);
+                }
+            } catch (err) {
+                console.error('❌ Network error fetching consigners:', err);
+            } finally {
+                if (consignerLoadingIndicator) consignerLoadingIndicator.style.display = 'none';
+            }
+        }
+
+        function renderConsigners(consigners) {
+            if (!consignerTableBody) return;
+            consignerTableBody.innerHTML = '';
+
+            if (consigners.length === 0) {
+                consignerTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No consigners added yet.</td></tr>';
+                return;
+            }
+
+            let sNo = 1;
+            consigners.forEach(consigner => {
+                const row = consignerTableBody.insertRow();
+                row.insertCell(0).textContent = sNo++;
+                row.insertCell(1).textContent = consigner.consigner_name;
+                row.insertCell(2).textContent = consigner.date_added;
+                row.insertCell(3).textContent = consigner.consigner_address;
+
+                const actionsCell = row.insertCell(4);
+                actionsCell.classList.add('actions');
+
+                const selectBtn = document.createElement('button');
+                selectBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
+                selectBtn.classList.add('table-action-btn', 'select-btn');
+                selectBtn.title = `Select ${consigner.consigner_name}`;
+                selectBtn.dataset.consignerId = consigner.id;
+                selectBtn.dataset.consignerName = consigner.consigner_name;
+                actionsCell.appendChild(selectBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                deleteBtn.classList.add('table-action-btn', 'delete-btn');
+                deleteBtn.title = `Delete ${consigner.consigner_name}`;
+                deleteBtn.dataset.consignerId = consigner.id;
+                actionsCell.appendChild(deleteBtn);
+            });
+
+            attachConsignerTableButtonListeners();
+        }
+
+        function attachConsignerTableButtonListeners() {
+            document.querySelectorAll('#consignerTableBody .select-btn').forEach(button => {
+                button.onclick = function () {
+                    const id = button.dataset.consignerId;
+                    const name = button.dataset.consignerName;
+                    if (selectConsignerGlobal) {
+                        selectConsignerGlobal(id, name);
+                    }
+                    if (consignerModalOverlay) consignerModalOverlay.style.display = 'none';
+                };
+            });
+
+            document.querySelectorAll('#consignerTableBody .delete-btn').forEach(button => {
+                button.onclick = async function () {
+                    const consignerId = this.dataset.consignerId;
+                    showConfirmationModal("Are you sure you want to delete this consigner?", async (confirmed) => {
+                        if (confirmed) {
+                            console.log(`Attempting to delete consigner ID: ${consignerId}`);
+                            await deleteConsigner(consignerId);
+                        }
+                    });
+                };
+            });
+        }
+
+        async function addNewConsigner() {
+            const name = newConsignerNameInput?.value.trim();
+            const date = newConsignerDateInput?.value;
+            const address = newConsignerAddressInput?.value.trim();
+
+            if (!name || !date || !address) {
+                showSuccessPopup("Error: Consigner Name, Date, and Address are required.");
+                return;
+            }
+
+            if (consignerLoadingIndicator) consignerLoadingIndicator.style.display = 'block';
+            if (addNewConsignerBtn) addNewConsignerBtn.disabled = true;
+
+            try {
+                const payload = {
+                    consigner_name: name,
+                    date_added: date,
+                    consigner_address: address,
+                };
+                console.log("Sending consigner payload:", payload);
+
+                const response = await fetch('/dapple/consigners/add/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                console.log("Received consigner response:", data);
+
+                if (response.ok && data.success) {
+                    showSuccessPopup("Consigner added successfully!");
+
+                    if (newConsignerNameInput) newConsignerNameInput.value = '';
+                    if (newConsignerDateInput) newConsignerDateInput.value = new Date().toISOString().slice(0, 10);
+                    if (newConsignerAddressInput) newConsignerAddressInput.value = '';
+                    if (consignerModalOverlay) consignerModalOverlay.style.display = 'none';
+
+                    await fetchAndRenderConsigners(data.consigner.id);
+
+                    setTimeout(() => {
+                        if (selectConsignerGlobal) {
+                            selectConsignerGlobal(data.consigner.id, data.consigner.consigner_name);
+                        }
+                    }, 100);
+                } else {
+                    const errorMsg = data.message || JSON.stringify(data.errors || 'Unknown error');
+                    console.error('Error adding consigner:', data.errors || data.message || data);
+                    showSuccessPopup(`Error adding consigner: ${errorMsg}`);
+                }
+            } catch (error) {
+                console.error('Network error adding consigner:', error);
+                showSuccessPopup(`Network error adding consigner: ${error.message}`);
+            } finally {
+                if (consignerLoadingIndicator) consignerLoadingIndicator.style.display = 'none';
+                if (addNewConsignerBtn) addNewConsignerBtn.disabled = false;
+            }
+        }
+
+        async function deleteConsigner(consignerId) {
+            if (consignerLoadingIndicator) consignerLoadingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch(`/dapple/consigners/delete/${consignerId}/`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showSuccessPopup("Consigner deleted successfully!");
+                    await fetchAndRenderConsigners();
+
+                    if (consignerIdHiddenInput.value == consignerId) {
+                        consignerSearchInput.value = '';
+                        consignerIdHiddenInput.value = '';
+                        console.log(" Cleared deleted consigner from form.");
+                    }
+                } else {
+                    const errorMsg = data.message || JSON.stringify(data.errors || 'Unknown error');
+                    console.error('Error deleting consigner:', errorMsg);
+                    showSuccessPopup(`Error deleting consigner: ${errorMsg}`);
+                }
+            } catch (error) {
+                console.error('Error deleting consigner:', error);
+                showSuccessPopup(`Network error deleting consigner: ${error.message}`);
+            } finally {
+                if (consignerLoadingIndicator) consignerLoadingIndicator.style.display = 'none';
+            }
+        }
+//_______________________________--- Location Management ---_____________________________________________
+        const addToLocationBtn = document.getElementById('addToLocationBtn');
+        const locationModalOverlay = document.getElementById('locationModalOverlay');
+        const closeLocationModalBtn = document.getElementById('closeLocationModalBtn');
+        const addNewLocationBtn = document.getElementById('addNewLocationBtn');
+        const newLocationNameInput = document.getElementById('newLocationName');
+        const newLocationDateInput = document.getElementById('newLocationDate');
+        const locationTableBody = document.getElementById('locationTableBody');
+        const fromLocationSearchInput = document.getElementById('fromLocationSearchInput');
+        const toLocationSearchInput = document.getElementById('toLocationSearchInput');
+        const fromLocationIdHiddenInput = document.getElementById('id_from_location');
+        const toLocationIdHiddenInput = document.getElementById('id_To_Location');
+        const fromLocationDropdownList = document.getElementById('fromLocationDropdownList');
+        const fromLocationDropdownIcon = document.getElementById('fromLocationDropdownIcon');
+        const toLocationDropdownList = document.getElementById('toLocationDropdownList');
+        const toLocationDropdownIcon = document.getElementById('toLocationDropdownIcon');
+        const locationLoadingIndicator = document.getElementById('locationLoading');
+
+        let selectFromLocationGlobal;
+        let selectToLocationGlobal;
+        let currentLocationTarget = null;
+
+        // --- Open Modal Buttons ---
+        if (addFromLocationBtn) {
+            addFromLocationBtn.addEventListener('click', () => {
+                currentLocationTarget = 'from';
+                //console.log(" Opening modal for FROM");
+                if (locationModalOverlay) locationModalOverlay.style.display = 'block';
+            });
+        }
+
+        if (addToLocationBtn) {
+            addToLocationBtn.addEventListener('click', () => {
+                currentLocationTarget = 'to';
+                //console.log(" Opening modal for TO");
+                if (locationModalOverlay) locationModalOverlay.style.display = 'block';
+            });
+        }
+
+        if (closeLocationModalBtn) {
+            closeLocationModalBtn.addEventListener('click', () => {
+                if (locationModalOverlay) locationModalOverlay.style.display = 'none';
+            });
+        }
+
+        // --- Fetch Locations & Setup Dropdowns ---
+        async function fetchAndRenderLocations() {
+            if (locationLoadingIndicator) locationLoadingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch('/dapple/locations/get/', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    allLocations = data.locations;
+
+                    renderLocations(allLocations);
+
+                    // Setup searchable dropdowns
+                    selectFromLocationGlobal = setupSearchableDropdown(
+                        'fromLocationSearchInput',
+                        'id_from_location',
+                        'fromLocationDropdownList',
+                        'fromLocationDropdownIcon',
+                        allLocations,
+                        'location_name',
+                        'id'
+                    );
+                    selectToLocationGlobal = setupSearchableDropdown(
+                        'toLocationSearchInput',
+                        'id_To_Location',
+                        'toLocationDropdownList',
+                        'toLocationDropdownIcon',
+                        allLocations,
+                        'location_name',
+                        'id'
+                    );
+
+                    //console.log("Location dropdowns refreshed");
+                } else {
+                    console.error('Error fetching locations:', data.errors || data.message);
+                }
+            } catch (error) {
+                console.error('Network error fetching locations:', error);
+            } finally {
+                if (locationLoadingIndicator) locationLoadingIndicator.style.display = 'none';
+            }
+        }
+
+        // --- Render Modal Table ---
+        function renderLocations(locations) {
+            if (locationTableBody) locationTableBody.innerHTML = '';
+
+            if (locations.length === 0) {
+                locationTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No locations added yet.</td></tr>';
+            } else {
+                let sNo = 1;
+                locations.forEach(location => {
+                    const row = locationTableBody.insertRow();
+                    row.insertCell(0).textContent = sNo++;
+                    row.insertCell(1).textContent = location.location_name;
+                    row.insertCell(2).textContent = location.date_added;
+
+                    const actionsCell = row.insertCell(3);
+                    actionsCell.classList.add('actions');
+
+                    const selectRowBtn = document.createElement('button');
+                    selectRowBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
+                    selectRowBtn.classList.add('table-action-btn', 'select-btn');
+                    selectRowBtn.title = `Select ${location.location_name}`;
+                    selectRowBtn.setAttribute('data-location-id', location.id);
+                    selectRowBtn.setAttribute('data-location-name', location.location_name);
+                    actionsCell.appendChild(selectRowBtn);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                    deleteBtn.classList.add('table-action-btn', 'delete-btn');
+                    deleteBtn.title = `Delete ${location.location_name}`;
+                    deleteBtn.setAttribute('data-location-id', location.id);
+                    actionsCell.appendChild(deleteBtn);
+                });
+
+                attachLocationTableButtonListeners();
+            }
+        }
+
+        // --- Attach Button Actions ---
+        function attachLocationTableButtonListeners() {
+            document.querySelectorAll('#locationTableBody .select-btn').forEach(button => {
+                button.onclick = function () {
+                    const selectedId = this.getAttribute('data-location-id');
+                    const selectedName = this.getAttribute('data-location-name');
+
+                    //console.log(" Modal confirmed for:", currentLocationTarget);
+                    if (currentLocationTarget === 'from' && selectFromLocationGlobal) {
+                        selectFromLocationGlobal(selectedId, selectedName);
+                        //console.log(" Assigned FROM location:", selectedName);
+                    } else if (currentLocationTarget === 'to' && selectToLocationGlobal) {
+                        selectToLocationGlobal(selectedId, selectedName);
+                        //console.log(" Assigned TO location:", selectedName);
+                    }
+
+                    if (locationModalOverlay) locationModalOverlay.style.display = 'none';
+                };
+            });
+
+            document.querySelectorAll('#locationTableBody .delete-btn').forEach(button => {
+                button.onclick = async function () {
+                    const locationId = this.getAttribute('data-location-id');
+                    showConfirmationModal("Are you sure you want to delete this location?", async (confirmed) => {
+                        if (confirmed) {
+                            console.log(`Attempting to delete location ID: ${locationId}`);
+                            await deleteLocation(locationId);
+                        }
+                    });
+                };
+            });
+        }
+
+        // --- Add New Location ---
+        async function addNewLocation() {
+            const locationName = newLocationNameInput?.value.trim();
+            const dateAdded = newLocationDateInput?.value;
+
+            if (!locationName || !dateAdded) {
+                showSuccessPopup("Error: Location Name and Date are required.");
+                return;
+            }
+
+            locationLoadingIndicator.style.display = 'block';
+            addNewLocationBtn.disabled = true;
+
+            try {
+                const payload = { location_name: locationName, date_added: dateAdded };
+                const response = await fetch('/dapple/locations/add/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showSuccessPopup("Location added successfully!");
+                    newLocationNameInput.value = '';
+                    newLocationDateInput.value = new Date().toISOString().slice(0, 10);
+                    locationModalOverlay.style.display = 'none';
+                    await fetchAndRenderLocations();
+
+                    if (currentLocationTarget === 'from' && selectFromLocationGlobal) {
+                        selectFromLocationGlobal(data.location.id, data.location.location_name);
+                    } else if (currentLocationTarget === 'to' && selectToLocationGlobal) {
+                        selectToLocationGlobal(data.location.id, data.location.location_name);
+                    }
+                } else {
+                    const errorDetail = data.message || data.errors || 'Unknown error';
+                    showSuccessPopup(`Error adding location: ${errorDetail}`);
+                }
+            } catch (error) {
+                showSuccessPopup(`Network error adding location: ${error.message}`);
+            } finally {
+                locationLoadingIndicator.style.display = 'none';
+                addNewLocationBtn.disabled = false;
+            }
+        }
+
+        // --- Delete Location ---
+        async function deleteLocation(locationId) {
+            locationLoadingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch(`/dapple/locations/delete/${locationId}/`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showSuccessPopup("Location deleted successfully!");
+                    await fetchAndRenderLocations();
+
+                    if (fromLocationIdHiddenInput.value == locationId) {
+                        fromLocationSearchInput.value = '';
+                        fromLocationIdHiddenInput.value = '';
+                    }
+                    if (toLocationIdHiddenInput.value == locationId) {
+                        toLocationSearchInput.value = '';
+                        toLocationIdHiddenInput.value = '';
+                    }
+                } else {
+                    const errorMessage = data.message || JSON.stringify(data.errors);
+                    showSuccessPopup(`Error deleting location: ${errorMessage}`);
+                }
+            } catch (error) {
+                showSuccessPopup(`Network error deleting location: ${error.message}`);
+            } finally {
+                locationLoadingIndicator.style.display = 'none';
+            }
+        }
+
+        // --- Auto-assign on manual input ---
+        if (fromLocationSearchInput && fromLocationIdHiddenInput) {
+            fromLocationSearchInput.addEventListener('blur', () => {
+                const searchVal = fromLocationSearchInput.value.trim();
+                const match = allLocations?.find(loc => loc.location_name === searchVal);
+                if (match) {
+                    fromLocationIdHiddenInput.value = match.id;
+                    //console.log(" Assigned from_location ID from text:", match.id);
+                }
+            });
+        }
+
+        if (toLocationSearchInput && toLocationIdHiddenInput) {
+            toLocationSearchInput.addEventListener('blur', () => {
+                const searchVal = toLocationSearchInput.value.trim();
+                const match = allLocations?.find(loc => loc.location_name === searchVal);
+                if (match) {
+                    toLocationIdHiddenInput.value = match.id;
+                    //console.log(" Assigned to_location ID from text:", match.id);
+                }
+            });
+        }
+//________________________________________________________________________________________________
+
+        // --- Globals ---
+        const goodsTableBody = document.getElementById('goodsTableBody');
+        const addGoodsItemBtn = document.getElementById('addGoodsItemBtn');
+
+        let goodsItemsData = [];
+
+
+        // Initialize goodsItemsData from Django template if in edit mode
+        {% if editing_mode %}
+        goodsItemsData = [
+            {% for item in goods_items %}
+                {
+            gi_id: "{{ item.GI_ID }}",
+            unit: "{{ item.unit|escapejs }}",
+            quantity: {{ item.quantity |default:"0"}},
+        rate: {{ item.rate |default:"0"}},
+        amount: {{ item.gi_amount |default:"0"}},
+        from_party: "{{ item.from_party.id|default:'' }}",
+        to_party: "{{ item.to_party.id|default:'' }}"
+                }{% if not forloop.last %}, {% endif %}
+    {% endfor %}
+        ];
+    {% endif %}
+
+    // Get consignees for dropdowns
+    {% for consignee in consignees %}
+    allConsignees.push({
+        id: "{{ consignee.id }}",
+        consignee_name: "{{ consignee.consignee_name|escapejs }}"
+    });
+    {% endfor %}
+
+    // --- Utility: Generate Dropdown Options ---
+    function generateDropdownOptions(field, selectedId) {
+        return allConsignees.map(c => {
+            const selected = c.id === selectedId ? 'selected' : '';
+            return `<option value="${c.id}" ${selected}>${c.consignee_name}</option>`;
+        }).join('');
+    }
+
+    // --- Render Goods Items Table ---
+    function renderGoodsItemsTable() {
+        if (!goodsTableBody) return;
+        goodsTableBody.innerHTML = '';
+
+        if (goodsItemsData.length === 0) {
+            const row = goodsTableBody.insertRow();
+            row.className = 'example-row';
+            row.style.backgroundColor = '#fff3cd';
+            row.innerHTML = `
+                    <td><input type="text" placeholder="Unit" disabled></td>
+                    <td><input type="number" placeholder="Quantity" disabled value="0"></td>
+                    <td><input type="number" placeholder="Rate" disabled value="0"></td>
+                    <td><input type="number" placeholder="Amount" disabled value="0"></td>
+                    <td><input type="text" placeholder="From Party" disabled></td>
+                    <td><input type="text" placeholder="To Party" disabled></td>
+                    <td style="text-align: center; color: #999;">Example</td>
+                `;
+            return;
+        }
+
+        goodsItemsData.forEach((item, index) => {
+            const quantity = parseFloat(item.quantity) || 0;
+            const rate = parseFloat(item.rate) || 0;
+            const giAmount = (quantity * rate).toFixed(2);
+            const fromPartyOptions = generateDropdownOptions('from_party', item.from_party);
+            const toPartyOptions = generateDropdownOptions('to_party', item.to_party);
+
+            const row = goodsTableBody.insertRow();
+            if (item.gi_id) row.dataset.giId = item.gi_id;
+
+            row.innerHTML = `
+                    <td>
+                        <select data-field="unit" data-index="${index}">
+                            <option value="">Select</option>
+                            <option value="10kg" ${item.unit === '10kg' ? 'selected' : ''}>10 KG</option>
+                            <option value="15kg" ${item.unit === '15kg' ? 'selected' : ''}>15 KG</option>
+                            <option value="20kg" ${item.unit === '20kg' ? 'selected' : ''}>20 KG</option>
+                        </select>
+                    </td>
+                    <td><input type="number" value="${item.quantity}" data-field="quantity" data-index="${index}"></td>
+                    <td><input type="number" value="${item.rate}" data-field="rate" data-index="${index}"></td>
+                    <td><input type="text" value="${giAmount}" disabled class="gi-amount-display" data-index="${index}"></td>
+                    <td><select data-field="from_party" data-index="${index}">${fromPartyOptions}</select></td>
+                    <td><select data-field="to_party" data-index="${index}">${toPartyOptions}</select></td>
+                    <td style="white-space: nowrap;">
+                        <button type="button" class="table-action-btn remove-goods-item-btn" data-index="${index}" title="Remove Item">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+
+            const inputs = row.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                if (!input.classList.contains('gi-amount-display')) {
+                    input.addEventListener('input', function () {
+                        const idx = parseInt(this.dataset.index);
+                        const field = this.dataset.field;
+                        let value = this.value;
+
+                        if (field === 'quantity' || field === 'rate') {
+                            value = parseFloat(value) || 0;
+                        }
+
+                        goodsItemsData[idx][field] = value;
+
+                        if (field === 'quantity' || field === 'rate') {
+                            const qty = parseFloat(goodsItemsData[idx].quantity) || 0;
+                            const rt = parseFloat(goodsItemsData[idx].rate) || 0;
+                            const amount = (qty * rt).toFixed(2);
+                            row.querySelector('.gi-amount-display').value = amount;
+                            goodsItemsData[idx].amount = amount;
+                        }
+
+                        updateGoodsInfoHiddenField();
+                        updateGIAmountTotals();
+                    });
+                }
+            });
+
+            row.querySelector('.remove-goods-item-btn').addEventListener('click', function () {
+                const idx = parseInt(this.dataset.index);
+                showConfirmationModal("Are you sure you want to remove this goods item?", (confirmed) => {
+                    if (confirmed) {
+                        goodsItemsData.splice(idx, 1);
+                        renderGoodsItemsTable();
+                        updateGoodsInfoHiddenField();
+                        updateGIAmountTotals();
+                    }
+                });
+            });
+        });
+
+        if (goodsItemsData.length > 0) {
+            const totalFare = goodsItemsData.reduce((sum, item) =>
+                sum + (parseFloat(item.quantity) * parseFloat(item.rate)), 0);
+
+            const totalRow = goodsTableBody.insertRow();
+            totalRow.id = 'totalFareRow';
+            totalRow.innerHTML = `
+                    <td colspan="3" style="text-align: right; font-weight: bold; padding-right: 10px;">Total Fare:</td>
+                    <td><input type="text" value="${totalFare.toFixed(2)}" disabled id="totalFareSummary"></td>
+                    <td colspan="3"></td>
+                `;
+
+            totalFareSummaryInput = document.getElementById('totalFareSummary');
+        }
+    }
+
+    // --- Add New Goods Item ---
+    function addGoodsItemRow() {
+        const currentCnid = cnidInputField ? cnidInputField.value : '';
+        if (!currentCnid || currentCnid === 'Error' || currentCnid === 'N/A') {
+            showSuccessPopup("Please ensure a valid CNID is present before adding goods items");
+            return;
+        }
+        // Remove the example row if it exists
+        const exampleRow = goodsTableBody.querySelector('tr.example-row');
+        if (exampleRow) {
+            exampleRow.remove();
+        }
+
+
+        // Create new row
+        const newRow = document.createElement('tr');
+        const newIndex = goodsItemsData.length;
+
+        newRow.innerHTML = `
+                <td>
+                    <select data-field="unit" data-index="${newIndex}">
+                        <option value="10kg">10 KG</option>
+                        <option value="15kg">15 KG</option>
+                        <option value="20kg">20 KG</option>
+                    </select>
+                </td>
+                <td><input type="number" value="0" data-field="quantity" data-index="${newIndex}"></td>
+                <td><input type="number" value="0" data-field="rate" data-index="${newIndex}"></td>
+                <td><input type="number" value="0" disabled class="gi-amount-display" data-index="${newIndex}"></td>
+                <td>
+                    <select data-field="from_party" data-index="${newIndex}">
+                        <option value="">Select</option>
+                        ${allConsignees.map(c => `<option value="${c.id}">${c.consignee_name}</option>`).join('')}
+                    </select>
+                </td>
+                <td>
+                    <select data-field="to_party" data-index="${newIndex}">
+                        <option value="">Select</option>
+                        ${allConsignees.map(c => `<option value="${c.id}">${c.consignee_name}</option>`).join('')}
+                    </select>
+                </td>
+                <td style="white-space: nowrap;">
+                    <button type="button" class="table-action-btn remove-goods-item-btn" data-index="${newIndex}" title="Remove Item">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            `;
+
+        // Add to table
+        goodsTableBody.appendChild(newRow);
+
+        // Add event listeners to new row
+        attachRowEventListeners(newRow, newIndex);
+
+        // Add to data array
+        goodsItemsData.push({
+            cnid: currentCnid,
+            unit: '10kg',
+            quantity: 0,
+            rate: 0,
+            amount: 0,
+            from_party: '',
+            to_party: ''
+        });
+
+        // Update hidden fields
+        updateGoodsInfoHiddenField();
+        updateGIAmountTotals();
+    }
+
+    function attachRowEventListeners(row, index) {
+        const inputs = row.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', function () {
+                const field = this.dataset.field;
+                let value = this.value;
+
+                if (field === 'quantity' || field === 'rate') {
+                    value = parseFloat(value) || 0;
+                    goodsItemsData[index][field] = value;
+
+                    // Recalculate amount
+                    const qty = parseFloat(goodsItemsData[index].quantity) || 0;
+                    const rt = parseFloat(goodsItemsData[index].rate) || 0;
+                    const amount = (qty * rt).toFixed(2);
+
+                    row.querySelector('.gi-amount-display').value = amount;
+                    goodsItemsData[index].amount = amount;
+
+                    updateGIAmountTotals();
+                } else {
+                    goodsItemsData[index][field] = value;
+                }
+
+                updateGoodsInfoHiddenField();
+            });
+        });
+
+        // Remove button handler
+        row.querySelector('.remove-goods-item-btn').addEventListener('click', function () {
+            goodsItemsData.splice(index, 1);
+            row.remove();
+            updateGoodsInfoHiddenField();
+            updateGIAmountTotals();
+        });
+    }
+
+    // Initialize existing rows
+    function initExistingRows() {
+        document.querySelectorAll('#goodsTableBody tr').forEach((row, index) => {
+            if (!row.classList.contains('example-row')) {
+                attachRowEventListeners(row, index);
+            }
+        });
+    }
+
+    // Call this on page load
+    initExistingRows();
+//_______________________________________________________________________________________________________
+
+    function updateGoodsInfoHiddenField() {
+        if (goodsInfoHiddenInput) { // Added null check
+            // Ensure all numeric values are numbers, and FKs are null or their ID
+            // Note: The backend will handle conversion of null ID to empty string for CharField
+            // Filter out items that are essentially empty (all values are default/null)
+            const filteredGoodsData = goodsItemsData.filter(item => {
+                const quantity = parseFloat(item.quantity) || 0;
+                const rate = parseFloat(item.rate) || 0;
+                const unit = item.unit || '';
+                const fromParty = item.from_party || null;
+                const toParty = item.to_party || null;
+
+                // An item is considered "not empty" if any of its core fields are non-default
+                return quantity > 0 || rate > 0 || unit !== '' || fromParty !== null || toParty !== null;
+            }).map(item => ({
+                ...item,
+                quantity: parseFloat(item.quantity) || 0,
+                rate: parseFloat(item.rate) || 0,
+                amount: parseFloat(item.amount) || 0,
+                from_party: item.from_party, // Send as is (null or ID)
+                to_party: item.to_party       // Send as is (null or ID)
+            }));
+            goodsInfoHiddenInput.value = JSON.stringify(filteredGoodsData);
+        }
+    }
+
+    // Function to calculate total/GI Amount and update Total Fare Summary
+    function updateGIAmountTotals() {
+        let totalGIAmount = 0;
+        goodsItemsData.forEach(item => {
+            // Ensure to sum only for items that are not considered empty for total fare calculation
+            const quantity = parseFloat(item.quantity) || 0;
+            const rate = parseFloat(item.rate) || 0;
+            totalGIAmount += (quantity * rate);
+        });
+
+        const totalFareRow = document.getElementById('totalFareRow');
+        if (totalFareSummaryInput && totalFareRow) {
+            totalFareSummaryInput.value = totalGIAmount.toFixed(2);
+            if (totalFareHiddenInput) { // Added null check
+                totalFareHiddenInput.value = totalGIAmount.toFixed(2);
+            }
+
+            // Show or hide the total fare row based on whether there are any actual goods items
+            // or if there's any calculated amount
+            // The filter logic for display should match the filter logic for sending to backend.
+            const hasActualGoods = goodsItemsData.some(item => {
+                const quantity = parseFloat(item.quantity) || 0;
+                const rate = parseFloat(item.rate) || 0;
+                const unit = item.unit || '';
+                const fromParty = item.from_party || null;
+                const toParty = item.to_party || null;
+                return quantity > 0 || rate > 0 || unit !== '' || fromParty !== null || toParty !== null;
+            });
+
+            if (hasActualGoods || totalGIAmount > 0) {
+                totalFareRow.style.display = ''; // Show the row
+            } else {
+                totalFareRow.style.display = 'none'; // Hide the row
+            }
+        }
+    }
+
+
+    // --- Event Listeners for Modals ---
+    if (addVehicleBtn) {
+        addVehicleBtn.addEventListener('click', function () {
+            if (vehicleModalOverlay) vehicleModalOverlay.style.display = 'flex';
+            fetchAndRenderVehicles(); // Fetch for the modal's table
+        });
+    }
+
+    if (closeVehicleModalBtn) {
+        closeVehicleModalBtn.addEventListener('click', function () {
+            if (vehicleModalOverlay) vehicleModalOverlay.style.display = 'none';
+        });
+    }
+
+    if (addNewVehicleBtn) {
+        addNewVehicleBtn.addEventListener('click', addNewVehicle);
+    }
+
+    // Consignee Modal Event Listeners
+    if (addConsigneeBtn) {
+        addConsigneeBtn.addEventListener('click', function () {
+            if (consigneeModalOverlay) consigneeModalOverlay.style.display = 'flex';
+            if (newConsigneeNameInput) newConsigneeNameInput.value = '';
+            if (newConsigneeDateInput) newConsigneeDateInput.value = new Date().toISOString().slice(0, 10);
+            if (newConsigneeAddressInput) newConsigneeAddressInput.value = '';
+            fetchAndRenderConsignees();
+        });
+    }
+
+    if (closeConsigneeModalBtn) {
+        closeConsigneeModalBtn.addEventListener('click', function () {
+            if (consigneeModalOverlay) consigneeModalOverlay.style.display = 'none';
+        });
+    }
+
+    if (addNewConsigneeBtn) {
+        addNewConsigneeBtn.addEventListener('click', addNewConsignee);
+    }
+
+    // Consigner Modal Event Listeners
+    if (addConsignerBtn) {
+        addConsignerBtn.addEventListener('click', function () {
+            if (consignerModalOverlay) consignerModalOverlay.style.display = 'flex';
+            if (newConsignerNameInput) newConsignerNameInput.value = '';
+            if (newConsignerDateInput) newConsignerDateInput.value = new Date().toISOString().slice(0, 10);
+            if (newConsignerAddressInput) newConsignerAddressInput.value = '';
+            fetchAndRenderConsigners();
+        });
+    }
+
+    if (closeConsignerModalBtn) {
+        closeConsignerModalBtn.addEventListener('click', function () {
+            if (consignerModalOverlay) consignerModalOverlay.style.display = 'none';
+        });
+    }
+
+    if (addNewConsignerBtn) {
+        addNewConsignerBtn.addEventListener('click', addNewConsigner);
+    }
+
+    // Location Modal Event Listeners
+    if (addFromLocationBtn) {
+        addFromLocationBtn.addEventListener('click', function () {
+            if (locationModalOverlay) locationModalOverlay.style.display = 'flex';
+            if (newLocationNameInput) newLocationNameInput.value = '';
+            if (newLocationDateInput) newLocationDateInput.value = new Date().toISOString().slice(0, 10);
+            fetchAndRenderLocations();
+        });
+    }
+
+    if (addToLocationBtn) {
+        addToLocationBtn.addEventListener('click', function () {
+            if (locationModalOverlay) locationModalOverlay.style.display = 'flex';
+            if (newLocationNameInput) newLocationNameInput.value = '';
+            if (newLocationDateInput) newLocationDateInput.value = new Date().toISOString().slice(0, 10);
+            fetchAndRenderLocations();
+        });
+    }
+
+    if (closeLocationModalBtn) {
+        closeLocationModalBtn.addEventListener('click', function () {
+            if (locationModalOverlay) locationModalOverlay.style.display = 'none';
+        });
+    }
+
+    if (addNewLocationBtn) {
+        addNewLocationBtn.addEventListener('click', addNewLocation);
+    }
+
+    // Event listener for adding new goods item row
+    if (addGoodsItemBtn) {
+        addGoodsItemBtn.addEventListener('click', addGoodsItemRow);
+    }
+
+    // --- Form Submission Interception --->
+    if (consignmentForm) {
+        const consigneeIdHiddenInput = document.getElementById('id_consignee');
+        const consigneeSearchInput = document.getElementById('consigneeSearchInput');
+        const consignerIdHiddenInput = document.getElementById('id_consigner');
+        const consignerSearchInput = document.getElementById('consignerSearchInput');
+        const vehicleIdHiddenInput = document.getElementById('id_Vehicle_No');
+        const vehicleSearchInput = document.getElementById('vehicleSearchInput');
+        const fromLocationIdHiddenInput = document.getElementById('id_from_location');
+        const fromLocationSearchInput = document.getElementById('fromLocationSearchInput');
+        const toLocationIdHiddenInput = document.getElementById('id_To_Location'); //fixed here
+        const toLocationSearchInput = document.getElementById('toLocationSearchInput');
+
+        consignmentForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const currentGoodsData = [];
+            let totalFareCalculated = 0;
+
+            if (goodsTableBody) {
+                goodsTableBody.querySelectorAll('tr:not(.example-row)').forEach(row => {
+                    const unitInput = row.querySelector('[data-field="unit"]');
+                    const quantityInput = row.querySelector('[data-field="quantity"]');
+                    const rateInput = row.querySelector('[data-field="rate"]');
+                    const giAmountDisplay = row.querySelector('.gi-amount-display');
+                    const fromPartySelect = row.querySelector('[data-field="from_party"]');
+                    const toPartySelect = row.querySelector('[data-field="to_party"]');
+
+                    const unit = unitInput ? unitInput.value : '';
+                    const quantity = parseFloat(quantityInput?.value || '0') || 0;
+                    const rate = parseFloat(rateInput?.value || '0') || 0;
+                    const amount = parseFloat(giAmountDisplay?.value || '0') || 0;
+
+                    const fromParty = fromPartySelect?.value ? parseInt(fromPartySelect.value) : null;
+                    const toParty = toPartySelect?.value ? parseInt(toPartySelect.value) : null;
+                    const giID = row.getAttribute("data-gi-id");
+
+                    currentGoodsData.push({
+                        GI_ID: giID ? parseInt(giID) : null,
+                        unit,
+                        quantity,
+                        rate,
+                        amount,
+                        from_party: fromParty,
+                        to_party: toParty
+                    });
+
+                    totalFareCalculated += amount;
+                });
+            }
+
+            const filteredGoodsData = currentGoodsData.filter(item =>
+                parseFloat(item.quantity) > 0 ||
+                parseFloat(item.rate) > 0 ||
+                item.unit !== '' ||
+                item.from_party !== null ||
+                item.to_party !== null
+            );
+
+            if (goodsInfoHiddenInput) goodsInfoHiddenInput.value = JSON.stringify(filteredGoodsData);
+            if (totalFareHiddenInput) totalFareHiddenInput.value = totalFareCalculated.toFixed(2);
+
+            // Vehicle ID matching from text
+            if (!vehicleIdHiddenInput.value && vehicleSearchInput) {
+                const searchVal = vehicleSearchInput.value.trim();
+                const match = allVehicles.find(v => v.vehicle_number === searchVal);
+                if (match) {
+                    vehicleIdHiddenInput.value = match.id;
+                    //console.log(" Assigned vehicle ID from text:", match.id);
+                }
+            }
+
+            //  Consignee ID matching from text
+            if (!consigneeIdHiddenInput.value && consigneeSearchInput) {
+                const searchVal = consigneeSearchInput.value.trim();
+                const match = allConsignees.find(c => c.consignee_name === searchVal);
+                if (match) {
+                    consigneeIdHiddenInput.value = match.id;
+                    //console.log(" Assigned consignee ID from text:", match.id);
+                }
+            }
+
+            //  Consigner ID matching from text
+            if (!consignerIdHiddenInput.value && consignerSearchInput) {
+                const searchVal = consignerSearchInput.value.trim();
+                const match = allConsigners.find(c => c.consigner_name === searchVal);
+                if (match) {
+                    consignerIdHiddenInput.value = match.id;
+                    console.log(" Assigned consigner ID from text:", match.id);
+                }
+            }
+
+            //  From Location ID matching from text
+            if (!fromLocationIdHiddenInput.value && fromLocationSearchInput) {
+                const searchVal = fromLocationSearchInput.value.trim();
+                const match = allLocations.find(loc => loc.location_name === searchVal);
+                if (match) {
+                    fromLocationIdHiddenInput.value = match.id;
+                    //console.log(" Assigned from_location ID from text:", match.id);
+                }
+            }
+
+            //  To Location ID matching from text (ID corrected)
+            if (!toLocationIdHiddenInput.value && toLocationSearchInput) {
+                const searchVal = toLocationSearchInput.value.trim();
+                const match = allLocations.find(loc => loc.location_name === searchVal);
+                if (match) {
+                    toLocationIdHiddenInput.value = match.id;
+                    //console.log(" Assigned to_location ID from text:", match.id);
+                }
+            }
+
+            //  Collect final payload
+            const formData = new FormData(consignmentForm);
+            const payload = {};
+
+            for (const [key, value] of formData.entries()) {
+                if (['Vehicle_No', 'consignee', 'consigner', 'from_location', 'to_location'].includes(key)) {
+                    payload[key] = value ? parseInt(value) : null;
+                } else if (key === 'cn_note_id') {
+                    payload[key] = parseInt(value);
+                } else if (['Truck_Freight', 'Advance_Amount', 'Balance_Amount', 'Innam', 'Extra_TF', 'total_fare'].includes(key)) {
+                    payload[key] = parseFloat(value) || 0.00;
+                } else if (key !== 'goods_info' && key !== 'vehicle_no') {
+                    payload[key] = value;
+                }
+            }
+
+            payload['Vehicle_No'] = parseInt(vehicleIdHiddenInput?.value || 0) || null;
+            payload['consignee'] = parseInt(consigneeIdHiddenInput?.value || 0) || null;
+            payload['consigner'] = parseInt(consignerIdHiddenInput?.value || 0) || null;
+            payload['from_location'] = parseInt(fromLocationIdHiddenInput?.value || 0) || null;
+            payload['to_location'] = parseInt(toLocationIdHiddenInput?.value || 0) || null;
+            payload['goods_info'] = filteredGoodsData;
+            payload['total_fare'] = totalFareCalculated.toFixed(2);
+
+            try {
+                const response = await fetch(consignmentForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken,
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    const text = await response.text();
+                    throw new Error("Unexpected HTML response:\n" + text.slice(0, 100));
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const message = editingMode
+                        ? "Consignment Form updated successfully! please wait ...."
+                        : "Consignment Form saved successfully!";
+                    showSuccessPopup(message);
+
+                    if (editingMode) {
+                        setTimeout(() => {
+                            window.location.href = "{% url 'cn_data' %}";
+                        }, 1000);
+                    } else {
+                        // Reset form after successful save
+                        [vehicleSearchInput, consigneeSearchInput, consignerSearchInput, fromLocationSearchInput, toLocationSearchInput].forEach(input => {
+                            if (input) input.value = '';
+                        });
+                        [vehicleIdHiddenInput, consigneeIdHiddenInput, consignerIdHiddenInput, fromLocationIdHiddenInput, toLocationIdHiddenInput].forEach(input => {
+                            if (input) input.value = '';
+                        });
+
+                        if (cnidInputField) cnidInputField.value = '';
+                        const cnNoInput = document.getElementById('{{ form.Cn_No.id_for_label }}');
+                        if (cnNoInput) cnNoInput.value = '';
+
+                        const today = new Date().toISOString().split('T')[0];
+                        const bookingDateInput = document.getElementById('{{ form.Booking_Date.id_for_label }}');
+                        const loadingDateInput = document.getElementById('{{ form.Loading_Date.id_for_label }}');
+                        const unloadingDateInput = document.getElementById('{{ form.Unloading_Date.id_for_label }}');
+                        const truckFreightInput = document.getElementById('{{ form.Truck_Freight.id_for_label }}');
+                        const advanceInput = document.getElementById('{{ form.Advance_Amount.id_for_label }}');
+                        const balanceInput = document.getElementById('{{ form.Balance_Amount.id_for_label }}');
+                        const innamInput = document.getElementById('{{ form.Innam.id_for_label }}');
+                        const extraTfInput = document.getElementById('{{ form.Extra_TF.id_for_label }}');
+
+                        if (bookingDateInput) bookingDateInput.value = today;
+                        if (loadingDateInput) loadingDateInput.value = today;
+                        if (unloadingDateInput) unloadingDateInput.value = '';
+                        if (truckFreightInput) truckFreightInput.value = '';
+                        if (advanceInput) advanceInput.value = '';
+                        if (balanceInput) balanceInput.value = '';
+                        if (innamInput) innamInput.value = '';
+                        if (extraTfInput) extraTfInput.value = '';
+
+                        if (totalFareSummaryInput) totalFareSummaryInput.value = '0.00';
+                        if (totalFareHiddenInput) totalFareHiddenInput.value = '0.00';
+
+                        fetchAndDisplayNextCNID();
+                        goodsItemsData = [];
+                        renderGoodsItemsTable();
+                    }
+                } else {
+                    console.error("Submission failed:", data.message || data);
+                    showSuccessPopup(`Error: ${data.message || 'Submission failed'}`);
+                }
+            } catch (error) {
+                console.error('Network error during form submission:', error);
+                showSuccessPopup(`Network error during form submission: ${error.message}`);
+            }
+        });
+    }
+
+    // --- Smooth Scrolling for Master Dropdown Links ---
+    document.querySelectorAll('.dropdown-content a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const targetId = this.getAttribute('href');
+            const targetElement = document.querySelector(targetId);
+
+            if (targetElement) {
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+                targetElement.style.transition = 'outline 0.3s ease-in-out';
+                targetElement.style.outline = '2px solid #6a1b9a';
+                setTimeout(() => {
+                    targetElement.style.outline = 'none';
+                }, 2000);
+            }
+        });
+    });
+    // Initial fetches on page load for the main form's dropdowns
+    fetchAndRenderVehicles(); // This now populates allVehicles and initializes its searchable dropdown
+    fetchAndRenderConsignees(); // Fetch consignee data and init its searchable dropdown
+    fetchAndRenderConsigners(); // Fetch consigner data and init its searchable dropdown
+    fetchAndRenderLocations(); // Fetch location data and init its searchable dropdowns
+    fetchAndDisplayNextCNID(); // Ensure CNID is fetched at page load
+    // Initial render of the goods information table (will be empty initially)
+    renderGoodsItemsTable(); // This will also trigger initial Total Fare summary calculation
+    });
+
+</script>
+</body>
+{% endblock %}

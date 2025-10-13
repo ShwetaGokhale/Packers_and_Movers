@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html>
+{% load static %}   
+<head>
+    <meta charset="UTF-8">
+    <title>Consignment Bills</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #f9f9fb;
+            color: #333;
+        }
+
+        .print-button-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin: 10px 20px 0 20px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .filter-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-header {
+            font-weight: bold;
+            font-size: 15px;
+            color: #333;
+        }
+
+        .dropdown-action-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .print-btn, .clear-btn {
+            min-width: 100px;
+            background-color: #007bff;
+            color: #fff;
+            font-weight: 600;
+            padding: 6px 12px;
+            font-size: 13px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.25s ease;
+            text-align: center;
+        }
+
+        .print-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .clear-btn {
+            background-color: #dc3545;
+        }
+
+        .clear-btn:hover {
+            background-color: #c82333;
+        }
+
+        .selected-count {
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .custom-dropdown {
+            position: relative;
+            min-width: 200px;
+        }
+
+        .dropdown-header {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dropdown-header:hover {
+            border-color: #007bff;
+        }
+
+        .dropdown-arrow {
+            transition: transform 0.3s ease;
+        }
+
+        .dropdown-arrow.open {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-content {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .dropdown-content.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .dropdown-item input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .dropdown-item label {
+            cursor: pointer;
+            flex: 1;
+            margin: 0;
+        }
+
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .bill-box {
+                page-break-inside: avoid;
+                break-inside: avoid;
+                transform: scale(0.98);
+                transform-origin: top left;
+            }
+        }
+
+        .page {
+            width: 210mm;
+            height: 297mm;
+            display: flex;
+            flex-wrap: wrap;
+            padding: 8mm;
+            box-sizing: border-box;
+            page-break-after: always;
+            background: white;
+        }
+
+        .page:last-child {
+            page-break-after: auto;
+        }
+
+        /*  Only apply shadow and margin in screen preview */
+        @media screen {
+            .page {
+                margin: 20px auto;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+        }
+
+
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .page {
+                margin: 0 auto !important;
+                box-shadow: none !important;
+                width: 210mm !important;
+                height: 297mm !important;
+                page-break-after: always;
+                padding: 8mm;
+            }
+
+            .page:last-child {
+                page-break-after: auto;
+            }
+
+             .bill-box {
+                transform: scale(0.96);
+                transform-origin: top left;
+            }
+        }
+
+
+        .bill-box {
+            width: calc(50% - 12px);
+            height: calc(50% - 12px);
+            border: 1.5px solid #000;
+            margin: 6px;
+            padding: 8px;
+            box-sizing: border-box;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        
+        .bill-box * {
+            font-size: 14px;  /* previously 9px */
+            line-height: 1.3; /* better readability */
+        }
+
+
+        .header {
+            text-align: left;
+            border-bottom: 1px solid #000;
+            
+            margin-bottom: 8px;
+            padding-right: 100px;
+            position: relative;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .header h2 {
+            margin: 2px 0;
+            font-size: 10px;
+        }
+
+        .header p {
+            margin: 1px 0;
+            font-size: 9px;
+        }
+
+        .logo {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 90px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-top: 4px;
+        }
+
+        th, td {
+            border: 1px solid #000;
+            padding: 4px;
+            font-size: 12px; /* or 12px */
+            text-align: center;
+            word-wrap: break-word;
+        }
+
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .total-row td {
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .signature-section {
+            margin-top: 6px;
+            font-size: 9px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .signature-section div {
+            width: 45%;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="no-print print-button-container">
+        
+        <div class="filter-section">
+            <div class="filter-header">🎯 Filter by To Party</div>
+            <div class="dropdown-action-row">
+                <div class="custom-dropdown">
+                    <div class="dropdown-header" onclick="toggleDropdown()">
+                        <span id="dropdownText">All parties selected</span>
+                        <span class="dropdown-arrow">▼</span>
+                    </div>
+                    <div class="dropdown-content" id="dropdownContent">
+                        <div class="dropdown-item">
+                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" checked>
+                            <label for="selectAll"><strong>Select All</strong></label>
+                        </div>
+                        {% for party in unique_to_parties %}
+                        <div class="dropdown-item">
+                            <input type="checkbox" id="party-{{ party|slugify }}" value="{{ party|slugify }}" onchange="updateSelection()" checked>
+                            <label for="party-{{ party|slugify }}">{{ party }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <span class="selected-count" id="selectedCount">All parties selected</span>
+            </div>
+        </div>
+        <div class="no-print" style="text-align: center; background: #fff3cd; color: #856404; padding: 10px; font-size: 14px; border-bottom: 1px solid #ffeeba;">
+            <strong>📌 Note:</strong> On the print dialog, set margins to <strong>“Default”</strong> to get best results.
+        </div>
+        <div class="dropdown-action-row">
+            <button class="clear-btn" onclick="clearSelection()">🧹 Clear All</button>
+            <button class="print-btn" onclick="selectAllParties()">✅ Select All</button>
+            <button class="print-btn" onclick="scaleBillsForPrint()">🖨️ Print Selected</button>
+        </div>
+    </div>
+
+    <div id="billsContainer"></div>
+        
+    <div id="billTemplate" style="display: none;">
+        {% for group in bill_data %}
+        <div class="bill-box to-party-{{ group.items.0.to_party|slugify }}" data-party="{{ group.items.0.to_party|slugify }}">
+            <img src="{% static 'images/logo.png' %}" alt="Logo" class="logo">
+
+            <div class="header">
+                <h1>DHANLAXMI AGRO ACTIVITIES & TRANSLOGISTICS</h1>
+                <h2>IMPORT | EXPORT | FRUIT PROCESSING AGRO MARKETING & TRADING</h2>
+                <p>18, 3rd Floor, Dharmaveer Raje Sambhaji Vyapari Sankul, Ugaon, Tal-Niphad, Dist-Nashik - 422304</p>
+                <p>Mob: +91 9830357491 | Email: kakashri7314@gmail.com</p>
+            </div>
+
+            <div class="meta-block" style="margin-top: 5px;">
+
+
+                <table>
+                    <tr>
+                        <td colspan="2"><strong>Billing Date:</strong> {{ group.loading_date }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Bill No:</strong> <span style="color: red;">{{ group.cnid }}</span></td>
+                        
+
+                        <td><strong>Consignee:</strong> {{ group.consignee }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Truck No:</strong> {{ group.truck_no }}</td>
+                        <td><strong>Consigner:</strong> {{ group.consigner }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <table style="margin-top: 8px;">
+
+                <thead>
+                    <tr>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Qty</th>
+                        <th>Rate</th>
+                        <th>Amt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in group.items %}
+                    <tr>
+                        <td>{{ item.from_party }}</td>
+                        <td>{{ item.to_party }}</td>
+                        <td>{{ item.qty|floatformat:"0"  }}</td>
+                        <td>{{ item.rate|floatformat:"0"  }}</td>
+                        <td>{{ item.gi_amount|floatformat:"0"  }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="total-row">
+                        <td colspan="4">Total:<br><small>"({{ group.total_fare_words }})"</small></td>
+                        <td>₹{{ group.total_fare|floatformat:"0"  }}/-</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="signature-section">
+                <div>
+                    <p><strong>Receiver's Signature</strong></p>
+                    <p>__________________</p>
+                </div>
+                <div>
+                    <p><strong>Authorized Signature</strong></p>
+                    <p>__________________</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+ <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        updateSelection();
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.custom-dropdown')) {
+                closeDropdown();
+            }
+        });
+    });
+
+    function toggleDropdown() {
+        document.getElementById('dropdownContent').classList.toggle('show');
+        document.querySelector('.dropdown-arrow').classList.toggle('open');
+    }
+
+    function closeDropdown() {
+        document.getElementById('dropdownContent').classList.remove('show');
+        document.querySelector('.dropdown-arrow').classList.remove('open');
+    }
+
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll');
+        document.querySelectorAll('input[type="checkbox"]:not(#selectAll)').forEach(cb => cb.checked = selectAll.checked);
+        updateSelection();
+    }
+
+    function updateSelection() {
+        const selected = [];
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]:not(#selectAll)');
+        checkboxes.forEach(cb => { if (cb.checked) selected.push(cb.value); });
+
+        document.getElementById('selectAll').checked = selected.length === checkboxes.length;
+        document.getElementById('selectAll').indeterminate = selected.length > 0 && selected.length < checkboxes.length;
+
+        updateDropdownText(selected.length, checkboxes.length);
+        updateSelectedCount(selected.length, checkboxes.length);
+
+        const bills = document.querySelectorAll('#billTemplate .bill-box');
+        const container = document.getElementById('billsContainer');
+        container.innerHTML = '';
+
+        let page = null;
+        let count = 0;
+
+        bills.forEach(bill => {
+            const party = bill.dataset.party;
+            if (selected.includes(party)) {
+                if (count % 4 === 0) {
+                    page = document.createElement('div');
+                    page.className = 'page';
+                    container.appendChild(page);
+                }
+                page.appendChild(bill.cloneNode(true));
+                count++;
+            }
+        });
+    }
+
+    function updateDropdownText(selected, total) {
+        const el = document.getElementById('dropdownText');
+        el.textContent = selected === 0 ? 'No parties selected' :
+                         selected === total ? 'All parties selected' :
+                         `${selected} parties selected`;
+    }
+
+    function updateSelectedCount(selected, total) {
+        const el = document.getElementById('selectedCount');
+        el.textContent = selected === 0 ? 'No parties selected' :
+                         selected === total ? 'All parties selected' :
+                         `${selected} of ${total} parties selected`;
+        el.style.color = selected === 0 ? '#dc3545' :
+                         selected === total ? '#28a745' : '#007bff';
+    }
+
+    function clearSelection() {
+        document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        updateSelection();
+    }
+
+    function selectAllParties() {
+        document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+        updateSelection();
+    }
+
+    function scaleBillsForPrint() {
+        // Apply scaling only to overflown bills
+        document.querySelectorAll('.bill-box').forEach(bill => {
+            if (bill.scrollHeight > bill.clientHeight) {
+                bill.style.transform = 'scale(0.95)';
+                bill.style.transformOrigin = 'top left';
+            }
+        });
+
+        // Wait for DOM to update before triggering print
+        setTimeout(() => {
+            window.print();
+        }, 100); // 100ms is usually enough
+    }
+
+</script>
+</body>
+</html>

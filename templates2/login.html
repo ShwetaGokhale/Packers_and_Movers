@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Daapl Login</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom right, #dceeff, #e6dbff);
+    }
+
+    .form-container {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .form-box {
+      background-color: white;
+      padding: 40px 30px;
+      border-radius: 18px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 380px;
+      animation: slideUp 0.8s ease forwards;
+      transform: translateY(20px);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h2 {
+      text-align: center;
+      color: #1a73e8;
+      font-size: 26px;
+      font-weight: bold;
+      margin-bottom: 24px;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 14px;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    input[type="email"],
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    input:focus {
+      border-color: #1a73e8;
+      outline: none;
+    }
+
+    button,
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      background-color: #1a73e8;
+      border: none;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 10px;
+    }
+
+    button:hover,
+    .login-btn:hover {
+      background-color: #155acb;
+    }
+
+    .error-box {
+      margin-bottom: 15px;
+      color: red;
+      background-color: #ffe5e5;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .form-footer {
+      text-align: center;
+      margin-top: 18px;
+      font-size: 14px;
+    }
+
+    .form-footer a {
+      color: #1a73e8;
+      text-decoration: none;
+    }
+
+    .form-footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <div class="form-box">
+      <h1 style="text-align: center; color: #6a1b9a; font-size: 28px; font-weight: bold; margin-bottom: 8px;">DAAPL</h1>
+      <h2>Login</h2>
+
+      {% if error %}
+      <div class="error-box">{{ error }}</div>
+      {% endif %}
+
+      <form id="login-form" method="post">
+        {% csrf_token %}
+
+        <!-- Email Field -->
+        <div style="margin-bottom: 16px;">
+          <label for="id_email">Email</label>
+          {{ form.email }}
+          {% if form.email.errors %}
+          <div style="color: red; font-size: 13px;">{{ form.email.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- OTP Message -->
+        <div id="verify-message" style="color: green; font-size: 13px; margin-bottom: 10px;"></div>
+
+        <!-- OTP Field -->
+        <div id="otp-field" style="display: none; margin-bottom: 16px;">
+          <label for="otp-input">Enter OTP</label>
+          <div class="otp-inputs" style="display: flex; justify-content: center; gap: 8px; margin-top: 8px;">
+            {% for _ in "123456" %}
+            <input type="text" maxlength="1" class="otp-box"
+              style="width: 40px; height: 40px; text-align: center; font-size: 18px;" />
+            {% endfor %}
+          </div>
+          <div id="otp-timer" style="margin-top: 12px; font-size: 14px; color: #555;"></div>
+          <input type="hidden" name="otp" id="id_otp" />
+          {% if form.otp.errors %}
+          <div style="color: red; font-size: 13px;">{{ form.otp.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Submit Login -->
+        <button type="submit" class="login-btn" id="login-btn">Login</button>
+      </form>
+      <a href="{% url 'register' %}">New user? Register here</a>
+      <p class="form-footer" style="font-size: 12px; color: #888; margin-top: 10px;">
+        Made with care by <strong>Infimetrics IT Solutions Pvt. Ltd</strong>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    let otpTimerInterval;
+    let otpSent = false;
+    let otpExpired = false;
+
+    function startOtpTimer(duration = 300) {
+      clearInterval(otpTimerInterval);
+      const display = document.getElementById("otp-timer");
+      const boxes = document.querySelectorAll(".otp-box");
+      boxes.forEach(b => b.disabled = false);
+      otpExpired = false;
+
+      otpTimerInterval = setInterval(() => {
+        const m = String(Math.floor(duration / 60)).padStart(2, '0');
+        const s = String(duration % 60).padStart(2, '0');
+        display.textContent = `OTP expires in ${m}:${s}`;
+        if (--duration < 0) {
+          clearInterval(otpTimerInterval);
+          otpExpired = true;
+        }
+      }, 1000);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const otpInputs = document.querySelectorAll(".otp-box");
+      const hiddenOtpInput = document.getElementById("id_otp");
+      const form = document.getElementById("login-form");
+      const loginBtn = document.getElementById("login-btn");
+      const messageBox = document.getElementById("verify-message");
+
+      otpInputs.forEach((input, index) => {
+        input.addEventListener("input", () => {
+          if (input.value.length === 1 && index < otpInputs.length - 1) {
+            otpInputs[index + 1].focus();
+          }
+        });
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Backspace" && !input.value && index > 0) {
+            otpInputs[index - 1].focus();
+          }
+        });
+      });
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const email = document.getElementById('id_email').value.trim();
+
+        if (!otpSent) {
+          messageBox.style.color = "#555";
+          messageBox.textContent = "Sending OTP... please wait.";
+          loginBtn.textContent = "Sending OTP...";
+          loginBtn.disabled = true;
+
+          fetch("{% url 'verify_email' %}", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ email })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.status === "success") {
+              messageBox.style.color = "green";
+              messageBox.textContent = "OTP sent. Please check your email.";
+              document.getElementById("otp-field").style.display = "block";
+              startOtpTimer(300);
+              otpSent = true;
+              loginBtn.textContent = "Verify OTP to Continue";
+              loginBtn.disabled = false;
+            } else {
+              messageBox.style.color = "red";
+              messageBox.textContent = data.message || "Failed to send OTP.";
+              loginBtn.textContent = "Login";
+              loginBtn.disabled = false;
+            }
+          })
+          .catch(() => {
+            messageBox.style.color = "red";
+            messageBox.textContent = "Error sending OTP. Try again.";
+            loginBtn.textContent = "Login";
+            loginBtn.disabled = false;
+          });
+
+        } else {
+          if (otpExpired) {
+            messageBox.style.color = "red";
+            messageBox.textContent = "OTP expired. Please refresh and resend.";
+            return;
+          }
+
+          let otp = "";
+          otpInputs.forEach(input => otp += input.value);
+          hiddenOtpInput.value = otp;
+          form.submit(); // Proceed with form submission
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>All Consignment Entries</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to right, #e0f7fa, #e1bee7);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .main-header {
+            background-color: #6a1b9a;
+            padding: 5px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .main-nav {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 0 20px;
+        }
+        .main-nav a {
+            color: white;
+            font-weight: bold;
+            padding: 10px 20px;
+            margin-right: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+            text-decoration: none;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .main-nav a:hover {
+            background-color: #4a148c;
+            transform: translateY(-2px);
+        }
+        .dropdown {
+            position: relative;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            border-radius: 5px;
+        }
+        .dropdown-content a {
+            display: block;
+            padding: 10px 16px;
+            color: black;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .dropdown-content a:hover {
+            background-color: #eee;
+            color: #4a148c;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="main-header">
+        <nav class="main-nav w-full justify-between">
+            <div class="flex items-center gap-2">
+                <a href="{% url 'dashboard' %}"><i class="fa-solid fa-home"></i> Dashboard</a>
+                <div class="dropdown">
+                    <a href="#"><i class="fa-solid fa-layer-group"></i> Master</a>
+                    <div class="dropdown-content">
+                        <a href="{% url 'vehicle_list' %}">Vehicle</a>
+                        <a href="{% url 'party_list' %}">Party</a>
+                        <a href="{% url 'location_list' %}">Location</a>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <a href="#"><i class="fa-solid fa-truck-fast"></i> Operation</a>
+                    <div class="dropdown-content">
+                        <a href="{% url 'cn_data' %}">CN Data</a>
+                    </div>
+                </div>
+                <a href="{% url 'reports_page' %}"><i class="fa-solid fa-chart-bar"></i> Reports</a>
+            </div>
+            <button onclick="confirmLogout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center gap-2">
+                <i class="fa-solid fa-key"></i> Logout
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 w-full max-w-7xl mx-auto px-4 py-6">
+        <!-- Search -->
+        <div class="mb-4">
+            <input type="text" id="searchInput" placeholder="Search by Consignee..." class="border border-purple-500 rounded px-3 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-purple-400">
+            <button onclick="filterTable()" class="ml-2 bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-800"><i class="fa fa-search"></i> Search</button>
+        </div>
+
+        <!-- Table -->
+        <div class="mb-10 overflow-x-auto bg-white rounded-lg shadow-lg border border-gray-200">
+            <h2 class="text-lg font-bold text-purple-900 px-6 pt-4">Consignee-wise Total Fare</h2>
+            <table class="min-w-full text-sm text-left mt-2" id="consigneeTable">
+                <thead class="bg-purple-800 text-white uppercase text-xs">
+                    <tr>
+                        <th class="px-6 py-3">S.No.</th>
+                        <th class="px-6 py-3">Consignee</th>
+                        <th class="px-6 py-3">Consigner</th>
+                        <th class="px-6 py-3">Advance</th>
+                        <th class="px-6 py-3">Balance</th>
+                        <th class="px-6 py-3">Fare (Total)</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-700">
+                    {% for item in consignee_fare_summary %}
+                    <tr class="hover:bg-purple-100 cursor-pointer transition duration-150 border-b">
+                        <td class="px-6 py-4">{{ forloop.counter }}</td>
+                        <td class="px-6 py-4 font-medium">{{ item.consignee__consignee_name }}</td>
+                        <td class="px-6 py-4 font-medium">{{ item.consigner__consigner_name }}</td>
+                        <td class="px-6 py-4 text-green-600 font-semibold">₹{{ item.total_advance }}</td>
+                        <td class="px-6 py-4 text-red-600 font-semibold">₹{{ item.total_balance }}</td>
+                        <td class="px-6 py-4 text-blue-600 font-semibold">₹{{ item.total_fare_sum }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">No data available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script>
+        function confirmLogout() {
+            if (confirm("Are you sure you want to logout?")) {
+                window.location.href = "{% url 'logout' %}";
+            }
+        }
+
+        function filterTable() {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#consigneeTable tbody tr');
+
+            rows.forEach(row => {
+                const consigneeCell = row.cells[1];
+                if (consigneeCell) {
+                    const consignee = consigneeCell.textContent.toLowerCase();
+                    row.style.display = consignee.includes(input) ? '' : 'none';
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>

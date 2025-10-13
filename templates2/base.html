@@ -1,0 +1,79 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Consignment Note Form</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+</head>
+
+<body>
+    <!-- Header Section -->
+    <header class="main-header">
+        <nav class="main-nav">
+            <a href="{% url 'dashboard' %}"><i class="fa-solid fa-home"></i> Dashboard</a> {# Assuming a 'dashboard' URL name #}
+
+            <!-- Master Dropdown -->
+            <div class="dropdown">
+                <a href="javascript:void(0)" class="dropbtn"><i class="fa-solid fa-layer-group"></i> Master</a>
+                <div class="dropdown-content">
+                    <a href="{% url 'vehicle_list' %}">Vehicle</a>
+                    <a href="{% url 'party_list' %}">Party</a>
+                    <a href="{% url 'location_list' %}">Location</a>
+                </div>
+            </div>
+
+            <!-- Operation Dropdown -->
+            <div class="dropdown">
+                <a href="javascript:void(0)" class="dropbtn"><i class="fa-solid fa-truck-fast"></i> Operation</a>
+                <div class="dropdown-content">
+                    <!-- The "CN No" link has been removed as requested -->
+                    <a href="{% url 'cn_data' %}">CN Data</a>
+                </div>
+            </div>
+
+
+            <a href="{% url 'reports_page' %}"><i class="fa-solid fa-chart-bar"></i> Reports</a> {# Placeholder fo Reports section #}
+
+            <!-- Accounts Dropdown -->
+            <div class="dropdown">
+                <a href="javascript:void(0)" class="dropbtn"><i class="fa-solid fa-user-gear"></i> Accounts</a>
+                <div class="dropdown-content">
+                    <a href="{% url 'record_payment' %}">Record Payment</a>
+
+                    <a href="{% url 'party_ledger' %}">Party Ledger</a>
+                    <a href="{% url 'ledger' %}">Daily Ledger</a>
+                </div>
+            </div>
+            <button onclick="confirmLogout()" 
+                class="ml-auto bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white px-5 py-2.5 rounded flex items-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out flex items-center gap-2">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span class="font-semibold tracking-wide">Logout</span>
+            </button>
+
+
+
+        </nav>
+    </header>
+<script>
+      function confirmLogout() {
+    if (confirm("Are you sure you want to logout?")) {
+      window.location.href = "{% url 'logout' %}";
+    }
+  }
+</script>
+    {% block content %}
+    {% endblock %}
+</body>
+
+</html>

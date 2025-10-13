@@ -1,0 +1,55 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <script src="{% static 'js/java.js' %}" defer></script>
+</head>
+<body>
+    <header class="main-header">
+        <nav class="main-nav">
+            <a href="{% url 'dashboard' %}"><i class="fa-solid fa-home"></i> Dashboard</a>
+
+            <!-- Master Dropdown -->
+            <div class="dropdown">
+                <a href="javascript:void(0)" class="dropbtn"><i class="fa-solid fa-layer-group"></i> Master</a>
+                <div class="dropdown-content">
+                    <a href="{% url 'vehicle_list' %}">Vehicle</a>
+                    <a href="{% url 'party_list' %}">Party</a>
+                    <a href="{% url 'location_list' %}">Location</a>
+                </div>
+            </div>
+
+            <!-- Operation Dropdown -->
+            <div class="dropdown">
+                <a href="javascript:void(0)" class="dropbtn"><i class="fa-solid fa-truck-fast"></i> Operation</a>
+                <div class="dropdown-content">
+                    <!-- The "CN No" link has been removed as requested -->
+                    <a href="{% url 'cn_data' %}">CN Data</a> 
+                </div>
+            </div>
+
+
+            <a href="{% url 'reports_page' %}"><i class="fa-solid fa-chart-bar"></i> Reports</a> {# Placeholder for Reports section #}
+        </nav>
+    </header>
+    {% block content %}
+    
+    
+    {% endblock %}
+
+
+
+    
+</body>
+</html>

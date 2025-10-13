@@ -1,0 +1,119 @@
+step1 
+create virtualenvirnment
+py -m venv venv 
+
+step 2 install all libraries/dependancies.
+pip install -r requirnments.txt
+
+step3  create database if not created 
+
+database Name : dhanlakshmi
+
+-------- for downlode data for database use CSV AND SCRIPTS--------------------
+
+on teminal
+1. cd csv_scripts
+
+make sure migrations and migrate done 
+
+run file 
+py consignee.py
+
+next run
+py vehical.py 
+
+next Run 
+py consignment_new.py
+
+at last Run 
+py goodsinfo.csv
+
+-------------------------------------------------------------------------------------------
+
+for server database import / export .
+
+Open MySQL Workbench
+Go to “Data Export”
+        From the top menu:
+        Server > Data Export
+
+Select the Database
+In the left pane, select the database you want to export.
+
+Choose either:
+
+Dump structure and data (✅ recommended)
+
+Or just data / structure as needed
+
+Choose Export Options
+Export to Self-Contained File:
+
+Choose a path, e.g., C:\Users\yourname\Documents\mydb_backup.sql
+
+Optional:
+
+✅ "Include Create Schema"
+
+✅ "Add DROP Table"
+
+Start Export
+Click Start Export (bottom-right)
+
+MySQL Workbench will create the .sql file with:
+All tables
+All schema structure
+All row data
+
+🛠 Tip: Export Compressed File (Optional)
+You’ll get a .sql file that contains all data and schema, which you can import later using:
+>>>>   gzip mydb_backup.sql
+
+
+
+NEXT STEP ON SERVER 
+
+open mysql 
+mysql -u root -p 
+password is : enter key on keybord
+
+put this command 
+CREATE DATABASE dhanlaxmi_new CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+Note : 
+utf8mb4 supports all Unicode characters (including emojis and symbols).
+utf8 in MySQL is limited and doesn't support 4-byte characters like some emojis.
+utf8mb4_unicode_ci ensures proper sorting and case-insensitive text comparison in multiple languages.
+
+
+and then 
+EXIT;
+
+
+mysql -u root -p your_database_name < /home/youruser/database.sql
+mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'Daapl_User@123';
+
+
+If it's compressed (.sql.gz):
+gunzip < /home/youruser/database.sql.gz | mysql -u root -p your_database_name
+
+
+ssh root@82.29.167.117
+PWinfi@@1982
+
+sudo systemctl restart gunicorn_Dapple
+sudo systemctl daemon-reload
+sudo systemctl reset-failed
+sudo systemctl restart nginx
+
+sudo journalctl -u gunicorn_Dapple.service -f
+
+sudo systemctl stop gunicorn_Dapple 
+sudo systemctl start gunicorn_Dapple 
+
+# Allow the web server to read the contents
+sudo chmod -R 755 /var/www/Dapple/staticfiles/images
+
+# Make sure the owner/group is appropriate
+# (Optional) If your web server runs as www-data (common for Nginx/Apache):
+sudo chown -R www-data:www-data /var/www/Dapple/staticfiles/images

@@ -1,0 +1,101 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Extruedge-daapl</title>
+    <link rel="icon" type="image/png" href="{% static 'favicon.png' %}">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="{% static 'style.css' %}">  
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- <link href="{% static 'tailwind.css' %}" rel="stylesheet" /> -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+</head>
+
+<body>
+    <!-- Header Section -->
+    <header class="main-header">
+        <nav class="main-nav">
+            <a href="{% url 'dashboard' %}"><i class="fa-solid fa-home"></i> Dashboard</a> {# Assuming a 'dashboard' URL name #}
+            
+            <!-- Accounts Dropdown -->
+            <div class="dropdown">
+                <a href="javascript:void(0)" class="dropbtn"><i class="fa-solid fa-user-gear"></i> Accounts</a>
+                <div class="dropdown-content">
+                    <a href="{% url 'record_payment_list' %}">Record Party Payment</a>
+                    <a href="{% url 'record_expense_list' %}">Record Expense</a>
+                    <!-- <a href="{% url 'record_payment_list' %}">Record Payment List</a> -->
+                    <!-- <a href="{% url 'record_expense_list' %}">Record Vehicle Payment List</a> -->
+                    <!-- <a href="{% url 'statement' %}">Statement</a> -->
+                    <a href="{% url 'party_maintainance' %}">Party Statement</a>
+                    <a href="{% url 'vehicle_maintainance' %}">Vehicle Statement</a>
+
+                    <!-- <a href="{% url 'party_ledger' %}">Party Ledger</a>
+                    <a href="{% url 'ledger' %}">Truck Ledger</a> -->
+                </div>
+            </div>
+
+            <!-- Master Dropdown -->
+            <div class="dropdown">
+                <a href="javascript:void(0)" class="dropbtn"><i class="fa-solid fa-layer-group"></i> Master</a>
+                <div class="dropdown-content">
+                    <a href="{% url 'vehicle_list' %}">Vehicles</a>
+                    <a href="{% url 'party_list' %}">Party</a>
+                    <a href="{% url 'location_list' %}">Location</a>
+                    <a href="{% url 'petrol_pump_list' %}">Petrol Pump</a>
+                    <a href="{% url 'staffEmployee_list' %}">Staff/Employee</a>
+                </div>
+            </div>
+
+            <!-- Operation Dropdown -->
+            <div class="dropdown">
+                <a href="javascript:void(0)" class="dropbtn"><i class="fa-solid fa-truck-fast"></i> Operation</a>
+                <div class="dropdown-content">
+                    <!-- The "CN No" link has been removed as requested -->
+                    <a href="{% url 'cn_data' %}">Builty</a>
+                </div>
+            </div>
+
+            <!-- Reports Dropdown -->
+            <div class="dropdown">
+                <a href="javascript:void(0)" class="dropbtn"><i class="fa-solid fa-chart-bar"></i>Reports</a>
+                <div class="dropdown-content">
+                    <a href="{% url 'reports_page' %}">Daily Report</a> {# Placeholder fo Reports section #}
+                    <a href="{% url 'party_ledger' %}">Goods Report</a>
+                    <a href="{% url 'ledger' %}">Vehicle Report</a>
+                    <!-- cumulative report -->
+                    <a href="{% url 'cumulative_report' %}">Party Report</a>
+                    <!-- <a href="{% url 'party_maintainance' %}">Party Ledger</a> -->
+                    <!-- <a href="{% url 'vehicle_maintainance' %}">Vehicle Ledger</a> -->
+                    <a href="{% url 'vehicle_cumulative' %}">Vehicle Cumulative Report</a>
+                </div>
+            </div>
+
+            <!-- <a href="{% url 'reports_page' %}"><i class="fa-solid fa-chart-bar"></i> Reports</a> {# Placeholder fo Reports section #} -->
+
+            
+            <button onclick="confirmLogout()" 
+                class="ml-auto border border-white text-white bg-transparent hover:bg-red-600 hover:border-red-600 hover:text-white px-3 py-1.5 text-sm rounded-full flex items-center gap-1 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out">
+                <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                <span class="font-medium tracking-wide">Logout</span>
+            </button>
+        </nav>
+    </header>
+<script>
+      function confirmLogout() {
+    if (confirm("Are you sure you want to logout?")) {
+      window.location.href = "{% url 'logout' %}";
+    }
+  }
+</script>
+    {% block content %}
+    {% endblock %}
+</body>
+
+</html>

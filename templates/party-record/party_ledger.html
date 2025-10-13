@@ -1,0 +1,312 @@
+{% extends "base.html" %} 
+{% block content %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+
+    /* Custom scrollbar for better aesthetics */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Specific table styling to match the form's aesthetic */
+    .table-container {
+        background-color: #fff;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(106, 27, 154, 0.2);
+        margin: 32px auto;
+        width: 95%;
+        max-width: 100%;
+        overflow-x: auto; /* Added for responsiveness in case table is wider than container */
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        /* table-layout: fixed; */ /* Removed fixed layout as it can constrain columns too much */
+        min-width: 1200px; /* Ensure minimum width for desktop viewing to prevent squishing */
+    }
+
+    th {
+        background-color: #6a1b9a;
+        color: white;
+        padding: 15px 8px;
+        text-align: left;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        border: 1px solid #7b1fa2;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    td {
+        padding: 12px 8px;
+        border: 1px solid #e2e8f0;
+        text-align: left;
+        font-size: 0.875rem;
+        color: #4a5568;
+        animation: slideUp 0.5s ease forwards;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #f7fafc;
+    }
+
+    tbody tr:hover {
+        background-color: #edf2f7;
+        transform: scale(1.005);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Responsive adjustments for smaller screens */
+    @media (max-width: 768px) {
+        .main-nav {
+            flex-direction: column;
+            padding: 10px;
+            align-items: flex-start;
+        }
+
+        .main-nav a,
+        .dropdown .dropbtn {
+            margin: 5px 0;
+            width: calc(100% - 20px);
+            text-align: left;
+        }
+
+        .dropdown-content {
+            position: static;
+            width: 100%;
+            box-shadow: none;
+            border-top: 1px solid #eee;
+        }
+
+        .table-container {
+            padding: 15px;
+            margin-top: 15px;
+            width: 98%;
+            min-width: unset;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        th,
+        td {
+            padding: 8px 4px;
+            font-size: 0.75rem;
+        }
+
+        td.actions-column {
+            flex-direction: row;
+            gap: 5px;
+        }
+
+        .global-search-container {
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .global-search-button {
+            justify-content: center;
+            width: 100%;
+        }
+    }
+
+
+    .global-search-container {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        max-width: 400px;
+        background-color: #f0f4f8;
+        padding: 10px 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        align-items: center;
+
+    }
+
+    .global-search-input {
+        flex-grow: 1;
+        padding: 8px 12px;
+        border: 1px solid #cbd5e0;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        outline: none;
+    }
+
+    .global-search-input:focus {
+        border-color: #6a1b9a;
+        box-shadow: 0 0 0 3px rgba(106, 27, 154, 0.2);
+    }
+
+    .global-search-button {
+        padding: 8px 15px;
+        background-color: #6a1b9a;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .global-search-button:hover {
+        background-color: #4a148c;
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 480px) {
+
+        th,
+        td {
+            font-size: 0.65rem;
+            padding: 6px 3px;
+        }
+
+        .main-nav a,
+        .dropdown .dropbtn {
+            font-size: 14px;
+        }
+
+
+    }
+</style>
+<!-- Main Content Area for the table -->
+<main class="table-container">
+    <div class="flex flex-wrap justify-between items-center mb-6 w-full">
+            <h2
+                class="text-2xl lg:text-3xl font-extrabold text-purple-900 tracking-wide text-center w-full lg:w-auto mx-auto lg:mx-0">
+                <i>Party Ledger</i>
+            </h2>
+            <form method="GET" class="global-search-container ml-auto mt-4 lg:mt-0">
+                <input type="text" id="global_search" name="global_search" placeholder="Search By Consignee ..."
+                    class="global-search-input" value="{{ current_filters.global_search }}">
+                <button type="submit" class="global-search-button">
+                    <i class="fa-solid fa-magnifying-glass"></i> Search
+                </button>
+            </form>
+        </div>
+
+
+    <table class="table-auto w-full text-sm border border-gray-300">
+    <thead class="bg-purple-800 text-white">
+        <tr>
+            <th class="px-3 py-2">Date</th>
+            <th class="px-3 py-2">Truck No</th>
+            <!--<th class="px-3 py-2">Consignee</th>
+            <th class="px-3 py-2">Consigner</th>
+            <th class="px-3 py-2">From to_party</th>-->
+            <th class="px-3 py-2">To party </th>
+            <th class="px-3 py-2">10KG Qty</th>
+            <th class="px-3 py-2">20KG Qty</th>
+            <th class="px-3 py-2">10KG Fare</th>
+            <th class="px-3 py-2">20KG Fare</th>
+
+            <th class="px-3 py-2">Balance</th>
+            <th class="px-3 py-2">Due</th>
+            <th class="px-3 py-2">Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for entry in page_obj %}
+        <tr class="border-t">
+            <td class="px-3 py-2">{{ entry.Date }}</td>
+            <td class="px-3 py-2">{{ entry.Vehicle_No }}</td>
+            <!--<td class="px-3 py-2">{{ entry.consignee }}</td>
+            <td class="px-3 py-2">{{ entry.consigner }}</td>
+            <td class="px-3 py-2">{{ entry.from_party }}</td>-->
+            <td class="px-3 py-2">{{ entry.to_party }}</td>
+
+            <td class="px-3 py-2">{{ entry.qty_10kg }}</td>
+            <td class="px-3 py-2">{{ entry.qty_20kg }}</td>
+            <td class="px-3 py-2">{{ entry.sum_fare_10kg }}</td>
+            <td class="px-3 py-2">{{ entry.sum_fare_20kg }}</td>
+            <td class="px-3 py-2">{{ entry.Advance_Amount }}</td>
+            <td class="px-3 py-2">{{ entry.Balance_Amount }}</td>
+            <td class="px-3 py-2">{{ entry.total }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+
+    <!-- Pagination Controls -->
+        <div class="flex justify-center mt-6">
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+
+                {# Previous 4-page set arrow #}
+                {% if start_page > 1 %}
+                <a href="?page={{ start_page|add:" -1" }}{% if query_string %}&{{ query_string }}{% endif %}"
+                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-purple-700 hover:bg-purple-300">
+                    &laquo;
+                </a>
+                {% endif %}
+
+                {# Page numbers #}
+                {% for i in page_range %}
+                {% if i == current_page %}
+                <span
+                    class="relative inline-flex items-center px-4 py-2 border border-purple-600 bg-purple-600 text-white text-sm font-medium">
+                    {{ i }}
+                </span>
+                {% else %}
+                <a href="?page={{ i }}{% if query_string %}&{{ query_string }}{% endif %}"
+                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-purple-300">
+                    {{ i }}
+                </a>
+                {% endif %}
+                {% endfor %}
+
+                {# Next 4-page set arrow #}
+                {% if end_page < total_pages %} <a href="?page={{ end_page|add:" 1" }}{% if query_string %}&{{ query_string }}{% endif %}"
+                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-purple-700 hover:bg-purple-300">
+                    &raquo;
+                    </a>
+                    {% endif %}
+
+            </nav>
+        </div>
+</div>
+
+</main>
+
+{% endblock %}

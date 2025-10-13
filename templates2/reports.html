@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    
+
+    .table-container {
+        background-color: #fff;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(106, 27, 154, 0.2);
+        margin: 32px auto;
+        width: 95%;
+        max-width: 100%;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    th {
+        background-color: #6a1b9a;
+        color: white;
+        padding: 12px 8px;
+        text-align: left;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        border: 1px solid #7b1fa2;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    td {
+        padding: 12px 8px;
+        border: 1px solid #e2e8f0;
+        text-align: left;
+        font-size: 0.875rem;
+        color: #4a5568;
+        animation: slideUp 0.5s ease forwards;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #f7fafc;
+    }
+
+    tbody tr:hover {
+        background-color: #edf2f7;
+        transform: scale(1.005);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .global-search-container {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        max-width: 400px;
+        background-color: #f0f4f8;
+        padding: 10px 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        align-items: center;
+
+    }
+
+    .global-search-input {
+        flex-grow: 1;
+        padding: 8px 12px;
+        border: 1px solid #cbd5e0;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        outline: none;
+    }
+
+    .global-search-input:focus {
+        border-color: #6a1b9a;
+        box-shadow: 0 0 0 3px rgba(106, 27, 154, 0.2);
+    }
+
+    .global-search-button {
+        padding: 8px 15px;
+        background-color: #6a1b9a;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .global-search-button:hover {
+        background-color: #4a148c;
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+        .main-nav {
+            flex-direction: column;
+            padding: 10px;
+            align-items: flex-start;
+        }
+
+        .main-nav a {
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .dropdown-content {
+            position: static;
+            width: 100%;
+            box-shadow: none;
+        }
+
+        .table-container {
+            padding: 15px;
+            width: 98%;
+        }
+
+        .global-search-container {
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .global-search-button {
+            justify-content: center;
+            width: 100%;
+        }
+    }
+</style>
+
+<body>
+    <main class="table-container">
+        <div class="flex flex-wrap justify-between items-center mb-6 w-full">
+            <h2
+                class="text-2xl lg:text-3xl font-extrabold text-purple-900 tracking-wide text-center w-full lg:w-auto mx-auto lg:mx-0">
+                <i>Consignment Reports</i>
+            </h2>
+            <form method="GET" class="global-search-container ml-auto mt-4 lg:mt-0">
+                <input type="text" id="global_search" name="global_search" placeholder="Search by vehicle..."
+                    class="global-search-input" value="{{ current_filters.global_search }}">
+                <button type="submit" class="global-search-button">
+                    <i class="fa-solid fa-magnifying-glass"></i> Search 
+                </button>
+            </form>
+        </div>
+
+
+
+        <table>
+            <thead>
+                <tr>
+                    <th>S.No</th> {# New S.No. Column #}
+                    <!-- <th>CNID</th> -->
+                    <th>CN No</th>
+                    <th>Vehicle No</th>
+                    <th>Consignee</th>
+                    <th>Consigner</th>
+                    <th>From Location</th>
+                    <th>To Location</th>
+                    <th>Booking Date</th>
+                    <th>Loading Date</th>
+                    <th>Unloading Date</th>
+                    <th>From Party</th>
+                    <th>To Party</th>
+                    <th>Truck Freight</th>
+                    <th>Advance Amount</th>
+                    <th>Balance Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in page_obj %} {# Iterate over page_obj directly #}
+                <tr>
+                    <td>{{ page_obj.start_index|add:forloop.counter0 }}</td> {# Calculate S.No. #}
+                    <td>{{ c.Cn_No }}</td>
+                    <td>{{ c.Vehicle_No }}</td>
+                    <td>{{ c.consignee }}</td>
+                    <td>{{ c.consigner }}</td>
+                    <td>{{ c.from_location }}</td>
+                    <td>{{ c.To_Location }}</td>
+                    <td>{{ c.Booking_Date }}</td>
+                    <td>{{ c.Loading_Date }}</td>
+                    <td>{{ c.Unloading_Date }}</td>
+                    <td>{{ c.consignee }}</td>
+                    <td>{{ c.consigner }}</td>
+                    <td>{{ c.Truck_Freight }}</td>
+                    <td>{{ c.Advance_Amount }}</td>
+                    <td>{{ c.Balance_Amount }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="13" class="text-center py-4 text-gray-500 italic">No consignment entries found.</td> {#
+                    Adjusted colspan #}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="flex justify-center mt-6">
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+
+                {# Previous page button #}
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}"
+                        class="relative inline-flex items-center px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-purple-300">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </a>
+                {% endif %}
+
+                {# Pagination range with shortening #}
+                {% for i in page_obj.paginator.page_range %}
+                    {% if i == 1 or i == page_obj.paginator.num_pages or i >= page_obj.number|add:-2 and i <= page_obj.number|add:2 %}
+                        {% if i == page_obj.number|add:-2 and i > 2 %}
+                            <span class="px-3 py-2">...</span>
+                        {% endif %}
+
+                        <a href="?page={{ i }}{% if query_string %}&{{ query_string }}{% endif %}"
+                            class="relative inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium hover:bg-purple-300 {% if page_obj.number == i %}bg-purple-50 border-purple-500 text-purple-600{% else %}bg-white text-gray-700{% endif %}">
+                            {{ i }}
+                        </a>
+
+                        {% if i == page_obj.number|add:2 and i < page_obj.paginator.num_pages|add:-1 %}
+                            <span class="px-3 py-2">...</span>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+
+                {# Next page button #}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}"
+                        class="relative inline-flex items-center px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-purple-300">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                {% endif %}
+
+            </nav>
+        </div>
+    </main>
+</body>
+{% endblock %}

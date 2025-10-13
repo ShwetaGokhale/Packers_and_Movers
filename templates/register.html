@@ -1,0 +1,156 @@
+<title>User Register</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", sans-serif;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 14px;
+  }
+
+  input:focus {
+    border-color: #007bff;
+    outline: none;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px;
+    background-color: #1a73e8;
+    border: none;
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background-color: #155acb;
+  }
+
+  .form-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(to bottom right, #dceeff, #e6dbff);
+  }
+
+  .form-box {
+    background-color: white;
+    padding: 40px 30px;
+    border-radius: 18px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    animation: slideUp 0.8s ease forwards;
+    transform: translateY(20px);
+    max-width: 380px;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  h2 {
+    text-align: center;
+    color: #1a73e8;
+    font-size: 26px;
+    font-weight: bold;
+    margin-bottom: 24px;
+  }
+
+  label {
+    font-weight: 600;
+    font-size: 14px;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .error-box {
+    margin-bottom: 15px;
+    color: red;
+    background-color: #ffe5e5;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px;
+  }
+
+  .form-footer {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 14px;
+  }
+
+  .form-footer a {
+    color: #1a73e8;
+    text-decoration: none;
+  }
+
+  .form-footer a:hover {
+    text-decoration: underline;
+  }
+</style>
+
+<!-- ------------------------------------------------------------------------------------------------------------------------------- -->
+
+<div class="form-container">
+  <div class="form-box">
+    <h2>Create Your Account</h2>
+
+    <!-- Old hardcoded error (optional) -->
+    {% if error %}
+    <div class="error-box">
+      {{ error }}
+    </div>
+    {% endif %}
+
+
+    <!-- Non-field errors here -->
+    {% if form.non_field_errors %}
+    <div style="color: red; font-size: 13px; margin-bottom: 16px;">
+      {% for error in form.non_field_errors %}
+      <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+      <div style="margin-bottom: 16px;">
+        <label>{{ field.label_tag }}</label>
+        {{ field }}
+        {% if field.errors %}
+        <div style="color: red; font-size: 13px;">{{ field.errors }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <button type="submit">Register</button>
+    </form>
+
+    <p class="form-footer">
+      Already have an account?
+      <a href="{% url 'login' %}">Back to Login</a>
+    </p>
+  </div>
+</div>

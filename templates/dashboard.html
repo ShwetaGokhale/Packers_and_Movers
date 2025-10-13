@@ -1,0 +1,481 @@
+{% extends "base.html" %}
+{% block content %}
+{% load static %}
+{% load humanize %}
+
+<style>
+  footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #6a1b9a;
+    color: white;
+    text-align: center;
+    padding: 4px 0;
+    /* Reduced padding for thinner height */
+    font-size: 10px;
+    /* Smaller font */
+    line-height: 1.2;
+    /* Tighter line height */
+    z-index: 50;
+  }
+
+  footer.show {
+    bottom: 0;
+  }
+
+  #pageFooter {
+    position: fixed;
+    bottom: -100px;
+    /* Initially hidden */
+    left: 0;
+    width: 100%;
+    background-color: #6a1b9a;
+    color: white;
+    text-align: center;
+    padding: 6px 0;
+    /* Slim height */
+    font-size: 10px;
+    transition: bottom 0.3s ease;
+    z-index: 50;
+  }
+
+  #pageFooter.show {
+    bottom: 0;
+  }
+
+  .search-input::placeholder {
+    font-size: 13px;
+  }
+</style>
+
+<main class="flex-1 w-full max-w-7xl px-4 py-6 mx-auto">
+
+  <!-- Unique Year Filter (Underline Style) -->
+  <form id="yearFilterForm" class="mb-8 ml-4 flex items-center gap-3">
+    <label for="yearSelect" class="text-base font-semibold text-[#6a1b9a]">📅 Select Year:</label>
+    <div class="relative">
+      <select id="yearSelect" name="year"
+        class="appearance-none bg-transparent border-b-2 border-[#6a1b9a] text-gray-800 text-sm px-1 py-1 pr-6 focus:outline-none focus:border-purple-900 transition duration-200"
+        onchange="document.getElementById('yearFilterForm').submit()">
+        {% for y in years %}
+        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+      <div class="absolute right-1 top-1/2 transform -translate-y-1/2 pointer-events-none">
+        <svg class="w-4 h-4 text-[#6a1b9a]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+    </div>
+  </form>
+
+  <!-- Financial Summary Title -->
+  <h2 class="text-2xl font-bold text-gray-800 mb-6 ml-4">
+    <i class="fas fa-chart-line mr-2"></i>Financial Summary - {{ selected_year }}
+  </h2>
+
+  <!-- Financial Summary Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-4 mb-16">
+    <div
+      class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
+      <div class="text-sm font-semibold text-gray-500 mb-1">
+        <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>+Received Amount
+      </div>
+      <div class="text-xl font-bold text-green-800">
+        ₹ {{ summary.total_advance|default_if_none:0|floatformat:-2|intcomma }}/-
+      </div>
+    </div>
+    <div
+      class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
+      <div class="text-sm font-semibold text-gray-500 mb-1">
+        <i class="fas fa-wallet mr-2 text-red-500"></i>Balance Amount
+      </div>
+      <div class="text-xl font-bold text-red-800">
+        ₹ {{ summary.total_balance|default_if_none:0|floatformat:-2|intcomma }}/-
+      </div>
+    </div>
+    <div
+      class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
+      <div class="text-sm font-semibold text-gray-500 mb-1">
+        <i class="fas fa-truck-loading mr-2 text-purple-600"></i>Total Fare
+      </div>
+      <div class="text-xl font-bold" style="color: rgba(106, 27, 154, 0.8);">
+        ₹ {{ summary.total_fare|default_if_none:0|floatformat:-2|intcomma }}/-
+      </div>
+    </div>
+  </div>
+
+  <!-- Truck Summary Title -->
+  <h4 class="text-2xl font-bold text-gray-800 mb-6 ml-4">
+    <i class="fas fa-truck mr-2"></i>Truck-Expense Wise Summary - {{ selected_year }}
+  </h4>
+
+  <!-- Truck Summary Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-4 mb-8">
+    <div
+      class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
+      <div class="text-sm font-semibold text-gray-500 mb-1">
+        <i class="fas fa-coins mr-2 text-green-500"></i>Paid Amount
+      </div>
+      <div class="text-xl font-bold text-green-800">
+        ₹ {{ truck_totals_summary.advance|floatformat:-2|intcomma }}/-
+      </div>
+    </div>
+    <div
+      class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
+      <div class="text-sm font-semibold text-gray-500 mb-1">
+        <i class="fas fa-hourglass-half mr-2 text-yellow-500"></i>Total Balance
+      </div>
+      <div class="text-xl font-bold text-yellow-800">
+        ₹ {{ truck_totals_summary.balance|floatformat:-2|intcomma }}/-
+      </div>
+    </div>
+    <div
+      class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
+      <div class="text-sm font-semibold text-gray-500 mb-1">
+        <i class="fas fa-shipping-fast mr-2 text-blue-500"></i>Total Freight
+      </div>
+      <div class="text-xl font-bold text-blue-800">
+        ₹ {{ truck_totals_summary.fare|floatformat:-2|intcomma }}/-
+      </div>
+    </div>
+  </div>
+
+  <!-- Party-wise Summary -->
+  <div class="my-8 bg-white p-5 rounded-lg shadow mb-10">
+    <!-- Title with Icon -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+      <h2 class="text-lg font-semibold text-gray-800">
+        <i class="fas fa-table-list text-green-600 mr-2"></i> Party-wise Summary - {{ selected_year }}
+      </h2>
+
+      <!-- Search Box with PDF Icon -->
+      <div class="relative w-full sm:w-64 flex items-center gap-2">
+        <div class="relative flex-grow">
+          <input type="text" id="toPartySearch" placeholder="Search by From Party/To Party..."
+            class="search-input w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-300 pl-10" />
+          <i class="fas fa-search absolute top-2.5 left-3 text-gray-400"></i>
+        </div>
+
+        <!-- PDF Icon -->
+        <a id="pdfDownloadLink" href="{% url 'partywise_summary_pdf' selected_year %}" target="_blank"
+          class="text-red-600 hover:text-red-800 text-xl" title="Download PDF">
+          <i class="fas fa-file-pdf"></i>
+        </a>
+
+        <!-- Excel Icon -->
+        <a id="excelDownloadLink" href="{% url 'partywise_summary_excel' selected_year %}" target="_blank"
+          class="text-green-600 hover:text-green-800 text-xl ml-3" title="Download Excel">
+          <i class="fas fa-file-excel"></i>
+        </a>
+
+      </div>
+
+    </div>
+
+    <!-- Party Summary Table -->
+    <div class="overflow-y-auto max-h-[600px] border rounded">
+      <table id="partySummaryTable" class="min-w-full text-sm bg-white">
+        <thead class="bg-green-100 sticky top-0 z-10 text-gray-700">
+          <tr>
+            <th class="px-4 py-3 text-left">
+              <i class="fas fa-hashtag mr-1 text-gray-500"></i> Sr. No.
+            </th>
+            <th class="px-4 py-3 text-left">
+              <i class="fas fa-people-group mr-1 text-gray-500"></i> From Party
+            </th>
+            <th class="px-4 py-3 text-left">
+              <i class="fas fa-arrow-right-arrow-left mr-1 text-gray-500"></i> To Party
+            </th>
+            <th class="px-4 py-3 text-right">
+              <i class="fas fa-boxes text-blue-600 mr-1"></i> Amount (₹)
+            </th>
+            <th class="px-4 py-3 text-right">
+              <i class="fas fa-hand-holding-dollar text-green-600 mr-1"></i> Paid (₹)
+            </th>
+            <th class="px-4 py-3 text-right">
+              <i class="fas fa-money-bill-wave text-red-600 mr-1"></i> Balance (₹)
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for item in goods_summary_grouped %}
+          <tr class="border-t hover:bg-gray-50 even:bg-gray-50 transition cursor-pointer"
+            onclick="redirectToCumulative('{{ item.to_party.consignee_name|urlencode }}')">
+            <td class="px-4 py-2">{{ forloop.counter }}</td>
+            <td class="px-4 py-2">{{ item.from_party.consignee_name|default:"—" }}</td>
+            <td class="px-4 py-2 font-medium text-gray-800">{{ item.to_party.consignee_name|default:"—" }}</td>
+            <td class="px-4 py-2 text-right text-blue-700">
+              {{ item.total_gi|floatformat:-2|intcomma }}/-
+            </td>
+            <td class="px-4 py-2 text-right text-green-700 font-semibold">
+              {{ item.total_paid|floatformat:-2|intcomma }}/-
+            </td>
+            <td class="px-4 py-2 text-right text-red-600 font-semibold">
+              {{ item.total_balance|floatformat:-2|intcomma }}/-
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+
+        <tfoot class="bg-gray-100 font-semibold border-t sticky bottom-0 z-10">
+          <tr>
+            <td class="px-4 py-2"></td>
+            <td class="px-4 py-2"></td>
+            <td class="px-4 py-2">Total</td>
+            <td class="px-4 py-2 text-right text-blue-700">
+              {{ goods_summary_total.gi_amount|floatformat:-2|intcomma }}/-
+            </td>
+            <td class="px-4 py-2 text-right text-green-700">
+              {{ goods_summary_total.paid_amount|floatformat:-2|intcomma }}/-
+            </td>
+            <td class="px-4 py-2 text-right text-red-700">
+              {{ goods_summary_total.balance_amount|floatformat:-2|intcomma }}/-
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- Truck-wise Summary Table -->
+  <div class="bg-white p-5 rounded-lg shadow mb-10">
+    <!-- Title and Search Input in Same Row -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+      <h2 class="text-lg font-semibold text-gray-800">
+        <i class="fas fa-truck-moving text-purple-600 mr-2"></i> Truck-wise Summary - {{ selected_year }}
+      </h2>
+      <div class="relative w-full sm:w-64">
+        <input type="text" id="truckSearch" placeholder="Search Truck No..."
+          class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-300 pl-10" />
+        <i class="fas fa-search absolute top-2.5 left-3 text-gray-400"></i>
+      </div>
+    </div>
+
+    {% if truck_totals %}
+    <div class="overflow-x-auto max-h-96 overflow-y-auto">
+      <table id="truckSummaryTable" class="min-w-full bg-white border rounded-lg text-sm">
+        <thead class="bg-purple-100 sticky top-0 z-10 text-gray-700">
+          <tr>
+            <th class="text-left px-4 py-2">
+              <i class="fas fa-truck-front mr-1 text-gray-500"></i> Truck No.
+            </th>
+            <th class="text-right px-4 py-2">
+              <i class="fas fa-gift mr-1 text-pink-600"></i> Inam (₹)
+            </th>
+            <th class="text-right px-4 py-2">
+              <i class="fas fa-hand-holding-dollar mr-1 text-green-600"></i> Advance (₹)
+            </th>
+            <th class="text-right px-4 py-2">
+              <i class="fas fa-wallet mr-1 text-red-600"></i> To Pay (₹)
+            </th>
+            <th class="text-right px-4 py-2">
+              <i class="fas fa-truck-ramp-box mr-1 text-purple-600"></i> Truck Freight (₹)
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in truck_totals %}
+          <tr class="border-t hover:bg-gray-50 even:bg-gray-50 transition">
+            <td class="px-4 py-2">{{ t.vehicle_number }}</td>
+            <td class="px-4 py-2 text-right">{{ t.total_innam|default_if_none:0|floatformat:-2|intcomma }}</td>
+            <td class="px-4 py-2 text-right">{{ t.total_advance|default_if_none:0|floatformat:-2|intcomma }}/-</td>
+            <td class="px-4 py-2 text-right">{{ t.total_balance|default_if_none:0|floatformat:-2|intcomma }}/-</td>
+            <td class="px-4 py-2 text-right">{{ t.total_fare|default_if_none:0|floatformat:-2|intcomma }}/-</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-center mt-4">No truck data available.</p>
+    {% endif %}
+  </div>
+
+
+  <!-- Monthly Chart -->
+  <div class="bg-white p-5 rounded-lg shadow mb-8">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Month-wise Summary - {{ selected_year }}</h2>
+    {% if summary.total_fare %}
+    <canvas id="monthlyBarChart" height="100"></canvas>
+    {% else %}
+    <p class="text-center text-gray-500 mt-10">No data available for {{ selected_year }}.</p>
+    {% endif %}
+  </div>
+
+</main>
+
+<!-- Footer -->
+<footer id="pageFooter">
+  <div class="mb-2">
+    <strong>Contact Us:</strong>
+    <i class="fas fa-envelope text-yellow-400 ml-2"></i> connect@infimetrics.com |
+    <i class="fas fa-phone-alt text-green-400 ml-2"></i> +91 9420873466
+  </div>
+  <div class="text-xs text-white/80">&copy; 2025 Infimetrics IT Solutions Pvt. Ltd. All rights reserved.</div>
+</footer>
+
+<script>
+  // Show footer on scroll
+  document.addEventListener('scroll', function () {
+    const footer = document.getElementById('pageFooter');
+    const scrollTop = window.scrollY || window.pageYOffset;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+
+    if (scrollTop + windowHeight >= documentHeight - 5) {
+      footer.classList.add('show');
+    } else {
+      footer.classList.remove('show');
+    }
+  });
+
+  // Redirect to Cumulative Report
+  function redirectToCumulative(toPartyName) {
+    const url = `{% url 'cumulative_report' %}?global_search=` + encodeURIComponent(toPartyName);
+    window.location.href = url;
+    console.log("Redirecting to:", url);
+
+  }
+
+  // Search functionality for Party-wise Summary
+  document.addEventListener('DOMContentLoaded', function () {
+    // Logout Confirmation
+    window.confirmLogout = function () {
+      if (confirm("Are you sure you want to logout?")) {
+        window.location.href = "{% url 'logout' %}";
+      }
+    };
+
+    // Combined Party-wise Search (From Party + To Party)
+    const toInput = document.getElementById('toPartySearch');
+    const partySummaryTable = document.getElementById('partySummaryTable');
+    const partyRows = partySummaryTable?.querySelectorAll('tbody tr') || [];
+
+    toInput?.addEventListener('input', function () {
+      const query = toInput.value.toLowerCase();
+      partyRows.forEach(row => {
+        const fromPartyText = row.children[1]?.textContent.toLowerCase() || '';
+        const toPartyText = row.children[2]?.textContent.toLowerCase() || '';
+        const match = fromPartyText.includes(query) || toPartyText.includes(query);
+        row.style.display = match ? '' : 'none';
+      });
+    });
+
+
+    // Truck-wise Search
+    const truckInput = document.getElementById('truckSearch');
+    const truckTable = document.getElementById('truckSummaryTable');
+    const truckRows = truckTable?.querySelectorAll('tbody tr') || [];
+
+    truckInput?.addEventListener('input', function () {
+      const query = truckInput.value.toLowerCase();
+      truckRows.forEach(row => {
+        const truckText = row.children[0]?.textContent.toLowerCase() || '';
+        row.style.display = truckText.includes(query) ? '' : 'none';
+      });
+    });
+
+    // Monthly Chart Rendering
+    try {
+      const monthLabels = JSON.parse('{{ month_labels|escapejs }}' || '[]');
+      const advanceValues = JSON.parse('{{ advance_values|escapejs }}' || '[]');
+      const balanceValues = JSON.parse('{{ balance_values|escapejs }}' || '[]');
+      const fareValues = JSON.parse('{{ fare_values|escapejs }}' || '[]');
+
+      if (monthLabels.length > 0) {
+        const ctx = document.getElementById('monthlyBarChart')?.getContext('2d');
+        if (ctx) {
+          new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: monthLabels,
+              datasets: [
+                {
+                  label: 'Advance Amount',
+                  data: advanceValues,
+                  backgroundColor: 'rgba(75, 192, 192, 0.8)',
+                  borderRadius: 5,
+                  barThickness: 25
+                },
+                {
+                  label: 'Balance Amount',
+                  data: balanceValues,
+                  backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                  borderRadius: 5,
+                  barThickness: 25
+                },
+                {
+                  label: 'Total Fare',
+                  data: fareValues,
+                  backgroundColor: 'rgba(106, 27, 154, 0.8)',
+                  borderRadius: 5,
+                  barThickness: 25
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                title: {
+                  display: true,
+                  text: 'Monthly Financial Totals'
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      return `${context.dataset.label}: ₹${context.raw.toLocaleString()}`;
+                    }
+                  }
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: 'Amount (₹)'
+                  }
+                }
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Chart loading error:", e);
+    }
+  });
+
+  // Dynamic PDF Download Link
+  // Update the PDF link based on search input
+  const searchInput = document.getElementById('toPartySearch');
+  const pdfLink = document.getElementById('pdfDownloadLink');
+
+  searchInput.addEventListener('input', () => {
+    const query = encodeURIComponent(searchInput.value.trim());
+    const baseUrl = "{% url 'partywise_summary_pdf' selected_year %}";
+    pdfLink.href = query ? `${baseUrl}?party=${query}` : baseUrl;
+  });
+
+  // Dynamic Excel Download Link
+  // Update the Excel link based on search input
+  const excelLink = document.getElementById('excelDownloadLink');
+
+  searchInput.addEventListener('input', () => {
+    const query = encodeURIComponent(searchInput.value.trim());
+    const basePdfUrl = "{% url 'partywise_summary_pdf' selected_year %}";
+    const baseExcelUrl = "{% url 'partywise_summary_excel' selected_year %}";
+
+    pdfLink.href = query ? `${basePdfUrl}?party=${query}` : basePdfUrl;
+    excelLink.href = query ? `${baseExcelUrl}?party=${query}` : baseExcelUrl;
+  });
+
+</script>
+
+{% endblock %}

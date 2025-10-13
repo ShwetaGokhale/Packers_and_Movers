@@ -1,0 +1,586 @@
+{% extends "base.html" %}
+{% block content %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<style>
+    /* Original styles */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    .table-container {
+        background-color: #fff;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(106, 27, 154, 0.2);
+        margin: 32px auto;
+        width: 95%;
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 1200px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: none;
+    }
+
+    th {
+        background-color: #6a1b9a;
+        color: white;
+        padding: 15px 8px;
+        text-align: left;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        border: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    th:first-child {
+        border-top-left-radius: 12px;
+    }
+
+    th:last-child {
+        border-top-right-radius: 12px;
+    }
+
+    td {
+        padding: 12px 8px;
+        border: 1px solid #e2e8f0;
+        text-align: left;
+        font-size: 0.875rem;
+        color: #4a5568;
+        animation: slideUp 0.5s ease forwards;
+    }
+
+    .payment-row {
+        background-color: #e8f5e8 !important;
+        font-weight: 600;
+    }
+
+    .payment-row td {
+        color: #2d7d32;
+    }
+
+    .payment-indicator {
+        background-color: #4caf50;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .slide-up {
+        animation: slideUp 0.6s ease-out forwards;
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #f7fafc;
+    }
+
+    tbody tr:hover {
+        background-color: #edf2f7;
+        transform: scale(1.005);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .payment-row:hover {
+        background-color: #d4edda !important;
+    }
+
+    tr:last-child td:first-child {
+        border-bottom-left-radius: 12px;
+    }
+
+    tr:last-child td:last-child {
+        border-bottom-right-radius: 12px;
+    }
+
+    /* Smart Dropdown Styles */
+    .dropdown-container {
+        position: relative;
+        width: 100%;
+        max-width: 320px;
+    }
+
+    .dropdown-input {
+        width: 100%;
+        padding: 10px 16px;
+        border: 2px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        background-color: #fff;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .dropdown-input:focus {
+        outline: none;
+        border-color: #6a1b9a;
+        box-shadow: 0 0 0 3px rgba(106, 27, 154, 0.1);
+    }
+
+    .dropdown-arrow {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        transition: transform 0.3s ease;
+        color: #6b7280;
+    }
+
+    .dropdown-arrow.rotate {
+        transform: translateY(-50%) rotate(180deg);
+    }
+
+    .dropdown-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: #fff;
+        border: 2px solid #d1d5db;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .dropdown-list.show {
+        display: block;
+    }
+
+    .dropdown-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #f3f4f6;
+        transition: background-color 0.2s ease;
+        font-size: 14px;
+    }
+
+    .dropdown-item:hover {
+        background-color: #f9fafb;
+    }
+
+    .dropdown-item.highlighted {
+        background-color: #6a1b9a;
+        color: white;
+    }
+
+    .dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .clear-button {
+        position: absolute;
+        right: 35px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #9ca3af;
+        padding: 2px;
+        display: none;
+    }
+
+    .clear-button:hover {
+        color: #6b7280;
+    }
+
+    .clear-button.show {
+        display: block;
+    }
+
+    .no-results {
+        padding: 12px 16px;
+        color: #9ca3af;
+        font-style: italic;
+        text-align: center;
+    }
+
+    @media (max-width: 768px) {
+        .table-container {
+            padding: 15px;
+            margin-top: 15px;
+            width: 98%;
+        }
+
+        th,
+        td {
+            padding: 8px 4px;
+            font-size: 0.75rem;
+        }
+
+        .dropdown-container {
+            max-width: 100%;
+        }
+    }
+
+    @media (max-width: 480px) {
+
+        th,
+        td {
+            font-size: 0.65rem;
+            padding: 6px 3px;
+        }
+    }
+</style>
+
+<main class="table-container">
+    <div class="flex flex-wrap justify-between items-center mb-6 w-full">
+        <h2
+            class="text-2xl lg:text-3xl font-extrabold text-purple-900 tracking-wide text-center w-full lg:w-auto mx-auto lg:mx-0 slide-up">
+            <i>Party Report</i>
+        </h2>
+
+        <div class="flex items-center gap-3 w-full lg:w-auto mt-4 lg:mt-0 lg:ml-auto">
+            <!-- Smart Dropdown Search -->
+            <div class="dropdown-container">
+                <input type="text" id="partyDropdown" placeholder="Select or search party..." class="dropdown-input"
+                    autocomplete="off" readonly>
+                <button type="button" class="clear-button" id="clearButton">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="dropdown-arrow" id="dropdownArrow">
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="dropdown-list" id="dropdownList"></div>
+            </div>
+
+            <!-- Export Icons -->
+            <a href="{% url 'export_cumulative_excel' %}?global_search={{ global_search }}" id="excelExportLink"
+                class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2.5 px-4 rounded-md shadow-sm transition duration-300 ease-in-out flex items-center">
+                <i class="fas fa-file-excel"></i>
+            </a>
+            <a href="{% url 'export_cumulative_pdf' %}?global_search={{ global_search }}" id="pdfExportLink"
+                class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-4 rounded-md shadow-sm transition duration-300 ease-in-out flex items-center">
+                <i class="fas fa-file-pdf"></i>
+            </a>
+        </div>
+
+    </div>
+
+    <!-- Summary Section -->
+    <div class="border-b-4 border-purple-600 text-sm font-semibold text-center py-3 mb-6 relative">
+        <div class="glow-text text-purple-700 tracking-wide">
+            Total:
+            <span class="mx-4">10 KG Qty: <span id="sumQty10">{{ total_10kg|floatformat:"0" }}</span></span>
+            <span class="mx-4">10 KG Rate: ₹<span id="sumRate10">{{ total_rate_10kg|floatformat:"0" }}</span></span>
+            <span class="mx-4">10 KG Fare: ₹<span id="sumFare10">{{ total_fare_10kg|floatformat:"0" }}</span></span>
+            <span class="mx-4">20 KG Qty: <span id="sumQty20">{{ total_20kg|floatformat:"0" }}</span></span>
+            <span class="mx-4">20 KG Rate: ₹<span id="sumRate20">{{ total_rate_20kg|floatformat:"0" }}</span></span>
+            <span class="mx-4">20 KG Fare: ₹<span id="sumFare20">{{ total_fare_20kg|floatformat:"0" }}</span></span>
+        </div>
+    </div>
+
+    <div class="container">
+        <table>
+            <thead>
+                <tr>
+                    <th>CN No</th>
+                    <th>Loading Date</th>
+                    <th>Truck No</th>
+                    <th>Consignee</th>
+                    <th>From Party</th>
+                    <th>Party</th>
+                    <th>10 KG</th>
+                    <th>10 KG Rate</th>
+                    <th>20 KG</th>
+                    <th>20 KG Rate</th>
+                    <th>10 KG Fare</th>
+                    <th>20 KG Fare</th>
+                    <th>Total</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr {% if entry.is_payment %}class="payment-row" {% endif %} data-is-payment="{{ entry.is_payment }}"
+                    data-qty10kg="{{ entry.qty_10kg }}" data-rate10kg="{{ entry.rate_10kg }}"
+                    data-fare10kg="{{ entry.fare_10kg }}" data-qty20kg="{{ entry.qty_20kg }}"
+                    data-rate20kg="{{ entry.rate_20kg }}" data-fare20kg="{{ entry.fare_20kg }}"
+                    data-party="{{ entry.from_party }}">
+                    <td>{% if entry.is_payment %}<span class="payment-indicator">PAYMENT</span>{% else %}{{ entry.cn_no}}{% endif %}</td>
+                    <td>{{ entry.date|date:"d-m-Y" }}</td>
+                    <td>{{ entry.truck_no }}</td>
+                    <td>{{ entry.consignee }}</td>
+                    <td>{{ entry.from_party }}</td>
+                    <td class="text-center">{{ entry.party }}</td>
+                    <td class="text-center">{{ entry.qty_10kg|floatformat:"0" }}</td>
+                    <td class="text-center">{{ entry.rate_10kg|floatformat:"0" }}</td>
+                    <td class="text-center">{{ entry.qty_20kg|floatformat:"0" }}</td>
+                    <td class="text-center">{{ entry.rate_20kg|floatformat:"0" }}</td>
+                    <td class="text-center">{{ entry.fare_10kg|floatformat:"0" }}</td>
+                    <td class="text-center">{{ entry.fare_20kg|floatformat:"0" }}</td>
+                    <td class="text-center">{{ entry.total|floatformat:"0" }}</td>
+                    <td class="text-center">
+                        {% if entry.is_payment %}
+                        <span style="color: #2d7d32; font-weight: bold;">{{ entry.paid|floatformat:"0" }}</span>
+                        {% else %}0{% endif %}
+                    </td>
+                    <td class="text-center">{{ entry.cumulative|floatformat:"0" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<script>
+    // Dynamic PDF Download Link
+    // Update the PDF link based on search input
+    document.addEventListener("DOMContentLoaded", function () {
+        const dropdownInput = document.getElementById("partyDropdown");
+        const dropdownList = document.getElementById("dropdownList");
+        const dropdownArrow = document.getElementById("dropdownArrow");
+        const clearButton = document.getElementById("clearButton");
+        const tableRows = document.querySelectorAll("tbody tr");
+
+        const excelLink = document.getElementById("excelExportLink");
+        const pdfLink = document.getElementById("pdfExportLink");
+
+        const sumQty10 = document.getElementById("sumQty10");
+        const sumRate10 = document.getElementById("sumRate10");
+        const sumFare10 = document.getElementById("sumFare10");
+        const sumQty20 = document.getElementById("sumQty20");
+        const sumRate20 = document.getElementById("sumRate20");
+        const sumFare20 = document.getElementById("sumFare20");
+
+        let allParties = [];
+        let filteredParties = [];
+        let highlightedIndex = -1;
+        let isDropdownOpen = false;
+
+        // Extract unique party names from table
+        function extractParties() {
+            const parties = new Set();
+            tableRows.forEach(row => {
+                const party = row.dataset.party;
+                if (party && party.trim() !== '') {
+                    parties.add(party.trim());
+                }
+            });
+            allParties = Array.from(parties).sort();
+            filteredParties = [...allParties];
+        }
+
+        // Create dropdown options
+        function createDropdownOptions(parties) {
+            dropdownList.innerHTML = '';
+
+            if (parties.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'no-results';
+                noResults.textContent = 'No parties found';
+                dropdownList.appendChild(noResults);
+                return;
+            }
+
+            parties.forEach((party, index) => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-item';
+                option.textContent = party;
+                option.dataset.value = party;
+                option.dataset.index = index;
+                dropdownList.appendChild(option);
+            });
+        }
+
+        // Filter parties based on search term
+        function filterParties(searchTerm) {
+            if (!searchTerm) {
+                filteredParties = [...allParties];
+            } else {
+                filteredParties = allParties.filter(party =>
+                    party.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            }
+            createDropdownOptions(filteredParties);
+            highlightedIndex = -1;
+        }
+
+        // Update table and links based on selected party
+        function updateTableAndLinks(selectedParty = '') {
+            const searchTerm = selectedParty.toLowerCase().trim();
+            let qty10 = 0, rate10 = 0, fare10 = 0;
+            let qty20 = 0, rate20 = 0, fare20 = 0;
+
+            tableRows.forEach(row => {
+                const partyText = row.dataset.party.toLowerCase() || "";
+                const isMatch = !searchTerm || partyText.includes(searchTerm);
+                row.style.display = isMatch ? "" : "none";
+
+                if (isMatch && row.dataset.isPayment === "False") {
+                    qty10 += parseFloat(row.dataset.qty10kg || 0);
+                    rate10 += parseFloat(row.dataset.rate10kg || 0);
+                    fare10 += parseFloat(row.dataset.fare10kg || 0);
+                    qty20 += parseFloat(row.dataset.qty20kg || 0);
+                    rate20 += parseFloat(row.dataset.rate20kg || 0);
+                    fare20 += parseFloat(row.dataset.fare20kg || 0);
+                }
+            });
+
+            sumQty10.textContent = qty10.toFixed(0);
+            sumRate10.textContent = rate10.toFixed(0);
+            sumFare10.textContent = fare10.toFixed(0);
+            sumQty20.textContent = qty20.toFixed(0);
+            sumRate20.textContent = rate20.toFixed(0);
+            sumFare20.textContent = fare20.toFixed(0);
+
+            const encodedSearch = encodeURIComponent(selectedParty);
+            excelLink.href = `{% url 'export_cumulative_excel' %}?global_search=${encodedSearch}`;
+            pdfLink.href = `{% url 'export_cumulative_pdf' %}?global_search=${encodedSearch}`;
+        }
+
+        // Show/hide dropdown
+        function toggleDropdown(show) {
+            isDropdownOpen = show;
+            dropdownList.classList.toggle('show', show);
+            dropdownArrow.classList.toggle('rotate', show);
+
+            if (show) {
+                dropdownInput.removeAttribute('readonly');
+                dropdownInput.focus();
+            } else {
+                dropdownInput.setAttribute('readonly', 'true');
+                highlightedIndex = -1;
+                updateHighlight();
+            }
+        }
+
+        // Update highlighted option
+        function updateHighlight() {
+            const options = dropdownList.querySelectorAll('.dropdown-item');
+            options.forEach((option, index) => {
+                option.classList.toggle('highlighted', index === highlightedIndex);
+            });
+        }
+
+        // Handle option selection
+        function selectOption(value) {
+            dropdownInput.value = value;
+            toggleDropdown(false);
+            updateTableAndLinks(value);
+            clearButton.classList.toggle('show', value !== '');
+        }
+
+        // Event listeners
+        dropdownInput.addEventListener('click', function () {
+            if (!isDropdownOpen) {
+                filterParties('');
+                toggleDropdown(true);
+            }
+        });
+
+        dropdownInput.addEventListener('input', function () {
+            const searchTerm = this.value;
+            filterParties(searchTerm);
+            clearButton.classList.toggle('show', searchTerm !== '');
+
+            if (!isDropdownOpen) {
+                toggleDropdown(true);
+            }
+
+            updateTableAndLinks(searchTerm);
+        });
+
+        dropdownInput.addEventListener('keydown', function (e) {
+            if (!isDropdownOpen) return;
+
+            const options = dropdownList.querySelectorAll('.dropdown-item');
+
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    highlightedIndex = Math.min(highlightedIndex + 1, options.length - 1);
+                    updateHighlight();
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    highlightedIndex = Math.max(highlightedIndex - 1, -1);
+                    updateHighlight();
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (highlightedIndex >= 0 && options[highlightedIndex]) {
+                        selectOption(options[highlightedIndex].dataset.value);
+                    }
+                    break;
+                case 'Escape':
+                    toggleDropdown(false);
+                    break;
+            }
+        });
+
+        // Handle dropdown option clicks
+        dropdownList.addEventListener('click', function (e) {
+            if (e.target.classList.contains('dropdown-item')) {
+                selectOption(e.target.dataset.value);
+            }
+        });
+
+        // Clear button functionality
+        clearButton.addEventListener('click', function () {
+            dropdownInput.value = '';
+            clearButton.classList.remove('show');
+            updateTableAndLinks('');
+            toggleDropdown(false);
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.dropdown-container')) {
+                toggleDropdown(false);
+            }
+        });
+
+        // Initialize
+        extractParties();
+        createDropdownOptions(allParties);
+        updateTableAndLinks();
+    });
+</script>
+{% endblock %}

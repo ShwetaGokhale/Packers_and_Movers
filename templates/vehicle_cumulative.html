@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block content %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+
+<style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+    .table-container {
+        background-color: #fff; padding: 24px; border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(106, 27, 154, 0.2);
+        margin: 32px auto; width: 95%; max-width: 100%; overflow-x: auto;
+    }
+
+    table {
+        width: 100%; border-collapse: separate; border-spacing: 0;
+        min-width: 1200px; border-radius: 12px; overflow: hidden;
+        background: #fff; box-shadow: none;
+    }
+
+    th {
+        background-color: #6a1b9a; color: white; padding: 15px 8px;
+        text-align: left; font-size: 0.875rem; font-weight: 600;
+        text-transform: uppercase; border: none; position: sticky;
+        top: 0; z-index: 10;
+    }
+
+    th:first-child { border-top-left-radius: 12px; }
+    th:last-child { border-top-right-radius: 12px; }
+
+    td {
+        padding: 12px 8px; border: 1px solid #e2e8f0; text-align: left;
+        font-size: 0.875rem; color: #4a5568; animation: slideUp 0.5s ease forwards;
+    }
+
+    .payment-row { background-color: #e8f5e8 !important; font-weight: 600; }
+    .payment-row td { color: #2d7d32; }
+
+    .payment-indicator {
+        background-color: #4caf50; color: white; padding: 2px 8px;
+        border-radius: 12px; font-size: 0.75rem; font-weight: bold;
+    }
+
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .slide-up { animation: slideUp 0.6s ease-out forwards; }
+
+    tbody tr:nth-child(even) { background-color: #f7fafc; }
+    tbody tr:hover {
+        background-color: #edf2f7; transform: scale(1.005);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .payment-row:hover { background-color: #d4edda !important; }
+
+    tr:last-child td:first-child { border-bottom-left-radius: 12px; }
+    tr:last-child td:last-child { border-bottom-right-radius: 12px; }
+
+    @media (max-width: 768px) {
+        .table-container { padding: 15px; margin-top: 15px; width: 98%; }
+        th, td { padding: 8px 4px; font-size: 0.75rem; }
+    }
+
+    @media (max-width: 480px) {
+        th, td { font-size: 0.65rem; padding: 6px 3px; }
+    }
+</style>
+
+<main class="table-container">
+    <div class="flex flex-wrap justify-between items-center mb-6 w-full">
+        <h2 class="text-2xl lg:text-3xl font-extrabold text-purple-900 tracking-wide text-center w-full lg:w-auto mx-auto lg:mx-0 slide-up">
+            <i>Vehicle Cumulative Report</i>
+        </h2>
+
+        <div class="flex flex-wrap items-center justify-between w-full lg:w-auto gap-2 mt-4 lg:mt-0 lg:ml-auto">
+            <input type="text" id="searchInput" placeholder="Search by Truck No"
+                class="border border-purple-300 focus:ring-purple-500 focus:border-purple-500 rounded-lg px-4 py-2 text-sm w-full lg:w-64" />
+            <div class="flex space-x-2">
+                <a href="{% url 'export_cumulative_vehicle_excel' %}?global_search={{ global_search }}" id="excelExportLink"
+                    class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2.5 px-5 rounded-md shadow-sm transition duration-300 ease-in-out flex items-center whitespace-nowrap">
+                    <i class="fas fa-file-excel text-xs"></i>
+                </a>
+                <a href="{% url 'export_cumulative_vehicle_pdf' %}?global_search={{ global_search }}" id="pdfExportLink"
+                    class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-5 rounded-md shadow-sm transition duration-300 ease-in-out flex items-center whitespace-nowrap">
+                    <i class="fas fa-file-pdf text-xs"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="text-sm text-left">
+            <thead>
+                <tr>
+                    <th>Bill No</th>
+                    <th>Date</th>
+                    <th>Truck No</th>
+                    <th>Consignee</th>
+                    <th>Truck Fare</th>
+                    <th>Innam</th>
+                    <th>Extra TF</th>
+                    <th>Advance</th>
+                    <th>To Pay</th>
+                    <th>Paid</th>
+                    <th>Cumulative Amount</th>
+                </tr>
+            </thead>
+            <tbody id="reportBody">
+                {% for entry in entries %}
+                <tr {% if entry.is_payment %}class="payment-row"{% endif %}>
+                    <td>
+                        {% if entry.is_payment %}
+                            <span class="payment-indicator">PAYMENT</span>
+                        {% else %}
+                            {{ entry.cn_no }}
+                        {% endif %}
+                    </td>
+                    <td>{{ entry.date|date:"d-m-Y" }}</td>
+                    <td>{{ entry.vehicle_no }}</td>
+                    <td>{{ entry.consignee }}</td>
+                    <td>{{ entry.truck_fare|floatformat:"0" }}</td>
+                    <td>{{ entry.innam|floatformat:"0" }}</td>
+                    <td>{{ entry.extra_tf|floatformat:"0" }}</td>
+                    <td>{{ entry.advance|floatformat:"0" }}</td>
+                    <td>{% if entry.is_payment %}0{% else %}{{ entry.to_pay|floatformat:"0" }}{% endif %}</td>
+                    <td>{% if entry.is_payment %}{{ entry.paid|floatformat:"0" }}{% else %}0{% endif %}</td>
+                    <td>{{ entry.cumulative|floatformat:"0" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="11" class="text-center py-4 text-gray-500">No data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<script>
+    // Search functionality for Party-wise Summary
+    document.addEventListener("DOMContentLoaded", function () {
+        const searchInput = document.getElementById("searchInput");
+        const rows = document.querySelectorAll("#reportBody tr");
+
+        const excelLink = document.getElementById("excelExportLink");
+        const pdfLink = document.getElementById("pdfExportLink");
+
+        // Initial update of table and links
+        function updateTableAndLinks() {
+            const search = searchInput.value.toLowerCase().trim();
+            rows.forEach(row => {
+                const truckNo = row.cells[2]?.textContent.toLowerCase() || "";
+                row.style.display = truckNo.includes(search) ? "" : "none";
+            });
+
+            const encoded = encodeURIComponent(search);
+            excelLink.href = `{% url 'export_cumulative_vehicle_excel' %}?global_search=${encoded}`;
+            pdfLink.href = `{% url 'export_cumulative_vehicle_pdf' %}?global_search=${encoded}`;
+        }
+
+        searchInput.addEventListener("input", updateTableAndLinks);
+    });
+</script>
+{% endblock %}

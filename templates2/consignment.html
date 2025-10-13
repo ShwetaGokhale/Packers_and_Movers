@@ -1,0 +1,1346 @@
+{% extends "base.html" %} 
+{% block content %}
+{% load static %}
+<style>
+    /* Adjusted main content container margin to account for fixed header */
+    .form-container {
+        background-color: #ffffff;
+        padding: 30px 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 1000px;
+        box-sizing: border-box;
+        margin: 0 auto 30px auto;
+        /* Changed top margin from 30px to 0 */
+        flex-grow: 1;
+        /* Allow form to take up remaining space */
+    }
+
+    h2 {
+        text-align: center;
+        color: #4a148c;
+        margin-bottom: 25px;
+        animation: slideUp 0.8s ease forwards;
+        transform: translateY(20px);
+    }
+
+    form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px 45px;
+        animation: slideUp 0.8s ease forwards;
+        transform: translateY(20px);
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(100%);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    form p {
+        margin: 0;
+    }
+
+    label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+    }
+
+    input,
+    select,
+    textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 14px;
+        background-color: #f9f9f9;
+        /* Remove default spin buttons from number inputs */
+    }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    textarea {
+        resize: vertical;
+    }
+
+    .full-width {
+        grid-column: 1 / 3;
+    }
+
+    /* Styles for input/select group with add button */
+    .input-with-button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* .input-with-button input, */
+    /* .input-with-button select, */
+    /* .input-with-button textarea { */
+    /* flex: 1; */
+    /* } */
+
+    .add-btn {
+        padding: 6px 12px;
+        background-color: #4CAF50;
+        border: none;
+        color: white;
+        font-size: 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.3s ease;
+    }
+
+    .add-btn i {
+        pointer-events: none;
+    }
+
+    .add-btn:hover {
+        background-color: #388e3c;
+    }
+
+    button[type="submit"] {
+        grid-column: 1 / 3;
+        padding: 12px;
+        background-color: #6a1b9a;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    button[type="submit"]:hover {
+        background-color: #4a148c;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        form {
+            grid-template-columns: 1fr;
+        }
+
+        .full-width,
+        button[type="submit"] {
+            grid-column: 1 / 2;
+        }
+
+        .main-nav {
+            flex-direction: column;
+            padding: 10px;
+            align-items: flex-start;
+            /* Align nav items to start on small screens */
+        }
+
+        .main-nav a,
+        .dropdown .dropbtn {
+            margin: 5px 0;
+            width: calc(100% - 20px);
+            /* Make links span almost full width */
+            text-align: left;
+            /* Align text to left in stacked mode */
+        }
+
+        .dropdown-content {
+            position: static;
+            /* Remove absolute positioning on small screens */
+            width: 100%;
+            /* Take full width on small screens */
+            box-shadow: none;
+            /* Remove shadow to blend better */
+            border-top: 1px solid #eee;
+            /* Add a separator */
+        }
+    }
+
+    /* --- START OF ENHANCED MODAL STYLES (INCLUDING SPECIFIC VEHICLE MODAL) --- */
+
+    /* Modal Overlay Styles - HIDDEN BY DEFAULT */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        /* Darker, more prominent overlay */
+        display: none;
+        /* Changed to none */
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        backdrop-filter: blur(5px);
+        /* Subtle blur effect on background */
+        animation: fadeInOverlay 0.3s forwards;
+        /* Fade in animation */
+    }
+
+    /* Modal Content Styles */
+    .modal-content {
+        background: linear-gradient(135deg, #f0f4f8, #e9ecf0);
+        /* Subtle gradient background */
+        padding: 30px;
+        /* Increased padding */
+        border-radius: 15px;
+        /* More rounded corners */
+        width: 90%;
+        max-width: 450px;
+        /* Adjusted max-width for a good size */
+        position: relative;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        /* Stronger shadow for depth */
+        animation: slideInModal 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+        /* Pop-out animation */
+        border: 1px solid #dcdcdc;
+        /* Subtle border */
+        max-height: 90vh;
+        /* Allow modal to take up more vertical space */
+        overflow-y: auto;
+        /* Enable scrolling for content overflow */
+    }
+
+    @keyframes fadeInOverlay {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideInModal {
+        from {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* Modal Close Button */
+    .modal-close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: none;
+        border: none;
+        font-size: 30px;
+        /* Larger close icon */
+        cursor: pointer;
+        color: #777;
+        /* Softer color */
+        transition: color 0.2s ease, transform 0.2s ease;
+    }
+
+    .modal-close-btn:hover {
+        color: #333;
+        /* Darker on hover */
+        transform: rotate(90deg);
+        /* Spin on hover */
+    }
+
+    /* Modal Heading */
+    .modal-content h3 {
+        text-align: center;
+        color: #6a1b9a;
+        /* Deep purple, consistent with header */
+        margin-bottom: 25px;
+        /* Increased margin */
+        font-size: 1.8em;
+        /* Larger font size */
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
+        /* Subtle text shadow */
+    }
+
+    /* Modal Form Group */
+    .modal-form-group {
+        margin-bottom: 20px;
+        /* Increased spacing between form groups */
+    }
+
+    .modal-form-group label {
+        display: block;
+        /* Label on its own line */
+        margin-bottom: 8px;
+        /* Space below label */
+        font-weight: 600;
+        /* Bolder label text */
+        color: #444;
+        /* Slightly darker label color */
+        font-size: 0.95rem;
+    }
+
+    .modal-form-group input[type="text"],
+    .modal-form-group input[type="date"],
+    .modal-form-group textarea,
+    /* Ensure textarea is styled */
+    .modal-form-group select {
+        width: 100%;
+        /* Full width within modal content */
+        padding: 12px;
+        /* Increased padding */
+        border: 1px solid #cdd4da;
+        /* Softer border */
+        border-radius: 8px;
+        /* More rounded input fields */
+        font-size: 1rem;
+        /* Standard font size */
+        box-sizing: border-box;
+        /* Include padding in width */
+        outline: none;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        background-color: #fcfdff;
+        /* Very light input background */
+    }
+
+    .modal-form-group input[type="text"]:focus,
+    .modal-form-group input[type="date"]:focus,
+    .modal-form-group textarea:focus,
+    .modal-form-group select:focus {
+        border-color: #8e24aa;
+        /* Purple border on focus */
+        box-shadow: 0 0 0 3px rgba(142, 36, 170, 0.25);
+        /* Glow effect on focus */
+    }
+
+    /* Modal Button (Add/Update) */
+    .modal-add-btn {
+        display: block;
+        width: 100%;
+        padding: 14px;
+        /* Increased padding */
+        background: linear-gradient(to right, #8e24aa, #6a1b9a);
+        /* Gradient button */
+        color: white;
+        border: none;
+        border-radius: 8px;
+        /* More rounded button */
+        font-size: 1.1rem;
+        /* Larger font size */
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        /* Stronger shadow */
+        transition: all 0.3s ease;
+        letter-spacing: 0.5px;
+        /* Slightly increased letter spacing */
+        margin-top: 25px;
+        /* More space above the button */
+    }
+
+    .modal-add-btn:hover {
+        background: linear-gradient(to left, #8e24aa, #6a1b9a);
+        /* Reverse gradient on hover */
+        transform: translateY(-2px);
+        /* Slight lift on hover */
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        /* Deeper shadow on hover */
+    }
+
+    /* Modal Table (Inside Modals) */
+    .modal-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 25px;
+        /* Increased margin from modal inputs */
+        border-radius: 10px;
+        /* Rounded corners for modal table */
+        overflow: hidden;
+        /* Ensures rounded corners apply */
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        /* Subtle shadow */
+    }
+
+    .modal-table th,
+    .modal-table td {
+        border: 1px solid #e0e0e0;
+        /* Lighter borders */
+        padding: 10px;
+        /* Slightly more padding */
+        text-align: left;
+        font-size: 0.9em;
+        vertical-align: middle;
+    }
+
+    .modal-table th {
+        background-color: #7b1fa2;
+        /* Deep purple header for modal tables */
+        color: white;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    /* Specific rounded corners for modal table headers */
+    .modal-table th:first-child {
+        border-top-left-radius: 10px;
+    }
+
+    .modal-table th:last-child {
+        border-top-right-radius: 10px;
+    }
+
+
+    .modal-table td.actions {
+        display: flex;
+        gap: 15px;
+        /* Adjusted gap */
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .modal-table td.actions button {
+        font-size: 1.1em;
+        /* Slightly smaller for table icons */
+        transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+        padding: 5px;
+        /* Small padding for click area */
+    }
+
+    .modal-table td.actions .select-btn {
+        color: #2196F3;
+        /* Blue for select */
+    }
+
+    .modal-table td.actions .select-btn:hover {
+        color: #1976D2;
+        transform: scale(1.15);
+    }
+
+    .modal-table td.actions .delete-btn {
+        color: #f44336;
+        /* Red for delete */
+    }
+
+    .modal-table td.actions .delete-btn:hover {
+        color: #d32f2f;
+        transform: scale(1.15);
+    }
+
+    /* Loading Indicator */
+    .loading-indicator {
+        text-align: center;
+        margin-top: 20px;
+        color: #6a1b9a;
+        font-style: italic;
+        display: none;
+        font-weight: 500;
+        animation: pulse 1.5s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+        0% {
+            opacity: 0.6;
+        }
+
+        50% {
+            opacity: 1;
+        }
+
+        100% {
+            opacity: 0.6;
+        }
+    }
+
+    /* Messages within Modals (e.g., vehicleMessage) */
+    .modal-content>div[style*="color"] {
+        /* Targets message divs in modals */
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 5px;
+        font-weight: bold;
+        text-align: center;
+        font-size: 0.9em;
+    }
+
+    #vehicleMessage {
+        color: #28a745;
+        /* Green for success */
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+    }
+
+    /* For error messages, if any, you might want to add a red style */
+    /* .error-message-style { color: #dc3545; background-color: #f8d7da; border: 1px solid #f5c6cb; } */
+
+
+    /* Styles for Goods Information Table */
+    .goods-info-container {
+        margin-top: 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        background-color: #fdfdfd;
+    }
+
+    .goods-info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 10px;
+    }
+
+    .goods-info-table th,
+    .goods-info-table td {
+        border: 1px solid #eee;
+        padding: 8px;
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .goods-info-table th {
+        background-color: #f9f9f9;
+        font-weight: bold;
+        color: #555;
+    }
+
+    /* NEW: Styles for Goods Information Table Columns */
+    .goods-info-table th:nth-child(1),
+    /* Box */
+    .goods-info-table td:nth-child(1) {
+        width: 13%;
+        /* Increased width for Box */
+    }
+
+    .goods-info-table th:nth-child(2),
+    /* Unit */
+    .goods-info-table td:nth-child(2) {
+        width: 13%;
+    }
+
+    .goods-info-table th:nth-child(3),
+    /* Quantity */
+    .goods-info-table td:nth-child(3) {
+        width: 13%;
+        /* Adjusted for better spacing */
+    }
+
+    .goods-info-table th:nth-child(4),
+    /* Rate */
+    .goods-info-table td:nth-child(4) {
+        width: 13%;
+    }
+
+    .goods-info-table th:nth-child(5),
+    /* GI Amount */
+    .goods-info-table td:nth-child(5) {
+        width: 12%;
+    }
+
+    .goods-info-table th:nth-child(6),
+    /* From Party */
+    .goods-info-table td:nth-child(6) {
+        width: 12%;
+        /* Can be wider for party names */
+    }
+
+    .goods-info-table th:nth-child(7),
+    /* To Party */
+    .goods-info-table td:nth-child(7) {
+        width: 13%;
+        /* Can be wider for party names */
+    }
+
+    .goods-info-table th:nth-child(8),
+    /* Actions */
+    .goods-info-table td:nth-child(8) {
+        width: 13%;
+    }
+
+
+    .goods-info-table input[type="text"],
+    .goods-info-table input[type="number"] {
+        width: calc(100% - 16px);
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1em;
+        background-color: #fff;
+        /* Remove default spin buttons from number inputs */
+    }
+
+    .goods-info-table input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .goods-info-table select {
+        /* Added style for select elements in goods table */
+        width: calc(100% - 16px);
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1em;
+        background-color: #fff;
+    }
+
+    .goods-info-table .table-action-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        font-size: 1.2em;
+        cursor: pointer;
+        transition: color 0.3s ease;
+        line-height: 1;
+        margin: 0 5px;
+    }
+
+    .goods-info-table .edit-goods-item-btn {
+        color: #FFC107;
+    }
+
+    .goods-info-table .edit-goods-item-btn:hover {
+        color: #FFA000;
+    }
+
+    .goods-info-table .remove-goods-item-btn {
+        color: #f44336;
+    }
+
+    .goods-info-table .remove-goods-item-btn:hover {
+        color: #d32f2f;
+    }
+
+    /* CSS for centering the "Add Goods Item" button */
+    #addGoodsItemBtn {
+        display: block;
+        margin: 15px auto 0 auto;
+        width: fit-content;
+    }
+
+    /* Custom Confirmation Modal Styles */
+    #confirmationModalOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        /* Darker, more prominent overlay */
+        display: none;
+        /* Changed to none */
+        justify-content: center;
+        align-items: center;
+        z-index: 1002;
+        backdrop-filter: blur(5px);
+        animation: fadeInOverlay 0.3s forwards;
+        /* display: none; */
+        /* Hidden by default */
+    }
+
+    #confirmationModalContent {
+        background: linear-gradient(135deg, #f0f4f8, #e9ecf0);
+        /* Subtle gradient background */
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        width: 90%;
+        max-width: 400px;
+        text-align: center;
+        border: 1px solid #dcdcdc;
+        animation: slideInModal 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+    }
+
+    #confirmationModalContent p {
+        font-size: 1.1em;
+        margin-bottom: 25px;
+        /* Increased margin */
+        color: #333;
+        font-weight: 500;
+    }
+
+    #confirmationModalButtons {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        /* Increased gap */
+    }
+
+    #confirmYesBtn,
+    #confirmNoBtn {
+        padding: 12px 25px;
+        /* Increased padding */
+        border: none;
+        border-radius: 8px;
+        /* More rounded buttons */
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 100px;
+        /* Consistent minimum width */
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        /* Subtle shadow */
+    }
+
+    #confirmYesBtn {
+        background-color: #e53935;
+        /* Brighter red */
+        color: white;
+    }
+
+    #confirmYesBtn:hover {
+        background-color: #c62828;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+    }
+
+    #confirmNoBtn {
+        background-color: #e0e0e0;
+        color: #555;
+    }
+
+    #confirmNoBtn:hover {
+        background-color: #c0c0c0;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+    }
+
+
+    /* --- NEW/ENHANCED SUCCESS POPUP STYLES --- */
+    .success-popup {
+        position: fixed;
+        top: -100px;
+        /* Start off-screen above */
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #4CAF50;
+        /* Green background */
+        color: white;
+        padding: 15px 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        font-weight: 500;
+        text-align: center;
+        z-index: 9999;
+        /* Ensure it's on top */
+        opacity: 0;
+        /* Start hidden */
+        transition: top 0.5s ease-out, opacity 0.5s ease-out;
+        /* Smooth transition */
+        min-width: 250px;
+    }
+
+    .success-popup.show {
+        top: 20px;
+        /* Slide down to 20px from top */
+        opacity: 1;
+        /* Fade in */
+    }
+
+    /* Styles for the custom searchable select/autocomplete */
+    .custom-searchable-select-wrapper {
+        position: relative;
+        flex: 1; /* Allows it to take up available space in flex container */
+        min-width: 200px; /* Ensure it has a minimum width */
+    }
+
+    .custom-searchable-select-wrapper .searchable-input {
+        width: 100%;
+        padding: 10px 35px 10px 10px; /* Added right padding for the icon */
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 14px;
+        background-color: #f9f9f9;
+        box-sizing: border-box;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .custom-searchable-select-wrapper .searchable-input:focus {
+        border-color: #6a1b9a;
+        box-shadow: 0 0 0 2px rgba(106, 27, 154, 0.2);
+    }
+
+    .custom-dropdown-list {
+        position: absolute;
+        top: 100%; /* Position below the input */
+        left: 0;
+        width: 100%;
+        max-height: 200px; /* Max height for scrollable list */
+        overflow-y: auto;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        z-index: 50; /* Ensure it's above other elements */
+        display: none; /* Hidden by default */
+        list-style: none; /* Remove default list styling */
+        padding: 0;
+        margin: 5px 0 0 0; /* Space between input and dropdown */
+    }
+
+    .custom-dropdown-list ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .custom-dropdown-list li {
+        padding: 10px 15px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        border-bottom: 1px solid #eee; /* Subtle separator */
+    }
+
+    .custom-dropdown-list li:last-child {
+        border-bottom: none;
+    }
+
+    .custom-dropdown-list li.selected,
+    .custom-dropdown-list li:hover {
+        background-color: #e0f7fa; /* Light blue/purple hover */
+        color: #4a148c; /* Darker purple text on hover */
+    }
+
+    .dropdown-icon {
+        position: absolute;
+        right: 10px; /* Position from the right edge of the wrapper */
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6a1b9a; /* Icon color */
+        cursor: pointer;
+        font-size: 1.1em;
+        transition: transform 0.2s ease;
+        z-index: 10; /* Ensure it's above the input text */
+    }
+
+    .dropdown-icon.open {
+        transform: translateY(-50%) rotate(180deg); /* Rotate when open */
+    }
+</style>
+<div class="form-container">
+    <h2>Consignment Note Form</h2>
+<p style="color: red; font-weight: bold;">Note: Currently the form is not working. Developer will fix this in the next update.</p>
+    <form id="consignmentForm" method="post" action="{% url 'consignment' %}">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <!-- Row 1: CNID, Vehicle No and CN No -->
+        <div class="full-width" style="display: flex; gap: 30px; flex-wrap: wrap;">
+            {# New CNID field #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="id_cn_note_id">CNID</label>
+                <input
+                    type="text"
+                    id="id_cn_note_id"
+                    name="cn_note_id"
+                    value=""
+                    readonly
+                >
+            </div>
+            <div style="flex: 1; min-width: 280px;">
+                <label for="vehicleSearchInput">Vehicle No</label>
+                <div class="input-with-button">
+                    <div class="custom-searchable-select-wrapper" id="vehicleSearchWrapper">
+                        <!-- Visible input for typing search query and displaying selected value -->
+                        <input
+                            type="text"
+                            id="vehicleSearchInput"
+                            class="searchable-input"
+                            placeholder="Select or type a Vehicle No"
+                        >
+                        <!-- Dropdown icon -->
+                        <i class="fa-solid fa-chevron-down dropdown-icon" id="vehicleDropdownIcon"></i>
+                        <!-- Hidden input to hold the actual selected Vehicle ID for form submission -->
+                        <input type="hidden" name="{{ form.Vehicle_No.name }}" id="{{ form.Vehicle_No.id_for_label }}">
+                        <!-- Dropdown list container -->
+                        <div id="vehicleDropdownList" class="custom-dropdown-list">
+                            <!-- Options will be dynamically loaded by JavaScript here --></div>
+                    </div>
+                    <button
+                        type="button"
+                        class="add-btn"
+                        id="addVehicleBtn"
+                        title="Add New Vehicle"
+                    >
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                {% if form.Vehicle_No.errors %}
+                <span style="color: red;">{{ form.Vehicle_No.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Cn_No.id_for_label }}">{{ form.Cn_No.label }}</label>
+                <div class="input-with-button">
+                    {# Now a normal text input for CN No #}
+                    <input
+                        type="text"
+                        name="{{ form.Cn_No.name }}"
+                        id="{{ form.Cn_No.id_for_label }}"
+                        placeholder="Enter CN No"
+                    >
+                </div>
+                {% if form.Cn_No.errors %}
+                <span style="color: red;">{{ form.Cn_No.errors|striptags }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Row 2: Consignee and Consignor in one row -->
+        <div class="full-width" style="display: flex; gap: 30px; flex-wrap: wrap;">
+            <!-- Consignee Field Block -->
+            <div style="flex: 1; min-width: 280px;">
+                <label for="consigneeSearchInput">{{ form.consignee.label }}</label>
+                <div class="input-with-button">
+                    <div class="custom-searchable-select-wrapper" id="consigneeSearchWrapper">
+                        <!-- Visible input for typing search query and displaying selected value -->
+                        <input
+                            type="text"
+                            id="consigneeSearchInput"
+                            class="searchable-input"
+                            placeholder="Select or type Consignee"
+                        >
+                        <!-- Dropdown icon -->
+                        <i class="fa-solid fa-chevron-down dropdown-icon" id="consigneeDropdownIcon"></i>
+                        <!-- Hidden input to hold the actual selected Consignee ID for form submission -->
+                        <input type="hidden" name="{{ form.consignee.name }}" id="{{ form.consignee.id_for_label }}">
+                        <!-- Dropdown list container -->
+                        <div id="consigneeDropdownList" class="custom-dropdown-list">
+                            <!-- Options will be dynamically loaded by JavaScript here --></div>
+                    </div>
+                    <button
+                        type="button"
+                        class="add-btn"
+                        id="addConsigneeBtn"
+                        title="Add Consignee"
+                    >
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                {% if form.consignee.errors %}
+                <span style="color: red;">{{ form.consignee.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            <!-- Consignor Field Block -->
+            <div style="flex: 1; min-width: 280px;">
+                <label for="consignerSearchInput">{{ form.consigner.label }}</label>
+                <div class="input-with-button">
+                    <div class="custom-searchable-select-wrapper" id="consignerSearchWrapper">
+                        <!-- Visible input for typing search query and displaying selected value -->
+                        <input
+                            type="text"
+                            id="consignerSearchInput"
+                            class="searchable-input"
+                            placeholder="Select or type Consignor"
+                        >
+                        <!-- Dropdown icon -->
+                        <i class="fa-solid fa-chevron-down dropdown-icon" id="consignerDropdownIcon"></i>
+                        <!-- Hidden input to hold the actual selected Consignor ID for form submission -->
+                        <input type="hidden" name="{{ form.consigner.name }}" id="{{ form.consigner.id_for_label }}">
+                        <!-- Dropdown list container -->
+                        <div id="consignerDropdownList" class="custom-dropdown-list">
+                            <!-- Options will be dynamically loaded by JavaScript here --></div>
+                    </div>
+                    <button
+                        type="button"
+                        class="add-btn"
+                        id="addConsignerBtn"
+                        title="Add Consignor"
+                    >
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                {% if form.consigner.errors %}
+                <span style="color: red;">{{ form.consigner.errors|striptags }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Row 3: From Location and To Location -->
+        <div class="full-width" style="display: flex; gap: 30px; flex-wrap: wrap;">
+            <!-- From Location Field Block -->
+            <div style="flex: 1; min-width: 280px;">
+                <label for="fromLocationSearchInput">{{ form.from_location.label }}</label>
+                <div class="input-with-button">
+                    <div class="custom-searchable-select-wrapper" id="fromLocationSearchWrapper">
+                        <!-- Visible input for typing search query and displaying selected value -->
+                        <input
+                            type="text"
+                            id="fromLocationSearchInput"
+                            class="searchable-input"
+                            placeholder="Select or type From Location"
+                        >
+                        <!-- Dropdown icon -->
+                        <i class="fa-solid fa-chevron-down dropdown-icon" id="fromLocationDropdownIcon"></i>
+                        <!-- Hidden input to hold the actual selected From Location ID for form submission -->
+                        <input type="hidden" name="{{ form.from_location.name }}" id="{{ form.from_location.id_for_label }}">
+                        <!-- Dropdown list container -->
+                        <div id="fromLocationDropdownList" class="custom-dropdown-list">
+                            <!-- Options will be dynamically loaded by JavaScript here --></div>
+                    </div>
+                    <button
+                        type="button"
+                        class="add-btn"
+                        id="addFromLocationBtn"
+                        title="Add Location"
+                    >
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                {% if form.from_location.errors %}
+                <span style="color: red;">{{ form.from_location.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            <!-- To Location Field Block -->
+            <div style="flex: 1; min-width: 280px;">
+                <label for="toLocationSearchInput">{{ form.To_Location.label }}</label>
+                <div class="input-with-button">
+                    <div class="custom-searchable-select-wrapper" id="toLocationSearchWrapper">
+                        <!-- Visible input for typing search query and displaying selected value -->
+                        <input
+                            type="text"
+                            id="toLocationSearchInput"
+                            class="searchable-input"
+                            placeholder="Select or type To Location"
+                        >
+                        <!-- Dropdown icon -->
+                        <i class="fa-solid fa-chevron-down dropdown-icon" id="toLocationDropdownIcon"></i>
+                        <!-- Hidden input to hold the actual selected To Location ID for form submission -->
+                        <input type="hidden" name="{{ form.To_Location.name }}" id="{{ form.To_Location.id_for_label }}">
+                        <!-- Dropdown list container -->
+                        <div id="toLocationDropdownList" class="custom-dropdown-list">
+                            <!-- Options will be dynamically loaded by JavaScript here --></div>
+                    </div>
+                    <button
+                        type="button"
+                        class="add-btn"
+                        id="addToLocationBtn"
+                        title="Add Location"
+                    >
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                {% if form.To_Location.errors %}
+                <span style="color: red;">{{ form.To_Location.errors|striptags }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Goods Information Section - NOW A TABLE (Moved here) -->
+        <div class="full-width">
+            <label>Goods Information</label>
+            <div class="goods-info-container">
+                <table class="goods-info-table">
+                    <thead>
+                        <tr>
+                            <!-- <th>GI ID</th> {# New Header #} -->
+                            <th>Unit</th>
+                            <th>Quantity (Kg)</th>
+                            <th>Rate</th>
+                            <th>GI Amount</th>
+                            <th>From Party</th>
+                            <th>To Party</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="goodsTableBody">
+                        <tr class="example-row" style="background-color: #fff3cd;">
+                            <td>
+                                <input type="text" placeholder="Unit" disabled>
+                            </td>
+                            <td>
+                                <input
+                                    type="number"
+                                    placeholder="Quantity"
+                                    disabled
+                                    value="0"
+                                >
+                            </td>
+                            <!-- Added default value -->
+                            <td>
+                                <input
+                                    type="number"
+                                    placeholder="Rate"
+                                    disabled
+                                    value="0"
+                                >
+                            </td>
+                            <!-- Added default value -->
+                            <td>
+                                <input
+                                    type="number"
+                                    placeholder="Amount"
+                                    disabled
+                                    value="0"
+                                >
+                            </td>
+                            <!-- Added default value -->
+                            <td>
+                                <input type="text" placeholder="From Party" disabled>
+                            </td>
+                            <td>
+                                <input type="text" placeholder="To Party" disabled>
+                            </td>
+                            <td style="text-align: center; color: #999;">Example</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" class="add-btn" id="addGoodsItemBtn">
+                    Add Goods Item
+                </button>
+            </div>
+            <!-- Hidden input to store JSON string of goods items -->
+            <input type="hidden" name="{{ form.goods_info.name }}" id="{{ form.goods_info.id_for_label }}">
+            <!-- NEW: Hidden input to store the calculated total_fare of goods -->
+            <input type="hidden" name="{{ form.total_fare.name }}" id="{{ form.total_fare.id_for_label }}">
+            {% if form.goods_info.errors %}
+            <span style="color: red;">{{ form.goods_info.errors|striptags }}</span>
+            {% endif %}
+        </div>
+        <!-- Other Fields: Exclude those explicitly placed (CNID, Vehicle_No, cn_no, consignee, consigner, from_location, To_Location, goods_info) -->
+        <div class="full-width" style="display: flex; gap: 30px; flex-wrap: wrap;">
+            {# Booking Date #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Booking_Date.id_for_label }}">{{ form.Booking_Date.label }}</label>
+                {{ form.Booking_Date }}
+                {% if form.Booking_Date.errors %}
+                <span style="color: red;">{{ form.Booking_Date.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# Loading Date #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Loading_Date.id_for_label }}">{{ form.Loading_Date.label }}</label>
+                {{ form.Loading_Date }}
+                {% if form.Loading_Date.errors %}
+                <span style="color: red;">{{ form.Loading_Date.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# Unloading Date #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Unloading_Date.id_for_label }}">{{ form.Unloading_Date.label }}</label>
+                {{ form.Unloading_Date }}
+                {% if form.Unloading_Date.errors %}
+                <span style="color: red;">{{ form.Unloading_Date.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# NEW FIELD: Innam #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Innam.id_for_label }}">{{ form.Innam.label }}</label>
+                <input
+                    type="number"
+                    name="{{ form.Innam.name }}"
+                    id="{{ form.Innam.id_for_label }}"
+                    value="{{ form.Innam.value|default:'0' }}"
+                >
+                {% if form.Innam.errors %}
+                <span style="color: red;">{{ form.Innam.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# NEW FIELD: Truck Freight #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Truck_Freight.id_for_label }}">{{ form.Truck_Freight.label }}</label>
+                <input
+                    type="number"
+                    name="{{ form.Truck_Freight.name }}"
+                    id="{{ form.Truck_Freight.id_for_label }}"
+                    value="{{ form.Truck_Freight.value|default:'0.00' }}"
+                >
+                {% if form.Truck_Freight.errors %}
+                <span style="color: red;">{{ form.Truck_Freight.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# NEW FIELD: Extra TF #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Extra_TF.id_for_label }}">{{ form.Extra_TF.label }}</label>
+                <input
+                    type="number"
+                    name="{{ form.Extra_TF.name }}"
+                    id="{{ form.Extra_TF.id_for_label }}"
+                    value="{{ form.Extra_TF.value|default:'0.00' }}"
+                >
+                {% if form.Extra_TF.errors %}
+                <span style="color: red;">{{ form.Extra_TF.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# Advance Amount #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Advance_Amount.id_for_label }}">{{ form.Advance_Amount.label }}</label>
+                {{ form.Advance_Amount }}
+                {% if form.Advance_Amount.errors %}
+                <span style="color: red;">{{ form.Advance_Amount.errors|striptags }}</span>
+                {% endif %}
+            </div>
+            {# Balance Amount #}
+            <div style="flex: 1; min-width: 280px;">
+                <label for="{{ form.Balance_Amount.id_for_label }}">To Pay</label>
+                {{ form.Balance_Amount }}
+                {% if form.Balance_Amount.errors %}
+                <span style="color: red;">{{ form.Balance_Amount.errors|striptags }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <button type="submit">Save</button>
+    </form>
+</div>
+<!-- Vehicle Management Modal (Enhanced) -->
+<div id="vehicleModalOverlay" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="closeVehicleModalBtn">&times;</button>
+        <h3>Manage Vehicle Numbers</h3>
+        <div class="modal-form-group">
+            <label for="newVehicleNo">Vehicle Number:</label>
+            <input type="text" id="newVehicleNo" placeholder="e.g., MH01AB1234">
+        </div>
+        <div class="modal-form-group">
+            <label for="newVehicleDate">Date Added:</label>
+            <input type="date" id="newVehicleDate" value="{{ 'now'|date:'Y-m-d' }}">
+        </div>
+        <button class="modal-add-btn" id="addNewVehicleBtn">Add Vehicle</button>
+        <div id="vehicleLoading" class="loading-indicator">Processing...</div>
+        <div id="vehicleMessage" style="color: green; text-align: center; margin-top: 10px;"></div>
+        <table class="modal-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Vehicle No.</th>
+                    <th>Date Added</th>
+                    <th>Actions</th>
+                    {# Added Actions column #}
+                </tr>
+            </thead>
+            <tbody id="vehicleTableBody">
+                <!-- Vehicle data will be loaded here --></tbody>
+        </table>
+    </div>
+</div>
+<!-- Consignee Management Modal (Enhanced) -->
+<div id="consigneeModalOverlay" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="closeConsigneeModalBtn">&times;</button>
+        <h3>Manage Consignees</h3>
+        <div class="modal-form-group">
+            <label for="newConsigneeName">Consignee Name:</label>
+            <input type="text" id="newConsigneeName" placeholder="e.g., ABC Logistics">
+        </div>
+        <div class="modal-form-group">
+            <label for="newConsigneeDate">Date Added:</label>
+            <input type="date" id="newConsigneeDate" value="{{ 'now'|date:'Y-m-d' }}">
+        </div>
+        <div class="modal-form-group">
+            <label for="newConsigneeAddress">Address:</label>
+            <textarea id="newConsigneeAddress" rows="3" placeholder="Enter consignee address"></textarea>
+        </div>
+        <button class="modal-add-btn" id="addNewConsigneeBtn">Add Consignee</button>
+        <div id="consigneeLoading" class="loading-indicator">Processing...</div>
+        <div id="consigneeMessage" style="color: green; text-align: center; margin-top: 10px;"></div>
+        <table class="modal-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Consignee Name</th>
+                    <th>Date</th>
+                    <th>Address</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="consigneeTableBody">
+                <!-- Consignee data will be loaded here --></tbody>
+        </table>
+    </div>
+</div>
+<!-- Consigner Management Modal (Enhanced) -->
+<div id="consignerModalOverlay" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="closeConsignerModalBtn">&times;</button>
+        <h3>Manage Consigners</h3>
+        <div class="modal-form-group">
+            <label for="newConsignerName">Consigner Name:</label>
+            <input type="text" id="newConsignerName" placeholder="e.g., ABC Logistics">
+        </div>
+        <div class="modal-form-group">
+            <label for="newConsignerDate">Date Added:</label>
+            <input type="date" id="newConsignerDate" value="{{ 'now'|date:'Y-m-d' }}">
+        </div>
+        <div class="modal-form-group">
+            <label for="newConsignerAddress">Address:</label>
+            <textarea id="newConsignerAddress" rows="3" placeholder="Enter consigner address"></textarea>
+        </div>
+        <button class="modal-add-btn" id="addNewConsignerBtn">Add Consigner</button>
+        <div id="consignerLoading" class="loading-indicator">Processing...</div>
+        <div id="consignerMessage" style="color: green; text-align: center; margin-top: 10px;"></div>
+        <table class="modal-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Consigner Name</th>
+                    <th>Date</th>
+                    <th>Address</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="consignerTableBody">
+                <!-- Consigner data will be loaded here --></tbody>
+        </table>
+    </div>
+</div>
+<!-- Location Management Modal (Enhanced) -->
+<div id="locationModalOverlay" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="closeLocationModalBtn">&times;</button>
+        <h3>Manage Locations</h3>
+        <div class="modal-form-group">
+            <label for="newLocationName">Location Name:</label>
+            <input type="text" id="newLocationName" placeholder="e.g., Nagpur">
+        </div>
+        <div class="modal-form-group">
+            <label for="newLocationDate">Date Added:</label>
+            <input type="date" id="newLocationDate" value="{{ 'now'|date:'Y-m-d' }}">
+        </div>
+        <button class="modal-add-btn" id="addNewLocationBtn">Add Location</button>
+        <div id="locationLoading" class="loading-indicator">Processing...</div>
+        <div id="locationMessage" style="color: green; text-align: center; margin-top: 10px;"></div>
+        <table class="modal-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Location</th>
+                    <th>Date Added</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="locationTableBody">
+                <!-- Location data will be loaded here --></tbody>
+        </table>
+    </div>
+</div>
+<!-- The Consignment Note Management Modal has been completely removed as requested -->
+<!-- Custom Confirmation Modal (Enhanced) -->
+<div id="confirmationModalOverlay" class="modal-overlay">
+    <div id="confirmationModalContent" class="modal-content">
+        <p id="confirmationMessage"></p>
+        <div id="confirmationModalButtons">
+            <button id="confirmYesBtn">Yes</button>
+            <button id="confirmNoBtn">No</button>
+        </div>
+    </div>
+</div>
+<!-- Success Popup Element (Enhanced) -->
+<div id="successPopup" class="success-popup">
+    Action successful!
+</div>
+<script src="{% static 'script.js' %}"></script>
+</body>
+{% endblock %}

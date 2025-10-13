@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    .table-container {
+        background-color: #fff;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(106, 27, 154, 0.2);
+        margin: 32px auto;
+        width: 95%;
+        max-width: 100%;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    th {
+        background-color: #6a1b9a;
+        color: white;
+        padding: 15px 8px;
+        text-align: left;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        border: 1px solid #7b1fa2;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    td {
+        padding: 12px 8px;
+        border: 1px solid #e2e8f0;
+        text-align: left;
+        font-size: 0.875rem;
+        color: #4a5568;
+        animation: slideUp 0.5s ease forwards;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .slide-up {
+        animation: slideUp 0.6s ease-out forwards;
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #f7fafc;
+    }
+
+    tbody tr:hover {
+        background-color: #edf2f7;
+        transform: scale(1.005);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .global-search-container {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        max-width: 500px;
+        background-color: #f0f4f8;
+        padding: 10px 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        align-items: center;
+    }
+
+    .global-search-input {
+        flex-grow: 1;
+        padding: 8px 12px;
+        border: 1px solid #cbd5e0;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        outline: none;
+    }
+
+    .global-search-button {
+        padding: 8px 15px;
+        background-color: #6a1b9a;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .global-search-button:hover {
+        background-color: #4a148c;
+        transform: translateY(-1px);
+    }
+
+    /* Make the table corners rounded */
+    table {
+        width: 100%;
+        border-collapse: separate;
+        /* Important for border-radius! */
+        border-spacing: 0;
+        min-width: 1000px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: none;
+    }
+
+    /* Header style */
+    th {
+        background-color: #7b1fa2;
+        /* Purple */
+        color: #fff;
+        text-transform: uppercase;
+        font-weight: bold;
+        border: none;
+        padding: 14px 10px;
+    }
+
+    /* Rounded corners for header */
+    th:first-child {
+        border-top-left-radius: 12px;
+    }
+
+    th:last-child {
+        border-top-right-radius: 12px;
+    }
+
+    /* Rounded corners for last row */
+    tr:last-child td:first-child {
+        border-bottom-left-radius: 12px;
+    }
+
+    tr:last-child td:last-child {
+        border-bottom-right-radius: 12px;
+    }
+</style>
+
+<main class="table-container">
+    <div class="flex flex-wrap justify-between items-center mb-6 w-full">
+        <h2
+            class="text-2xl lg:text-3xl font-extrabold text-purple-900 tracking-wide text-center w-full lg:w-auto mx-auto lg:mx-0 slide-up">
+            <i>Daily Reports</i>
+        </h2>
+
+        <!-- Search + Export Buttons -->
+        <form method="GET" class="global-search-container ml-auto mt-4 lg:mt-0">
+            <input type="text" id="global_search" name="global_search" placeholder="Search By Vehicle No..."
+                class="global-search-input" value="{{ current_filters.global_search }}">
+
+            <button type="submit" class="global-search-button">
+                <i class="fa-solid fa-magnifying-glass"></i> Search
+            </button>
+
+            <a href="{% url 'export_builty_excel' %}?global_search={{ current_filters.global_search }}"
+                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md flex items-center whitespace-nowrap ml-2">
+                <i class="fas fa-file-excel mr-2"></i>
+            </a>
+
+            <a href="{% url 'export_builty_pdf' %}?global_search={{ current_filters.global_search }}"
+                class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md flex items-center whitespace-nowrap ml-2">
+                <i class="fas fa-file-pdf mr-2"></i>
+            </a>
+        </form>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Bill No</th>
+                <th>Loading Date</th>
+                <th>Vehicle No</th>
+                <th>Consignee</th>
+                <th>20kg Qty</th>
+                <th>10kg Qty</th>
+                <th>Builty Fare</th>
+                <th>Truck Fare</th>
+                <th>Innam</th>
+                <th>Extra TF</th>
+                <th>Total</th>
+                <th>Advance Amount</th>
+                <th>To Pay</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in page_obj %}
+            <tr>
+                <td>{{ c.Cn_No }}</td>
+                <td>{{ c.Loading_Date }}</td>
+                <td>{{ c.Vehicle_No }}</td>
+                <td>{{ c.consignee }}</td>
+                <td>{{ c.get_20kg_total }}</td>
+                <td>{{ c.get_10kg_total }}</td>
+                <td>{{ c.get_builty_fare }}</td>
+                <td>{{ c.Truck_Freight }}</td>
+                <td>{{ c.Innam }}</td>
+                <td>{{ c.Extra_TF }}</td>
+                <td>{{ c.get_total }}</td>
+                <td>{{ c.Advance_Amount }}</td>
+                <td>{{ c.Balance_Amount }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="13" class="text-center py-4 text-gray-500 italic">
+                    No consignment entries found.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="flex justify-center mt-6">
+        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            {% if start_page > 1 %}
+            <a href="?page={{ start_page|add:" -1" }}"
+                class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-purple-700 hover:bg-purple-300">
+                &laquo;
+            </a>
+            {% endif %}
+
+            {% for i in page_range %}
+            {% if i == current_page %}
+            <span
+                class="relative inline-flex items-center px-4 py-2 border border-purple-600 bg-purple-600 text-white text-sm font-medium">
+                {{ i }}
+            </span>
+            {% else %}
+            <a href="?page={{ i }}"
+                class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-purple-300">
+                {{ i }}
+            </a>
+            {% endif %}
+            {% endfor %}
+
+            {% if end_page < total_pages %} <a href="?page={{ end_page|add:" 1" }}"
+                class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-purple-700 hover:bg-purple-300">
+                &raquo;
+                </a>
+                {% endif %}
+        </nav>
+    </div>
+</main>
+{% endblock %}

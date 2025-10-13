@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block content %}
+{% load static %}
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+    .table-container {
+        background-color: #fff;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(106, 27, 154, 0.2);
+        margin: 32px auto;
+        width: 95%;
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    th {
+        background-color: #6a1b9a;
+        color: white;
+        padding: 12px 10px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        border: 1px solid #7b1fa2;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    td {
+        padding: 12px 10px;
+        border: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+        color: #4a5568;
+        animation: slideUp 0.5s ease forwards;
+    }
+
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    tbody tr:nth-child(even) { background-color: #f7fafc; }
+    tbody tr:hover {
+        background-color: #edf2f7;
+        transition: background-color 0.3s ease;
+        transform: scale(1.005);
+    }
+
+    .filter-container {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 24px;
+        max-width: 400px;
+        background-color: #f0f4f8;
+        padding: 10px 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        align-items: center;
+    }
+
+    .filter-container select {
+        padding: 8px 12px;
+        border: 1px solid #cbd5e0;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        outline: none;
+    }
+
+    .summary-row {
+        font-weight: bold;
+        background-color: #f1f5f9;
+        border-top: 3px solid #d7cfe0;
+        margin-top: 10px;
+        box-shadow: 0 -3px 8px -2px rgba(106, 27, 154, 0.5);
+    }
+
+    .balance-row {
+        font-weight: bold;
+        background-color: #eef0ef;
+    }
+
+    h2 {
+        animation: slideUp 0.5s ease forwards;
+    }
+</style>
+
+<main class="table-container">
+    <h2
+        class="text-2xl lg:text-3xl font-extrabold text-purple-900 tracking-wide text-center w-full lg:w-auto mx-auto lg:mx-0">
+        <i>Vehicle Statement</i>
+    </h2>
+
+    <div style="display: flex; justify-content: flex-end;">
+        <form method="get" class="filter-container" style="width: 300px;">
+            <label for="vehicle_id">Filter by Vehicle:</label>
+            <select name="vehicle_id" id="vehicle_id" onchange="this.form.submit()">
+                {% for vehicle in vehicles %}
+                    <option value="{{ vehicle.id }}"
+                        {% if selected_vehicle and vehicle.id == selected_vehicle.id %}selected{% endif %}>
+                        {{ vehicle.vehicle_number }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    {% if selected_vehicle %}
+    <table class="min-w-full border text-sm rounded-lg overflow-hidden">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Vehicle No</th>
+                <th>Account Name</th>
+                <th>Remark</th>
+                <th>Debit</th>
+                <th>Credit</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Debit section -->
+            {% for entry in debit_entries %}
+            <tr>
+                <td class="text-center">{{ entry.Booking_Date|date:"Y-m-d" }}</td>
+                <td class="text-center">{{ selected_vehicle.vehicle_number }}</td>
+                <td class="text-center">Account Payable</td>
+                <td class="text-center">{{ entry.Cn_No }}</td>
+                <td class="text-center">{{ entry.Balance_Amount }}</td>
+                <td class="text-center">-</td>
+            </tr>
+            {% endfor %}
+
+            <!-- Credit section -->
+            {% for entry in credit_entries %}
+            <tr>
+                <td class="text-center">{{ entry.payment_date|date:"Y-m-d" }}</td>
+                <td class="text-center">{{ selected_vehicle.vehicle_number }}</td>
+                <td class="text-center">Expense</td>
+                <td class="text-center">{{ entry.remark|default:"-" }}</td>
+                <td class="text-center">-</td>
+                <td class="text-center">{{ entry.paid_amount }}</td>
+            </tr>
+            {% endfor %}
+
+            <!-- Totals -->
+            <tr class="summary-row">
+                <td colspan="4" class="text-right">Total</td>
+                <td class="text-center">{{ total_debit }}</td>
+                <td class="text-center">{{ total_credit }}</td>
+            </tr>
+            <tr class="balance-row">
+                <td colspan="4" class="text-right">Balance</td>
+                <td colspan="2" class="text-center">{{ balance }}</td>
+            </tr>
+        </tbody>
+    </table>
+    {% endif %}
+</main>
+
+<script>
+    window.addEventListener('DOMContentLoaded', function () {
+        const url = new URL(window.location.href);
+        if (!url.searchParams.get("vehicle_id")) {
+            document.querySelector('form').submit();
+        }
+    });
+</script>
+{% endblock %}

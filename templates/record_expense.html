@@ -1,0 +1,635 @@
+{% extends "base.html" %} {% block content %}
+
+<style>
+    /* Adjusted main content container margin to account for fixed header */
+    .form-container {
+        background-color: #ffffff;
+        padding: 30px 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 1000px;
+        box-sizing: border-box;
+        margin: 0 auto 30px auto;
+        flex-grow: 1;
+    }
+
+    h2 {
+        text-align: center;
+        color: #4a148c;
+        margin-bottom: 25px;
+        animation: slideUp 0.8s ease forwards;
+        transform: translateY(20px);
+    }
+
+    form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px 45px;
+        animation: slideUp 0.8s ease forwards;
+        transform: translateY(20px);
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(100%);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    form p {
+        margin: 0;
+    }
+
+    .tab-container {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-bottom: 25px;
+        animation: slideUp 0.8s ease forwards;
+        transform: translateY(20px);
+    }
+
+    .tab-btn {
+        padding: 10px 25px;
+        border: none;
+        background: #e1bee7;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 15px;
+        transition: all 0.3s ease;
+    }
+
+    .tab-btn.active {
+        background: #6a1b9a;
+        color: #fff;
+    }
+
+    .tab-content {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 25px;
+        background-color: #f9f9f9;
+        min-height: 200px;
+        animation: slideUp 0.8s ease forwards;
+        transform: translateY(20px);
+    }
+
+    input:disabled,
+    select:disabled {
+        background-color: #f1f1f1;
+        cursor: not-allowed;
+    }
+</style>
+
+<!-- Wrap everything in the background card-like form -->
+<div class="form-container">
+    <!-- <h2 style="text-align:center; color:#4a148c;">Record Expense</h2> -->
+    <h3 class="text-3xl font-bold italic mb-4 text-purple-800 text-center">Record Expense</h3>
+
+    <!-- Tab Buttons -->
+    <div class="tab-container">
+        <button class="tab-btn active" onclick="openTab('petrolPumpTab', this)">Petrol Pump</button>
+        <button class="tab-btn" onclick="openTab('staffEmployeeTab', this)">Staff/Employee</button>
+        <button class="tab-btn" onclick="openTab('vehicleTab', this)">Vehicle</button>
+    </div>
+
+    <!-- Tab Content Areas -->
+    <div class="tab-content" id="petrolPumpTab" style="display: block;">
+        <!-- 💳 Content for Petrol Pump -->
+        <form id="petrolPumpForm"
+            style="margin-top: 15px; display: flex; gap: 40px; flex-wrap: wrap; justify-content: space-between;">
+
+            <!-- Left column -->
+            <div style="flex: 1; min-width: 250px;">
+                <!-- Pump Name -->
+                <div>
+                    <label for="pumpName" style="font-weight: bold; color: #4a148c;">Petrol Pump Name</label>
+                    <select id="pumpName" name="pumpName" class="form-control"
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                        <option value="">-- Select Pump --</option>
+                    </select>
+                </div>
+
+                <!-- Mode -->
+                <div style="margin-top: 20px;">
+                    <label for="paymentMode" style="font-weight: bold; color: #4a148c;">Mode</label>
+                    <select id="paymentMode" name="paymentMode" class="form-control"
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                        <option value="">-- Select Mode --</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Online">Online</option>
+                        <option value="Cheque">Cheque</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Right column -->
+            <div style="flex: 1; min-width: 250px;">
+                <!-- Pay Amount -->
+                <div>
+                    <label for="amount" style="font-weight: bold; color: #4a148c;">Pay Amount</label>
+                    <input type="number" id="amount" name="amount" placeholder="Enter amount" class="form-control"
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+
+                <!-- Payment Date -->
+                <div style="margin-top: 20px;">
+                    <label for="paymentDate" style="font-weight: bold; color: #4a148c;">Payment Date</label>
+                    <input type="date" id="paymentDate" name="paymentDate" class="form-control"
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+            </div>
+
+            <!-- 👇 Centered Remark Field -->
+            <div style="width: 100%; display: flex; justify-content: center; margin-top: 20px;">
+                <div style="width: 40%;">
+                    <label for="remark" style="font-weight: bold; color: #4a148c;">Remark</label>
+                    <input type="text" id="remark" name="remark" placeholder="Optional remark" class="form-control"
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div style="width: 100%; display: flex; justify-content: center; margin-top: 30px;">
+                <button type="submit" class="btn btn-success"
+                    style="background-color: #4caf50; color: #fff; padding: 10px 25px; font-weight: bold; border: none; border-radius: 6px;">
+                    Save
+                </button>
+            </div>
+        </form>
+
+        <!-- ✅ Success Toast for petrol pump -->
+        <div id="successToast" style="
+            display: none;
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            font-weight: bold;
+            font-size: 16px;
+            transition: top 0.6s ease-in-out, opacity 0.6s ease;
+            opacity: 0;">
+            Recorded Successfully.
+        </div>
+    </div>
+
+    <div class="tab-content" id="staffEmployeeTab" style="display: none;">
+        <!-- 💰 Content for staff/employee -->
+        <form id="staffEmployeeForm"
+            style="margin-top: 15px; display: flex; gap: 40px; flex-wrap: wrap; justify-content: space-between;">
+
+            <!-- Left column -->
+            <div style="flex: 1; min-width: 250px;">
+                <!-- Staff Name -->
+                <div>
+                    <label for="staffEmployeeName" style="font-weight: bold; color: #4a148c;">Staff/Employee
+                        Name</label>
+                    <select id="staffEmployeeName" name="staffEmployeeName" class="form-control"
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                        <option value="">-- Select Staff/Employee --</option>
+                    </select>
+                </div>
+
+                <!-- Mode -->
+                <div style="margin-top: 20px;">
+                    <label for="staffPaymentMode" style="font-weight: bold; color: #4a148c;">Mode</label>
+                    <select id="staffPaymentMode" name="staffPaymentMode" class="form-control"
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                        <option value="">-- Select Mode --</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Online">Online</option>
+                        <option value="Cheque">Cheque</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Right column -->
+            <div style="flex: 1; min-width: 250px;">
+                <!-- Pay Amount -->
+                <div>
+                    <label for="staffAmount" style="font-weight: bold; color: #4a148c;">Pay Amount</label>
+                    <input type="number" id="staffAmount" name="staffAmount" placeholder="Enter amount"
+                        class="form-control"
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+
+                <!-- Payment Date -->
+                <div style="margin-top: 20px;">
+                    <label for="staffPaymentDate" style="font-weight: bold; color: #4a148c;">Payment Date</label>
+                    <input type="date" id="staffPaymentDate" name="staffPaymentDate" class="form-control"
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+            </div>
+
+            <!-- 👇 Centered Remark Field -->
+            <div style="width: 100%; display: flex; justify-content: center; margin-top: 20px;">
+                <div style="width: 40%;">
+                    <label for="staffRemark" style="font-weight: bold; color: #4a148c;">Remark</label>
+                    <input type="text" id="staffRemark" name="staffRemark" placeholder="Optional remark"
+                        class="form-control"
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div style="width: 100%; display: flex; justify-content: center; margin-top: 30px;">
+                <button type="submit" class="btn btn-success"
+                    style="background-color: #4caf50; color: #fff; padding: 10px 25px; font-weight: bold; border: none; border-radius: 6px;">
+                    Save
+                </button>
+            </div>
+        </form>
+
+        <!-- Success Toast for Staff/Employee -->
+        <div id="staffEmployeeSuccessToast" style="
+            display: none;
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            font-weight: bold;
+            font-size: 16px;
+            transition: top 0.6s ease-in-out, opacity 0.6s ease;
+            opacity: 0;">
+            Recorded successfully.
+        </div>
+    </div>
+
+    <div class="tab-content" id="vehicleTab" style="display: none;">
+        <!-- 🚗 Content for vehicle -->
+        <form id="vehicleForm"
+            style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 40px; justify-content: space-between;">
+
+            <!-- Left Column -->
+            <div style="flex: 1; min-width: 250px;">
+                <!-- Vehicle Name -->
+                <div>
+                    <label for="vehicleName" style="font-weight: bold; color: #4a148c;">Truck Name</label>
+                    <select id="vehicleName" name="vehicleName" class="form-control"
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                        <option value="">-- Select Truck --</option>
+                    </select>
+                </div>
+
+                <!-- Balance Amount -->
+                <div style="margin-top: 20px;">
+                    <label for="vehicleBalanceAmount" style="font-weight: bold; color: #4a148c;">Balance Amount</label>
+                    <input type="number" id="vehicleBalanceAmount" name="balanceAmount" placeholder="₹ 0.00"
+                        class="form-control" disabled
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;"
+                        readonly>
+                </div>
+
+                <!-- Mode -->
+                <div style="margin-top: 20px;">
+                    <label for="vehiclePaymentMode" style="font-weight: bold; color: #4a148c;">Mode</label>
+                    <select id="vehiclePaymentMode" name="paymentMode" class="form-control" disabled
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                        <option value="">-- Select Mode --</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Online">Online</option>
+                        <option value="Cheque">Cheque</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div style="flex: 1; min-width: 250px;">
+                <!-- Pay Amount -->
+                <div>
+                    <label for="vehicleAmount" style="font-weight: bold; color: #4a148c;">Pay Amount</label>
+                    <input type="number" id="vehicleAmount" name="amount" placeholder="Enter amount"
+                        class="form-control" disabled
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+
+                <!-- Payment Date -->
+                <div style="margin-top: 20px;">
+                    <label for="vehiclePaymentDate" style="font-weight: bold; color: #4a148c;">Payment Date</label>
+                    <input type="date" id="vehiclePaymentDate" name="paymentDate" class="form-control" disabled
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+
+                <!-- Remark -->
+                <div style="margin-top: 20px;">
+                    <label for="vehicleRemark" style="font-weight: bold; color: #4a148c;">Remarks</label>
+                    <input type="text" id="vehicleRemark" name="remark" placeholder="Enter remark" class="form-control"
+                        disabled
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+            </div>
+
+            <!-- Center Aligned Pay Button -->
+            <div style="width: 100%; display: flex; justify-content: center; margin-top: 30px;">
+                <button type="submit" class="btn btn-success"
+                    style="background-color: #4caf50; color: #fff; padding: 10px 25px; font-weight: bold; border: none; border-radius: 6px;">
+                    Pay
+                </button>
+            </div>
+        </form>
+    </div>
+
+
+    <!-- ✅ Success Toast for vehicle -->
+    <div id="vehicleSuccessToast" style="
+            display: none;
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            font-weight: bold;
+            font-size: 16px;
+            transition: top 0.6s ease-in-out, opacity 0.6s ease;
+            opacity: 0;">
+        Payment recorded successfully.
+    </div>
+</div>
+</div>
+
+<script>
+    // Function to open a tab
+    function openTab(tabId, el) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+        document.getElementById(tabId).style.display = 'block';
+        el.classList.add('active');
+    }
+
+    // Function to show success toast
+    function showSuccessToast(toastId) {
+        const toast = document.getElementById(toastId);
+        toast.style.display = 'block';
+        toast.style.opacity = '1';
+        toast.style.top = '30px';
+
+        setTimeout(() => {
+            toast.style.top = '-100px';
+            toast.style.opacity = '0';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 600);
+        }, 3000);
+    }
+
+    // Function to clear form
+    function clearForm(formId) {
+        document.getElementById(formId).reset();
+    }
+
+    // Initialize the dropdown data for petrol pump and staff/employee
+    document.addEventListener("DOMContentLoaded", function () {
+        // Fetch dropdown data
+        fetch('/dapple/record-expense/', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Populate Petrol Pump dropdown
+                    const pumpDropdown = document.getElementById("pumpName");
+                    data.pumps.forEach(pump => {
+                        const option = document.createElement("option");
+                        option.value = pump.id;
+                        option.textContent = pump.name;
+                        pumpDropdown.appendChild(option);
+                    });
+
+                    // Populate Staff/Employee dropdown
+                    const staffDropdown = document.getElementById("staffEmployeeName");
+                    data.staff_employees.forEach(staff => {
+                        const option = document.createElement("option");
+                        option.value = staff.id;
+                        option.textContent = staff.name;
+                        staffDropdown.appendChild(option);
+                    });
+
+                    // 🚚 Populate Vehicles in Vehicle Tab
+                    const vehicleDropdown = document.getElementById("vehicleName");
+                    data.vehicles.forEach(truck => {
+                        const option = document.createElement("option");
+                        option.value = truck;
+                        option.textContent = truck;
+                        vehicleDropdown.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching dropdown data:", error);
+            });
+
+        // Handle Petrol Pump form submission
+        document.getElementById('petrolPumpForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const pumpDropdown = document.getElementById('pumpName');
+            const selectedPumpName = pumpDropdown.options[pumpDropdown.selectedIndex].text;
+
+            const formData = {
+                expense_account_type: 'Petrol Pump',
+                expense_account_name: selectedPumpName,
+                paid_amount: document.getElementById('amount').value,
+                payment_date: document.getElementById('paymentDate').value,
+                payment_mode: document.getElementById('paymentMode').value,
+                remark: document.getElementById('remark').value
+            };
+
+            // Basic validation
+            if (!formData.paid_amount || !formData.payment_date || !formData.payment_mode) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // Submit form
+            fetch('/dapple/record-expense/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(formData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccessToast('successToast');
+                        clearForm('petrolPumpForm');
+                    } else {
+                        alert('Error: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while saving the expense');
+                });
+        });
+
+        // Handle Staff/Employee form submission
+        document.getElementById('staffEmployeeForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const staffDropdown = document.getElementById('staffEmployeeName');
+            const selectedStaffName = staffDropdown.options[staffDropdown.selectedIndex].text;
+
+            const formData = {
+                expense_account_type: 'Staff/Employee',
+                expense_account_name: selectedStaffName,
+                paid_amount: document.getElementById('staffAmount').value,
+                payment_date: document.getElementById('staffPaymentDate').value,
+                payment_mode: document.getElementById('staffPaymentMode').value,
+                remark: document.getElementById('staffRemark').value
+            };
+
+            // Basic validation
+            if (!formData.paid_amount || !formData.payment_date || !formData.payment_mode) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // Submit form
+            fetch('/dapple/record-expense/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(formData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccessToast('staffEmployeeSuccessToast');
+                        clearForm('staffEmployeeForm');
+                    } else {
+                        alert('Error: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while saving the expense');
+                });
+        });
+    });
+
+    // Initialize the dropdown data for vehicle
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("vehicleName").addEventListener("change", function () {
+            const vehicleNumber = this.value;
+
+            if (vehicleNumber !== "") {
+                fetch(`/dapple/vehicle/?vehicle_number=${vehicleNumber}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Enable vehicle tab fields
+                            document.getElementById("vehicleBalanceAmount").disabled = false;
+                            document.getElementById("vehiclePaymentMode").disabled = false;
+                            document.getElementById("vehicleAmount").disabled = false;
+                            document.getElementById("vehiclePaymentDate").disabled = false;
+                            document.getElementById("vehicleRemark").disabled = false;
+
+                            // Fill balance amount
+                            document.getElementById("vehicleBalanceAmount").value = data.balance_amount.toFixed(2);
+                        } else {
+                            alert("Vehicle not found.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error fetching balance:", error);
+                    });
+            } else {
+                // Disable all if no vehicle selected
+                document.getElementById("vehicleBalanceAmount").value = "";
+                document.getElementById("vehicleBalanceAmount").disabled = true;
+                document.getElementById("vehiclePaymentMode").disabled = true;
+                document.getElementById("vehicleAmount").disabled = true;
+                document.getElementById("vehiclePaymentDate").disabled = true;
+                document.getElementById("vehicleRemark").disabled = true;
+            }
+        });
+    });
+
+    // 💾 Submit Vehicle Expense Payment
+document.getElementById("vehicleForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const vehicleNumber = document.getElementById("vehicleName").value;
+    const amount = parseFloat(document.getElementById("vehicleAmount").value);
+    const paymentDate = document.getElementById("vehiclePaymentDate").value;
+    const paymentMode = document.getElementById("vehiclePaymentMode").value;
+    const remark = document.getElementById("vehicleRemark").value;
+
+    if (!vehicleNumber || !amount || !paymentDate || !paymentMode) {
+        alert("Please fill all required fields.");
+        return;
+    }
+
+    fetch("/dapple/record-vehicle-expense/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({
+            vehicle_number: vehicleNumber,
+            amount: amount,
+            payment_date: paymentDate,
+            payment_mode: paymentMode,
+            remark: remark
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessToast("vehicleSuccessToast");
+            clearForm("vehicleForm");
+
+            // Optionally reset fields
+            document.getElementById("vehicleBalanceAmount").value = "";
+            document.getElementById("vehicleAmount").value = "";
+        } else {
+            alert("Error: " + data.error);
+        }
+    })
+    .catch(err => {
+        console.error("Error saving vehicle expense:", err);
+        alert("Something went wrong.");
+    });
+});
+</script>
+
+{% endblock %}

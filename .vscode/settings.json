@@ -1,0 +1,10 @@
+{
+    "editor.tabSize": 4,
+    "files.autoSave": "afterDelay",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingImports": "none",
+        "reportUnusedImport": "none",
+        "reportUnusedVariable": "none"
+    },
+    "python.analysis.typeCheckingMode": "off"
+}

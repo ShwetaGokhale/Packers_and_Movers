@@ -1,0 +1,721 @@
+{% extends "base.html" %} 
+{% block content %}
+<style>
+    /* Styles specifically for the payment table */
+    .payment-info-container {
+        margin-top: 25px;
+        /* Increased margin from the select dropdown */
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        background-color: #fdfdfd;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        /* Subtle shadow for the box */
+        display: none;
+        /* Hidden by default, shown when consignee is selected */
+    }
+
+    /* New style for the header row containing heading and pay input and pay button */
+    .payment-header-row {
+        display: flex;
+        justify-content: space-between;
+        /* Pushes items to ends */
+        align-items: center;
+        /* Vertically centers items */
+        margin-bottom: 20px;
+        /* Space below this row */
+        flex-wrap: wrap;
+        /* Allow wrapping on smaller screens */
+    }
+
+    /* Adjust heading margin to prevent it from pushing down */
+    .payment-info-container h3 {
+        margin-bottom: 0;
+    }
+
+    /* Container for Pay Amount input, Payment Date input and Pay button */
+    .pay-controls {
+        display: flex;
+        flex-direction: column;
+        /* CHANGE: Stack items vertically */
+        align-items: flex-end;
+        /* Align items to the right within the column */
+        gap: 15px;
+        /* Vertical gap between input groups and button */
+        margin-left: auto;
+        /* Pushes this entire column group to the right in the header row */
+    }
+
+    /* Style for the new single Pay amount input field and its label */
+    .pay-amount-input-group,
+    .pay-date-input-group {
+        display: flex;
+        /* Keep as flex to align label and input horizontally */
+        align-items: center;
+        gap: 10px;
+        /* Horizontal space between label and input */
+        flex-shrink: 0;
+        width: 100%; /* Make input groups take full width of the column */
+        justify-content: flex-end; /* Align content to the right */
+    }
+
+    .pay-amount-input-group label,
+    .pay-date-input-group label {
+        font-weight: bold;
+        color: #333;
+        font-size: 1rem;
+        white-space: nowrap;
+        /* Prevent label from wrapping */
+    }
+
+    .pay-amount-input-group input[type="number"],
+    .pay-date-input-group input[type="date"] {
+        flex-grow: 1;
+        /* Allow input to take available space */
+        padding: 8px 10px;
+        /* Adjusted padding for better fit */
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 1rem;
+        background-color: #f9f9f9;
+        text-align: right;
+        max-width: 150px;
+        /* Adjusted max-width for better alignment */
+    }
+
+    .pay-amount-input-group input[type="number"]:focus,
+    .pay-date-input-group input[type="date"]:focus {
+        border-color: #6a1b9a;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(106, 27, 154, 0.2);
+    }
+
+    /* Styles for the new "Pay" button */
+    .pay-now-btn {
+        display: none;
+        /* Hidden by default */
+        padding: 8px 20px;
+        background-color: #4CAF50;
+        /* Green for Pay button */
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        transition: all 0.2s ease;
+        width: fit-content;
+        /* Adjust width to content */
+    }
+
+    .pay-now-btn:hover {
+        background-color: #45a049;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Styles for "Paying..." state (loading) */
+    .pay-now-btn.paying-btn {
+        background-color: #62b1f6;
+        /* A blueish color for loading */
+        cursor: wait;
+    }
+
+    .pay-now-btn.paying-btn::after {
+        content: "";
+        display: inline-block;
+        margin-left: 10px;
+        width: 14px;
+        height: 14px;
+        border: 2px solid white;
+        border-top: 2px solid #6a1b9a;
+        /* Color consistent with theme */
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        vertical-align: middle;
+    }
+
+    /* Styles for "Paid" state (success) */
+    .pay-now-btn.paid-btn {
+        background-color: #8bf5a4 !important;
+        /* soft green background */
+        color: #155724 !important;
+        /* dark green text */
+        cursor: default !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        /* subtle shadow */
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .payment-info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 10px;
+    }
+
+    .payment-info-table th,
+    .payment-info-table td {
+        border: 1px solid #eee;
+        padding: 10px 8px;
+        /* Slightly more vertical padding */
+        text-align: left;
+        vertical-align: middle;
+        font-size: 0.9rem;
+        /* Slightly smaller font for table content */
+    }
+
+    .payment-info-table th {
+        background-color: #f0f0f0;
+        /* Lighter header for readability */
+        font-weight: bold;
+        color: #555;
+        text-transform: uppercase;
+    }
+
+    .payment-info-table tbody tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+
+    .payment-info-table tbody tr:hover {
+        background-color: #eef;
+        /* Light blue on hover */
+    }
+
+    /* General form container and elements from original file */
+    .form-container {
+        background-color: #ffffff;
+        padding: 30px 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 1000px;
+        box-sizing: border-box;
+        margin: 0 auto 30px auto;
+        flex-grow: 1;
+    }
+
+    .form-title {
+        font-size: 28px;
+        margin-bottom: 25px;
+        color: #6a1b9a;
+        text-align: center;
+    }
+
+    .form-group {
+        margin-bottom: 30px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #333;
+        font-size: 16px;
+    }
+
+    .form-select {
+        width: 100%;
+        padding: 14px 18px;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        background: #f9f9f9;
+        font-size: 17px;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-select:focus {
+        border-color: #6a1b9a;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(106, 27, 154, 0.2);
+    }
+
+    /* Success Popup from common styles */
+    .success-popup {
+        position: fixed;
+        top: -100px;
+        /* Start off-screen above */
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #4CAF50;
+        /* Green background */
+        color: white;
+        padding: 15px 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        font-weight: 500;
+        text-align: center;
+        z-index: 9999;
+        /* Ensure it's on top */
+        opacity: 0;
+        /* Start hidden */
+        transition: top 0.5s ease-out, opacity 0.5s ease-out;
+        /* Smooth transition */
+        min-width: 250px;
+    }
+
+    .success-popup.show {
+        top: 20px;
+        /* Slide down to 20px from top */
+        opacity: 1;
+        /* Fade in */
+    }
+
+    /* Custom Confirmation Modal Styles */
+    .custom-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        /* Higher than success popup */
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .custom-modal-overlay.show {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .custom-modal-content {
+        background-color: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        text-align: center;
+        max-width: 450px;
+        width: 90%;
+        transform: translateY(-20px);
+        opacity: 0;
+        transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    }
+
+    .custom-modal-overlay.show .custom-modal-content {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    .custom-modal-message {
+        font-size: 1.1rem;
+        color: #333;
+        margin-bottom: 25px;
+        line-height: 1.6;
+    }
+
+    .custom-modal-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .custom-modal-buttons button {
+        padding: 10px 25px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+
+    .custom-modal-buttons .confirm-btn {
+        background-color: #6a1b9a;
+        /* Deep purple */
+        color: white;
+    }
+
+    .custom-modal-buttons .confirm-btn:hover {
+        background-color: #8e24aa;
+        transform: translateY(-1px);
+    }
+
+    .custom-modal-buttons .cancel-btn {
+        background-color: #e0e0e0;
+        color: #555;
+    }
+
+    .custom-modal-buttons .cancel-btn:hover {
+        background-color: #d0d0d0;
+        transform: translateY(-1px);
+    }
+
+    /* Responsive adjustments for smaller screens */
+    @media (max-width: 768px) {
+        .payment-header-row {
+            flex-direction: column;
+            /* Stack items vertically */
+            align-items: flex-start;
+            /* Align to the left */
+            gap: 10px;
+            /* Reduce gap when stacked */
+        }
+
+        .pay-controls {
+            margin-left: 0;
+            /* Remove auto margin when stacked */
+            width: 100%;
+            /* Take full width */
+            flex-direction: column;
+            /* Stack controls vertically */
+            align-items: stretch;
+            /* Stretch items to fill width */
+            gap: 10px;
+            /* Adjust gap for stacked controls */
+        }
+
+        .pay-amount-input-group,
+        .pay-date-input-group {
+            width: 100%;
+            /* Take full width */
+            justify-content: space-between;
+            /* Space out label and input */
+        }
+
+        .pay-amount-input-group input[type="number"],
+        .pay-date-input-group input[type="date"] {
+            max-width: none;
+            /* Remove max-width restriction */
+        }
+
+        .pay-now-btn {
+            width: 100%;
+            /* Make button full width when stacked */
+        }
+    }
+</style>
+
+<div class="form-container">
+    <h2 class="form-title">Record Payment</h2>
+
+    <div class="form-group">
+        <label for="consigneeSelect" class="form-label">Select Consignee / Consigner</label>
+        <select id="consigneeSelect" name="consignee" class="form-select" required>
+            <option value="" disabled selected>Select Consignee / Consigner</option>
+            {% for party in parties %}
+            <option value="{{ party.name }}">{{ party.name }} ({{ party.type }})</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div id="paymentInfoContainer" class="payment-info-container">
+        <div class="payment-header-row">
+            <h3>Consignments for Payment</h3>
+            <div class="pay-controls">
+                <div class="pay-amount-input-group">
+                    <label for="singlePayAmountInput">Pay Amount:</label>
+                    <input type="number" id="singlePayAmountInput" min="0" step="0.01" value="">
+                </div>
+                <div class="pay-date-input-group">
+                    <label for="paymentDateInput">Payment Date:</label>
+                    <input type="date" id="paymentDateInput" value="{{ 'now'|date:'Y-m-d' }}">
+                </div>
+                <button type="button" class="pay-now-btn" id="payNowButton">Pay</button>
+            </div>
+        </div>
+
+        <table class="payment-info-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>CNID</th>
+                    <th>Consignee</th>
+                    <th>Balance Amount</th>
+                </tr>
+            </thead>
+            <tbody id="paymentTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="successPopup" class="success-popup">Action successful!</div>
+
+{# Custom Confirmation Modal HTML #}
+<div id="customConfirmModal" class="custom-modal-overlay">
+    <div class="custom-modal-content">
+        <p id="customConfirmMessage" class="custom-modal-message"></p>
+        <div class="custom-modal-buttons">
+            <button id="customConfirmOk" class="confirm-btn">OK</button>
+            <button id="customConfirmCancel" class="cancel-btn">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const consigneeSelect = document.getElementById('consigneeSelect');
+        const paymentInfoContainer = document.getElementById('paymentInfoContainer');
+        const paymentTableBody = document.getElementById('paymentTableBody');
+        const singlePayAmountInput = document.getElementById('singlePayAmountInput');
+        const payNowButton = document.getElementById('payNowButton');
+        const paymentDateInput = document.getElementById('paymentDateInput'); // Get new date input
+        const successPopup = document.getElementById('successPopup');
+
+        // Custom Modal elements
+        const customConfirmModal = document.getElementById('customConfirmModal');
+        const customConfirmMessage = document.getElementById('customConfirmMessage');
+        const customConfirmOk = document.getElementById('customConfirmOk');
+        const customConfirmCancel = document.getElementById('customConfirmCancel');
+
+        let paymentData = []; // This array holds the current state of consignments in the UI
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    cookie = cookie.trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        function showSuccessPopup(message) {
+            successPopup.textContent = message;
+            if (message.includes("Error") || message.includes("failed")) {
+                successPopup.style.backgroundColor = '#f44336'; // Red for errors
+            } else {
+                successPopup.style.backgroundColor = '#4CAF50'; // Green for success
+            }
+            successPopup.classList.add('show');
+            setTimeout(() => successPopup.classList.remove('show'), 3000);
+        }
+
+        // New function to show custom confirmation modal
+        function showConfirmationModal(message, callback) {
+            customConfirmMessage.textContent = message;
+            customConfirmModal.classList.add('show');
+
+            // Remove previous listeners to prevent multiple callbacks
+            customConfirmOk.onclick = null;
+            customConfirmCancel.onclick = null;
+
+            customConfirmOk.onclick = () => {
+                customConfirmModal.classList.remove('show');
+                callback(true); // User confirmed
+            };
+
+            customConfirmCancel.onclick = () => {
+                customConfirmModal.classList.remove('show');
+                callback(false); // User cancelled
+            };
+        }
+
+        function togglePayNowButtonVisibility() {
+            // Now checks if the input value is a non-empty string and a valid number > 0
+            const payAmount = parseFloat(singlePayAmountInput.value);
+            payNowButton.style.display = (singlePayAmountInput.value !== '' && !isNaN(payAmount) && payAmount > 0) ? 'block' : 'none';
+
+            if (singlePayAmountInput.value !== '' && !isNaN(payAmount) && payAmount > 0) {
+                payNowButton.textContent = 'Pay';
+                payNowButton.classList.remove('paying-btn', 'paid-btn');
+                payNowButton.disabled = false;
+            }
+        }
+
+        consigneeSelect.addEventListener('change', async function () {
+            const selectedConsignee = this.value;
+            if (selectedConsignee) {
+                await fetchPaymentData(selectedConsignee);
+                paymentInfoContainer.style.display = 'block';
+                singlePayAmountInput.value = ""; // Set to empty string on new consignee selection
+                // Set default for paymentDateInput
+                paymentDateInput.value = new Date().toISOString().slice(0, 10);
+                payNowButton.textContent = 'Pay';
+                payNowButton.classList.remove('paying-btn', 'paid-btn');
+                payNowButton.disabled = false;
+                togglePayNowButtonVisibility();
+            } else {
+                paymentInfoContainer.style.display = 'none';
+                paymentTableBody.innerHTML = '';
+                singlePayAmountInput.value = ""; // Set to empty string
+                paymentDateInput.value = new Date().toISOString().slice(0, 10); // Reset date
+                payNowButton.textContent = 'Pay';
+                payNowButton.classList.remove('paying-btn', 'paid-btn');
+                payNowButton.disabled = false;
+                togglePayNowButtonVisibility();
+            }
+        });
+
+        singlePayAmountInput.addEventListener('input', togglePayNowButtonVisibility);
+
+        async function fetchPaymentData(name) {
+            try {
+                const response = await fetch(`/get-payment-data/?consignee=${encodeURIComponent(name)}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    paymentData = data.payments.map(item => ({
+                        ...item,
+                        original_balance_amount: parseFloat(item.balance_amount)
+                    }));
+                    renderPaymentTable();
+                } else {
+                    showSuccessPopup(`Error fetching payment data: ${data.message || 'Unknown error'}`);
+                    paymentData = [];
+                    renderPaymentTable();
+                }
+            } catch (error) {
+                showSuccessPopup(`Network error fetching payment data: ${error.message}`);
+                paymentData = [];
+                renderPaymentTable();
+            }
+        }
+
+        function renderPaymentTable() {
+            paymentTableBody.innerHTML = '';
+            if (paymentData.length === 0) {
+                paymentTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">No outstanding payments for this party.</td></tr>';
+            } else {
+                paymentData.forEach((item, index) => {
+                    const row = paymentTableBody.insertRow();
+                    row.insertCell(0).textContent = index + 1;
+                    row.insertCell(1).textContent = item.cnid;
+                    row.insertCell(2).textContent = item.consignee;
+                    row.insertCell(3).textContent = parseFloat(item.balance_amount).toFixed(2);
+                });
+            }
+        }
+
+        // Functionality for the "Pay" button (now includes saving to database)
+        payNowButton.addEventListener('click', async function () {
+            // Validate input
+            let lumpSum = parseFloat(singlePayAmountInput.value);
+            if (singlePayAmountInput.value === '' || isNaN(lumpSum) || lumpSum <= 0) {
+                showSuccessPopup("Please enter a valid amount (greater than 0) in the 'Pay Amount' box.");
+                return;
+            }
+
+            const paymentDate = paymentDateInput.value; // Get the payment date
+            if (!paymentDate) {
+                showSuccessPopup("Please select a Payment Date.");
+                return;
+            }
+
+
+            // Apply deduction locally first
+            let remaining = lumpSum;
+            const paymentsToRecord = []; // Collect payments to send to backend
+
+            for (let i = 0; i < paymentData.length; i++) {
+                if (remaining <= 0) break; // Stop if no amount left to pay
+
+                let item = paymentData[i];
+                let current = parseFloat(item.balance_amount);
+
+                if (current > 0) {
+                    let deduction = Math.min(remaining, current);
+                    item.balance_amount = (current - deduction).toFixed(2); // Update local balance
+
+                    // If any amount was paid for this consignment, add it to paymentsToRecord
+                    if (deduction > 0) {
+                        paymentsToRecord.push({
+                            cnid: item.cnid,
+                            paid_amount: deduction.toFixed(2), // Amount paid for this specific CN
+                            balance_amount: item.balance_amount, // New balance after deduction
+                            payment_date: paymentDate // Include the payment date
+                        });
+                    }
+                    remaining -= deduction; // Deduct from remaining lump sum
+                }
+            }
+
+            renderPaymentTable(); // Re-render table with updated local balances
+            singlePayAmountInput.value = ""; // Clear input field
+            togglePayNowButtonVisibility(); // Update button state
+
+            // If no payments were made (e.g., all balances were 0 or amount was too small)
+            if (paymentsToRecord.length === 0) {
+                showSuccessPopup("No payments were applied to outstanding consignments.");
+                return;
+            }
+
+            // Confirm with the user before saving to database
+            const totalPaidAmount = paymentsToRecord.reduce((sum, p) => sum + parseFloat(p.paid_amount), 0).toFixed(2);
+            const message = `Confirm recording a total payment of ${totalPaidAmount} for consignments of ${consigneeSelect.value} on ${paymentDate}? This will update the database.`;
+
+            const confirmAction = await new Promise(resolve => {
+                showConfirmationModal(message, resolve);
+            });
+
+            if (!confirmAction) {
+                showSuccessPopup("Payment recording cancelled.");
+                // Optionally, revert local changes here if preferred, or refetch from DB
+                // For simplicity, we assume user proceeds or reloads to get original state
+                consigneeSelect.dispatchEvent(new Event("change")); // Refetch to reset UI
+                return;
+            }
+
+            // Proceed to save to database
+            try {
+                payNowButton.textContent = 'Paying...';
+                payNowButton.classList.add('paying-btn');
+                payNowButton.disabled = true;
+
+                const response = await fetch("/record_save_payment/", { // Use your existing backend endpoint
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrftoken,
+                    },
+                    body: JSON.stringify({
+                        consignee: consigneeSelect.value, // Send the selected consignee
+                        payments: paymentsToRecord, // Send the collected payments for specific CNIDs
+                        payment_date: paymentDate // Send the overall payment date
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showSuccessPopup("PAID!");
+                    payNowButton.textContent = 'Paid ✓';
+                    payNowButton.classList.add('paid-btn');
+                    // Re-fetch data to ensure UI reflects actual DB state and clear paid entries
+                    consigneeSelect.dispatchEvent(new Event("change"));
+                } else {
+                    let errorMessage = `Error recording payments: ${result.message || JSON.stringify(result.errors || 'Unknown error')}`;
+                    console.error('Error recording payments:', result.message || result.errors);
+                    showSuccessPopup(errorMessage);
+                    payNowButton.textContent = 'Error';
+                    payNowButton.classList.remove('paying-btn');
+                    payNowButton.disabled = false;
+                }
+            } catch (error) {
+                console.error("Network error submitting payments:", error);
+                showSuccessPopup(`Network error submitting payments: ${error.message}`);
+                payNowButton.textContent = 'Error';
+                payNowButton.classList.remove('paying-btn');
+                payNowButton.disabled = false;
+            } finally {
+                // No need to hide payNowButton as its state will be "Paid ✓" or "Error"
+            }
+        });
+
+        // Initialize the visibility of the Pay button
+        togglePayNowButtonVisibility();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,638 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    /* Adjusted main content container margin to account for fixed header */
+    .form-container {
+        background-color: #ffffff;
+        padding: 30px 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 1000px;
+        box-sizing: border-box;
+        margin: 0 auto 30px auto;
+        flex-grow: 1;
+    }
+
+    h2 {
+        text-align: center;
+        color: #4a148c;
+        margin-bottom: 25px;
+        animation: slideUp 0.8s ease forwards;
+        transform: translateY(20px);
+    }
+
+    form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px 45px;
+        animation: slideUp 0.8s ease forwards;
+        transform: translateY(20px);
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(100%);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    form p {
+        margin: 0;
+    }
+
+    .tab-container {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-bottom: 25px;
+        animation: slideUp 0.8s ease forwards;
+        transform: translateY(20px);
+    }
+
+    .tab-btn {
+        padding: 10px 25px;
+        border: none;
+        background: #e1bee7;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 15px;
+        transition: all 0.3s ease;
+
+    }
+
+    .tab-btn.active {
+        background: #6a1b9a;
+        color: #fff;
+    }
+
+    .tab-content {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 25px;
+        background-color: #f9f9f9;
+        min-height: 200px;
+        animation: slideUp 0.8s ease forwards;
+        transform: translateY(20px);
+    }
+
+    input:disabled,
+    select:disabled {
+        background-color: #f1f1f1;
+        cursor: not-allowed;
+    }
+</style>
+
+
+<!-- Wrap everything in the background card-like form -->
+<div class="form-container">
+    <!-- <h2 style="text-align:center; color:#4a148c">Record Payment</h2> -->
+    <h3 class="text-3xl font-bold italic mb-4 text-purple-800 text-center">Record Payment</h3>
+
+    <!-- Tab Buttons -->
+    <div class="tab-container">
+        <button class="tab-btn active" onclick="openTab('parchaTab', this)">Parcha</button>
+        <button class="tab-btn" onclick="openTab('partPaymentTab', this)">Part Payment</button>
+    </div>
+
+    <!-- Tab Content Areas -->
+    <div class="tab-content" id="parchaTab" style="display: none;">
+        <!-- 💳 Content for Parcha -->
+        <form id="parchaForm"
+            style="margin-top: 15px; display: flex; gap: 40px; flex-wrap: wrap; justify-content: space-between;">
+
+            <!-- Left column -->
+            <div style="flex: 1; min-width: 250px;">
+                <!-- Date -->
+                <div>
+                    <label for="loadingDate" style="font-weight: bold; color: #4a148c;">Loading Date</label>
+                    <input type="date" id="loadingDate" name="loadingDate" class="form-control" required
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+
+                <!-- Truck No -->
+                <div style="margin-top: 20px;">
+                    <label for="truckNo" style="font-weight: bold; color: #4a148c;">Truck No</label>
+                    <select id="truckNoParcha" name="truckNo" class="form-control" disabled
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                        <option value="">-- Select Truck --</option>
+                    </select>
+                </div>
+
+                <!-- To Party -->
+                <div style="margin-top: 20px;">
+                    <label for="toParty" style="font-weight: bold; color: #4a148c;">To Party</label>
+                    <select id="toParty" name="toParty" class="form-control" disabled
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                        <option value="">-- Select Party --</option>
+                    </select>
+                </div>
+
+                <!-- Mode -->
+                <div style="margin-top: 20px;">
+                    <label for="paymentMode" style="font-weight: bold; color: #4a148c;">Mode</label>
+                    <select id="paymentMode" name="paymentMode" class="form-control" disabled
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                        <option value="">-- Select Mode --</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Online">Online</option>
+                        <option value="Cheque">Cheque</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <!-- Right column -->
+            <div style="flex: 1; min-width: 250px;">
+                <!-- Balance Amount -->
+                <div>
+                    <label for="balanceAmount" style="font-weight: bold; color: #4a148c;">Balance Amount</label>
+                    <input type="number" id="balanceAmount" name="balanceAmount" placeholder="₹ 0.00"
+                        class="form-control" disabled
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;"
+                        readonly>
+                </div>
+
+                <!-- Pay Amount -->
+                <div style="margin-top: 20px;">
+                    <label for="amount" style="font-weight: bold; color: #4a148c;">Pay Amount</label>
+                    <input type="number" id="amount" name="amount" placeholder="Enter amount" class="form-control"
+                        disabled
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+
+                <!-- Payment Date -->
+                <div style="margin-top: 20px;">
+                    <label for="paymentDate" style="font-weight: bold; color: #4a148c;">Payment Date</label>
+                    <input type="date" id="paymentDate" name="paymentDate" class="form-control" disabled
+                        onkeydown="return false"
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+                <!-- Remark -->
+                <div style="margin-top: 20px;">
+                    <label for="remark" style="font-weight: bold; color: #4a148c;">Remarks</label>
+                    <input type="text" id="remark" name="remark" placeholder="Enter remark" class="form-control"
+                        disabled
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+            </div>
+
+            <!-- Centered Pay Button -->
+            <div style="width: 100%; display: flex; justify-content: center; margin-top: 30px;">
+                <button type="submit" class="btn btn-success"
+                    style="background-color: #4caf50; color: #fff; padding: 10px 25px; font-weight: bold; border: none; border-radius: 6px;">
+                    Pay
+                </button>
+            </div>
+        </form>
+
+        <!-- ✅ Success Toast for parcha -->
+        <div id="successToast" style="
+            display: none;
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            font-weight: bold;
+            font-size: 16px;
+            transition: top 0.6s ease-in-out, opacity 0.6s ease;
+            opacity: 0;">
+            Payment recorded successfully.
+        </div>
+    </div>
+
+    <div class="tab-content" id="partPaymentTab" style="display: none;">
+        <!-- 💰 Content for Part Payment -->
+        <form id="partForm"
+            style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 40px; justify-content: space-between;">
+
+            <!-- Left Column -->
+            <div style="flex: 1; min-width: 250px;">
+                <!-- Changed to Consignee -->
+                <div>
+                    <label for="toConsignee" style="font-weight: bold; color: #4a148c;">To Party</label>
+                    <select id="toConsignee" name="toConsignee" class="form-control"
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                        <option value="">-- Select Party --</option>
+                    </select>
+                </div>
+
+                <!-- Balance Amount -->
+                <div style="margin-top: 20px;">
+                    <label for="balanceAmount" style="font-weight: bold; color: #4a148c;">Balance Amount</label>
+                    <input type="number" id="balanceAmount" name="balanceAmount" placeholder="₹ 0.00"
+                        class="form-control" disabled
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;"
+                        readonly>
+                </div>
+
+                <!-- Mode -->
+                <div style="margin-top: 20px;">
+                    <label for="paymentMode" style="font-weight: bold; color: #4a148c;">Mode</label>
+                    <select id="paymentMode" name="paymentMode" class="form-control" disabled
+                        style="padding: 10px 15px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                        <option value="">-- Select Mode --</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Online">Online</option>
+                        <option value="Cheque">Cheque</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <!-- Right Column -->
+            <div style="flex: 1; min-width: 250px;">
+                <!-- Pay Amount -->
+                <div>
+                    <label for="amount" style="font-weight: bold; color: #4a148c;">Pay Amount</label>
+                    <input type="number" id="amount" name="amount" placeholder="Enter amount" class="form-control"
+                        disabled
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+
+                <!-- Payment Date -->
+                <div style="margin-top: 20px;">
+                    <label for="paymentDate" style="font-weight: bold; color: #4a148c;">Payment Date</label>
+                    <input type="date" id="paymentDate" name="paymentDate" class="form-control" disabled
+                        onkeydown="return false"
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+                <!-- Remark -->
+                <div style="margin-top: 20px;">
+                    <label for="remark" style="font-weight: bold; color: #4a148c;">Remarks</label>
+                    <input type="text" id="remark" name="remark" placeholder="Enter remark" class="form-control"
+                        disabled
+                        style="padding: 10px 15px; width: 90%; border-radius: 6px; border: 1px solid #ccc; font-size: 15px;">
+                </div>
+            </div>
+
+            <!-- Center Aligned Pay Button -->
+            <div style="width: 100%; display: flex; justify-content: center; margin-top: 30px;">
+                <button type="submit" class="btn btn-success"
+                    style="background-color: #4caf50; color: #fff; padding: 10px 25px; font-weight: bold; border: none; border-radius: 6px;">
+                    Pay
+                </button>
+            </div>
+        </form>
+
+        <!-- Success Toast for Part Payment -->
+        <div id="partSuccessToast" style="
+            display: none;
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            font-weight: bold;
+            font-size: 16px;
+            transition: top 0.6s ease-in-out, opacity 0.6s ease;
+            opacity: 0;">
+            Payment recorded successfully.
+        </div>
+    </div>
+
+
+    <script>
+        // Function to open a tab
+        function openTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(tabId).style.display = 'block';
+            el.classList.add('active');
+        }
+
+        // ✅ Parcha
+        // When loading date is selected → populate truck dropdown
+        document.getElementById("loadingDate").addEventListener("change", function () {
+            const selectedDate = this.value;
+            const truckSelect = document.getElementById("truckNoParcha");
+
+            if (selectedDate) {
+                fetch(`/dapple/cash-book/?date=${selectedDate}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        truckSelect.innerHTML = `<option value="">-- Select Truck --</option>`;
+                        data.forEach(vehicle => {
+                            const option = document.createElement("option");
+                            option.value = vehicle;
+                            option.textContent = vehicle;
+                            truckSelect.appendChild(option);
+                        });
+                    });
+            }
+        });
+
+        // ✅ When truck no is selected → populate to party
+        document.getElementById("truckNoParcha").addEventListener("change", function () {
+            const vehicleNo = this.value;
+            const partySelect = document.getElementById("toParty");
+
+            if (vehicleNo) {
+                fetch(`/dapple/cash-book/?vehicle_no=${vehicleNo}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        partySelect.innerHTML = `<option value="">-- Select Party --</option>`;
+                        data.forEach(party => {
+                            const option = document.createElement("option");
+                            option.value = party.name;
+                            option.textContent = party.name;
+                            partySelect.appendChild(option);
+                        });
+                    });
+            }
+        });
+
+
+        // ✅ When To Party is selected → fetch and show related GI Amount in Balance Amount field
+        document.getElementById("toParty").addEventListener("change", function () {
+            const selectedParty = this.value;
+            const selectedVehicle = document.getElementById("truckNoParcha").value;
+            const selectedDate = document.getElementById("loadingDate").value;
+
+            if (selectedParty && selectedVehicle && selectedDate) {
+                fetch(`/dapple/cash-book/?to_party=${encodeURIComponent(selectedParty)}&vehicle_no=${selectedVehicle}&date=${selectedDate}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById("balanceAmount").value = data.balance_amount || 0;
+                    });
+            }
+        });
+
+        // ✅ When Parcha Form is submitted
+        document.getElementById("parchaForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const party = document.getElementById("toParty").value;
+            const paidAmount = parseFloat(document.getElementById("amount").value);
+            const paymentDate = document.getElementById("paymentDate").value;
+            const paymentMode = document.getElementById("paymentMode").value;
+            const vehicleNo = document.getElementById("truckNoParcha").value;
+            const loadingDate = document.getElementById("loadingDate").value;
+            const remarkField = document.getElementById("remark");
+
+            if (!party || !paidAmount || !paymentDate || !paymentMode || !vehicleNo || !loadingDate || !remarkField.value) {
+                alert("Please fill all fields");
+                return;
+            }
+
+            fetch("/dapple/cash-book/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: JSON.stringify({
+                    party: party,
+                    paid_amount: paidAmount,
+                    payment_date: paymentDate,
+                    payment_type: "Parcha",
+                    payment_mode: paymentMode,
+                    vehicle_no: vehicleNo,
+                    date: loadingDate,
+                    remark: remarkField.value
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const balanceField = document.getElementById("balanceAmount");
+                        const newBalance = parseFloat(balanceField.value) - paidAmount;
+                        balanceField.value = newBalance.toFixed(2);
+                        // ✅ Show green toast popup
+                        const toast = document.getElementById("successToast");
+                        toast.style.display = "block";
+                        setTimeout(() => {
+                            toast.style.top = "20px";
+                            toast.style.opacity = "1";
+                        }, 50); // Show the toast
+
+                        setTimeout(() => {
+                            toast.style.top = "-100px";
+                            toast.style.opacity = "0";
+                        }, 3000);// Hide the toast
+                        // window.location.href = "{% url 'party_ledger' %}";  
+                    }
+
+                    else {
+                        alert("Error: " + (data.error || "Unknown"));
+                    }
+                })
+                .catch(err => {
+                    console.error("Payment error:", err);
+                    alert("Server error occurred");
+                });
+        });
+
+        // ✅ Progressive field enable logic - Parcha
+        document.addEventListener("DOMContentLoaded", function () {
+            const dateField = document.getElementById("loadingDate");
+            const truckSelect = document.getElementById("truckNoParcha");
+            const toPartySelect = document.getElementById("toParty");
+            const balanceAmount = document.getElementById("balanceAmount");
+            const payAmount = document.getElementById("amount");
+            const paymentDate = document.getElementById("paymentDate");
+            const paymentMode = document.getElementById("paymentMode");
+            const remarkField = document.getElementById("remark");
+
+            // Initially disable everything except date
+            truckSelect.disabled = true;
+            toPartySelect.disabled = true;
+            balanceAmount.disabled = true;
+            payAmount.disabled = true;
+            paymentDate.disabled = true;
+            paymentMode.disabled = true;
+            remarkField.disabled = true;
+
+            dateField.addEventListener("change", function () {
+                if (this.value) {
+                    truckSelect.disabled = false;
+                } else {
+                    truckSelect.disabled = true;
+                    toPartySelect.disabled = true;
+                }
+            });
+
+            truckSelect.addEventListener("change", function () {
+                if (this.value) {
+                    toPartySelect.disabled = false;
+                } else {
+                    toPartySelect.disabled = true;
+                }
+            });
+
+            toPartySelect.addEventListener("change", function () {
+                if (this.value) {
+                    balanceAmount.disabled = false;
+                    payAmount.disabled = false;
+                    paymentDate.disabled = false;
+                    paymentMode.disabled = false;
+                    remarkField.disabled = false;
+                } else {
+                    balanceAmount.disabled = true;
+                    payAmount.disabled = true;
+                    paymentDate.disabled = true;
+                    paymentMode.disabled = true;
+                    remarkField.disabled = true;
+                }
+            });
+        });
+
+        // ✅ Part Payment
+        // ✅ Fetch all Consignee names (on page load)
+        fetch("/dapple/cash-book/part-payment-parties/", {
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        })
+            .then(response => response.json())
+            .then(data => {
+                const toConsigneeDropdown = document.querySelector('#partForm #toConsignee');
+                toConsigneeDropdown.innerHTML = '<option value="">-- Select Party --</option>';
+                data.forEach(name => {
+                    const option = document.createElement("option");
+                    option.value = name;
+                    option.textContent = name;
+                    toConsigneeDropdown.appendChild(option);
+                });
+            });
+
+        // ✅ When To Consignee is selected → fetch total GI amount and show in Balance Amount field
+        document.querySelector("#partForm #toConsignee").addEventListener("change", function () {
+            const selectedConsignee = this.value;
+
+            if (selectedConsignee) {
+                fetch(`/dapple/cash-book/part-payment-parties/?part_payment_balance=${encodeURIComponent(selectedConsignee)}`, {
+                    headers: { "X-Requested-With": "XMLHttpRequest" }
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        document.querySelector("#partForm #balanceAmount").value = data.balance_amount || 0;
+                    });
+            } else {
+                document.querySelector("#partForm #balanceAmount").value = "";
+            }
+        });
+
+        // ✅ When Part Payment Form is submitted
+        document.querySelector("#partForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const consignee = document.querySelector("#partForm #toConsignee").value;
+            const paidAmount = parseFloat(document.querySelector("#partForm #amount").value);
+            const paymentDate = document.querySelector("#partForm #paymentDate").value;
+            const paymentMode = document.querySelector("#partForm #paymentMode").value;
+            const remark = document.querySelector("#partForm #remark").value;
+
+            if (!consignee || !paidAmount || !paymentDate || !paymentMode) {
+                alert("Please fill all fields");
+                return;
+            }
+
+            fetch("/dapple/cash-book/part-payment-parties/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: JSON.stringify({
+                    party: consignee,
+                    paid_amount: paidAmount,
+                    payment_date: paymentDate,
+                    payment_mode: paymentMode,
+                    remark: remark
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update balance visually
+                        const balanceInput = document.querySelector("#partForm #balanceAmount");
+                        balanceInput.value = (parseFloat(balanceInput.value) - paidAmount).toFixed(2);
+                        const toast = document.getElementById("partSuccessToast");
+                        toast.style.display = "block";
+                        setTimeout(() => {
+                            toast.style.top = "20px";
+                            toast.style.opacity = "1";
+                        }, 50);
+
+                        setTimeout(() => {
+                            toast.style.top = "-100px";
+                            toast.style.opacity = "0";
+                        }, 3000);
+                        // window.location.href = "{% url 'party_ledger' %}";
+                    } else {
+                        alert("Error: " + (data.error || "Unknown error"));
+                    }
+                })
+                .catch(err => {
+                    console.error("Error submitting payment:", err);
+                    alert("Server error");
+                });
+        });
+
+        // ✅ Progressive field enable logic - Part Payment
+        document.querySelector("#partForm #toConsignee").addEventListener("change", function () {
+            const selectedConsignee = this.value;
+
+            const balanceAmount = document.querySelector("#partForm #balanceAmount");
+            const payAmount = document.querySelector("#partForm #amount");
+            const paymentDate = document.querySelector("#partForm #paymentDate");
+            const paymentMode = document.querySelector("#partForm #paymentMode");
+            const remarkField = document.querySelector("#partForm #remark");
+
+            if (selectedConsignee) {
+                // Enable all other fields
+                balanceAmount.disabled = false;
+                payAmount.disabled = false;
+                paymentDate.disabled = false;
+                paymentMode.disabled = false;
+                remarkField.disabled = false;
+
+                // Fetch and show balance amount
+                fetch(`/dapple/cash-book/part-payment-parties/?part_payment_balance=${encodeURIComponent(selectedConsignee)}`, {
+                    headers: { "X-Requested-With": "XMLHttpRequest" }
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        balanceAmount.value = data.balance_amount || 0;
+                    });
+
+            } else {
+                // Clear and disable all other fields
+                balanceAmount.value = "";
+                payAmount.value = "";
+                paymentDate.value = "";
+                paymentMode.value = "";
+                remarkField.value = "";
+
+                balanceAmount.disabled = true;
+                payAmount.disabled = true;
+                paymentDate.disabled = true;
+                paymentMode.disabled = true;
+                remarkField.disabled = true;
+            }
+        });
+
+        // Activate the first tab on page load
+        window.addEventListener("DOMContentLoaded", function () {
+            openTab("parchaTab", document.querySelector(".tab-btn.active"));
+        });
+    </script>
+
+    {% endblock %}

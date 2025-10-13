@@ -1,0 +1,390 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Daapl Login</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom right, #dceeff, #e6dbff);
+    }
+
+    .form-container {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .form-box {
+      position: relative;
+      background-color: white;
+      padding: 40px 30px;
+      border-radius: 18px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 380px;
+      animation: slideUp 0.8s ease forwards;
+      transform: translateY(20px);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h1 {
+      text-align: center;
+      color: #6a1b9a;
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #1a73e8;
+      font-size: 26px;
+      font-weight: bold;
+      margin-bottom: 24px;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 14px;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    input[type="email"],
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    input:focus {
+      border-color: #1a73e8;
+      outline: none;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      background-color: #1a73e8;
+      border: none;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 10px;
+    }
+
+    .login-btn:hover {
+      background-color: #155acb;
+    }
+
+    .error-box {
+      margin-bottom: 15px;
+      color: red;
+      background-color: #ffe5e5;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .form-footer {
+      text-align: center;
+      margin-top: 18px;
+      font-size: 14px;
+    }
+
+    #registerIconBtn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: transparent;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    #registerIcon {
+      width: 18px;
+      height: 18px;
+    }
+
+    #emailPopup {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    #emailPopupContent {
+      position: relative;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      width: 90%;
+      max-width: 350px;
+    }
+
+    #emailPopupContent input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 15px;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: #666;
+    }
+
+    .close-btn:hover {
+      color: #000;
+    }
+
+    #emailMessage {
+      margin-top: 10px;
+      font-size: 13px;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <div class="form-box">
+      <!-- Top right icon -->
+      <button id="registerIconBtn" onclick="openEmailPopup()">
+        <img id="registerIcon" src="{% static 'images/add_user.png' %}" alt="Add User" />
+      </button>
+
+      <h1>DAAPL</h1>
+      <h2>Login</h2>
+
+      {% if error %}
+      <div class="error-box">{{ error }}</div>
+      {% endif %}
+
+      <form id="login-form" method="post">
+        {% csrf_token %}
+        <label for="id_email">Email</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+        <div style="color: red; font-size: 13px;">{{ form.email.errors }}</div>
+        {% endif %}
+
+        <div id="verify-message" style="color: green; font-size: 13px; margin-top: 10px;"></div>
+
+        <div id="otp-field" style="display: none; margin-top: 16px;">
+          <label>Enter OTP</label>
+          <div style="display: flex; gap: 8px; justify-content: center;">
+            {% for _ in "123456" %}
+            <input type="text" maxlength="1" class="otp-box"
+              style="width: 40px; height: 40px; text-align: center; font-size: 18px;" />
+            {% endfor %}
+          </div>
+          <div id="otp-timer" style="margin-top: 10px; font-size: 14px; color: #555;"></div>
+          <input type="hidden" name="otp" id="id_otp" />
+        </div>
+
+        <button type="submit" class="login-btn" id="login-btn">Login</button>
+      </form>
+
+      <p class="form-footer" style="font-size: 12px; color: #888; margin-top: 20px;">
+        Made with care by <strong>Infimetrics IT Solutions Pvt. Ltd</strong>
+      </p>
+    </div>
+  </div>
+
+  <!-- Popup -->
+  <div id="emailPopup">
+    <div id="emailPopupContent">
+      <button class="close-btn" onclick="closeEmailPopup()">✕</button>
+      <h3>Verify Email to Register</h3>
+      <p>Enter your email to continue:</p>
+      <input type="email" id="emailInput" placeholder="example@example.com" />
+      <div id="emailMessage"></div>
+      <div class="actions">
+        <button onclick="verifyEmail()">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openEmailPopup() {
+      document.getElementById("emailPopup").style.display = "flex";
+      document.getElementById("emailMessage").textContent = "";
+      document.getElementById("emailInput").value = "";
+    }
+
+    function closeEmailPopup() {
+      document.getElementById("emailPopup").style.display = "none";
+    }
+
+    function verifyEmail() {
+      const email = document.getElementById("emailInput").value.trim();
+      const message = document.getElementById("emailMessage");
+      if (email === "prajwalwarhade07@gmail.com","sujata.awade@infimetrics.com") {
+        window.location.href = "{% url 'register' %}";
+      } else {
+        message.textContent = "Access denied. You are not authorized to register.";
+      }
+    }
+
+    // OTP Logic
+    let otpTimerInterval;
+    let otpSent = false;
+    let otpExpired = false;
+
+    function startOtpTimer(duration = 300) {
+      clearInterval(otpTimerInterval);
+      const display = document.getElementById("otp-timer");
+      const boxes = document.querySelectorAll(".otp-box");
+      boxes.forEach(b => b.disabled = false);
+      otpExpired = false;
+
+      otpTimerInterval = setInterval(() => {
+        const m = String(Math.floor(duration / 60)).padStart(2, '0');
+        const s = String(duration % 60).padStart(2, '0');
+        display.textContent = `OTP expires in ${m}:${s}`;
+        if (--duration < 0) {
+          clearInterval(otpTimerInterval);
+          otpExpired = true;
+          boxes.forEach(b => b.disabled = true);
+          display.textContent = "OTP expired. Please refresh to resend.";
+        }
+      }, 1000);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const otpInputs = document.querySelectorAll(".otp-box");
+      const hiddenOtpInput = document.getElementById("id_otp");
+      const form = document.getElementById("login-form");
+      const loginBtn = document.getElementById("login-btn");
+      const messageBox = document.getElementById("verify-message");
+
+      otpInputs.forEach((input, index) => {
+        input.addEventListener("input", () => {
+          if (input.value.length === 1 && index < otpInputs.length - 1) {
+            otpInputs[index + 1].focus();
+          }
+        });
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Backspace" && !input.value && index > 0) {
+            otpInputs[index - 1].focus();
+          }
+        });
+      });
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const email = document.getElementById('id_email').value.trim();
+
+        if (!otpSent) {
+          if (!email) {
+            messageBox.textContent = "Please enter your email.";
+            messageBox.style.color = "red";
+            return;
+          }
+
+          messageBox.textContent = "Sending OTP... please wait.";
+          messageBox.style.color = "#555";
+          loginBtn.textContent = "Sending OTP...";
+          loginBtn.disabled = true;
+
+          fetch("{% url 'verify_email' %}", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ email })
+          })
+            .then(res => res.json())
+            .then(data => {
+              if (data.status === "success") {
+                messageBox.style.color = "green";
+                messageBox.textContent = "OTP sent. Please check your email.";
+                document.getElementById("otp-field").style.display = "block";
+                startOtpTimer(300);
+                otpSent = true;
+                loginBtn.textContent = "Verify OTP to Continue";
+                loginBtn.disabled = false;
+              } else {
+                messageBox.style.color = "red";
+                messageBox.textContent = data.message || "Failed to send OTP.";
+                loginBtn.textContent = "Login";
+                loginBtn.disabled = false;
+              }
+            })
+            .catch(() => {
+              messageBox.style.color = "red";
+              messageBox.textContent = "Error sending OTP. Try again.";
+              loginBtn.textContent = "Login";
+              loginBtn.disabled = false;
+            });
+
+        } else {
+          if (otpExpired) {
+            messageBox.style.color = "red";
+            messageBox.textContent = "OTP expired. Please refresh and resend.";
+            return;
+          }
+
+          let otp = "";
+          let valid = true;
+          otpInputs.forEach(input => {
+            if (input.value === "") valid = false;
+            otp += input.value;
+          });
+
+          if (!valid) {
+            messageBox.style.color = "red";
+            messageBox.textContent = "Please enter the full 6-digit OTP.";
+            return;
+          }
+
+          hiddenOtpInput.value = otp;
+          form.submit();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

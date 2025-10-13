@@ -1,0 +1,1186 @@
+{% extends "base.html" %}
+{% block content %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+    /* Custom scrollbar for better aesthetics */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Specific table styling to match the form's aesthetic */
+    .table-container {
+        background-color: #fff;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(106, 27, 154, 0.2);
+        margin: 32px auto;
+        width: 95%;
+        max-width: 100%;
+        overflow-x: auto;
+        /* Enable horizontal scrolling for table */
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        /* table-layout: fixed; /* Removed fixed layout as it conflicts with content width in inline edit */
+        min-width: 1200px;
+        /* Ensure minimum width for desktop viewing to prevent squishing */
+    }
+
+    th {
+        background-color: #6a1b9a;
+        color: white;
+        padding: 12px 8px;
+        text-align: left;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        border: 1px solid #7b1fa2;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    td {
+        padding: 12px 8px;
+        border: 1px solid #e2e8f0;
+        text-align: left;
+        font-size: 0.875rem;
+        color: #4a5568;
+        animation: slideUp 0.5s ease forwards;
+        vertical-align: middle;
+        /* Align content vertically */
+    }
+
+    /* Make the table corners rounded */
+    table {
+        width: 100%;
+        border-collapse: separate;
+        /* Important for border-radius! */
+        border-spacing: 0;
+        min-width: 1000px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: none;
+    }
+
+    /* Header style */
+    th {
+        background-color: #7b1fa2;
+        /* Purple */
+        color: #fff;
+        text-transform: uppercase;
+        font-weight: bold;
+        border: none;
+        padding: 14px 10px;
+    }
+
+    /* Rounded corners for header */
+    th:first-child {
+        border-top-left-radius: 12px;
+    }
+
+    th:last-child {
+        border-top-right-radius: 12px;
+    }
+
+    /* Rounded corners for last row */
+    tr:last-child td:first-child {
+        border-bottom-left-radius: 12px;
+    }
+
+    tr:last-child td:last-child {
+        border-bottom-right-radius: 12px;
+    }
+
+    td input[type="text"],
+    td input[type="number"],
+    td input[type="date"],
+    td select {
+        width: 100%;
+        padding: 6px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        box-sizing: border-box;
+        /* Include padding in width calculation */
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #f7fafc;
+    }
+
+    tbody tr:hover {
+        background-color: #edf2f7;
+        transform: scale(1.005);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Responsive adjustments for smaller screens */
+    @media (max-width: 768px) {
+        .main-nav {
+            flex-direction: column;
+            padding: 10px;
+            align-items: flex-start;
+        }
+
+        .main-nav a,
+        .dropdown .dropbtn {
+            margin: 5px 0;
+            width: calc(100% - 20px);
+            text-align: left;
+        }
+
+        .dropdown-content {
+            position: static;
+            width: 100%;
+            box-shadow: none;
+            border-top: 1px solid #eee;
+        }
+
+        .table-container {
+            padding: 15px;
+            margin-top: 15px;
+            width: 98%;
+            min-width: unset;
+            /* Remove min-width on small screens */
+            overflow-x: auto;
+            /* Ensure scrolling is available */
+        }
+
+        h2 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        th,
+        td {
+            padding: 8px 4px;
+            font-size: 0.75rem;
+        }
+
+        td.actions-column {
+            flex-direction: row;
+            gap: 5px;
+        }
+    }
+
+    /* Further adjustments for extremely small screens if necessary */
+    @media (max-width: 480px) {
+
+        th,
+        td {
+            font-size: 0.65rem;
+            padding: 6px 3px;
+        }
+
+        .main-nav a,
+        .dropdown .dropbtn {
+            font-size: 14px;
+        }
+    }
+
+    /* Styles for action buttons within the table */
+    .action-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.1em;
+        margin: 0 5px;
+        transition: color 0.2s ease, transform 0.2s ease;
+        padding: 5px;
+        /* Add padding for easier touch targets */
+    }
+
+    .edit-btn {
+        color: #2196F3;
+        /* Blue for edit */
+    }
+
+    .edit-btn:hover {
+        color: #1976D2;
+        transform: scale(1.15);
+    }
+
+    .delete-btn {
+        color: #f44336;
+        /* Red for delete */
+    }
+
+    .delete-btn:hover {
+        color: #d32f2f;
+        transform: scale(1.15);
+    }
+
+    .save-btn {
+        color: #4CAF50;
+        /* Green for save */
+    }
+
+    .save-btn:hover {
+        color: #388e3c;
+        transform: scale(1.15);
+    }
+
+    .cancel-btn {
+        color: #FFC107;
+        /* Orange for cancel */
+    }
+
+    .cancel-btn:hover {
+        color: #FFA000;
+        transform: scale(1.15);
+    }
+
+    /* Custom Confirmation Modal Styles (from consignment.html) */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        backdrop-filter: blur(5px);
+        animation: fadeInOverlay 0.3s forwards;
+    }
+
+    .modal-content {
+        background: linear-gradient(135deg, #f0f4f8, #e9ecf0);
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        width: 90%;
+        max-width: 400px;
+        text-align: center;
+        border: 1px solid #dcdcdc;
+        animation: slideInModal 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+    }
+
+    @keyframes fadeInOverlay {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideInModal {
+        from {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .modal-content p {
+        font-size: 1.1em;
+        margin-bottom: 25px;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .modal-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+    }
+
+    .modal-buttons button {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 100px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .modal-buttons .yes-btn {
+        background-color: #e53935;
+        color: white;
+    }
+
+    .modal-buttons .yes-btn:hover {
+        background-color: #c62828;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal-buttons .no-btn {
+        background-color: #e0e0e0;
+        color: #555;
+    }
+
+    .modal-buttons .no-btn:hover {
+        background-color: #c0c0c0;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Success Popup Element (from consignment.html) */
+    .success-popup {
+        position: fixed;
+        top: -100px;
+        /* Start off-screen above */
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #4CAF50;
+        /* Green background */
+        color: white;
+        padding: 15px 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        font-weight: 500;
+        text-align: center;
+        z-index: 9999;
+        /* Ensure it's on top */
+        opacity: 0;
+        /* Start hidden */
+        transition: top 0.5s ease-out, opacity 0.5s ease-out;
+        /* Smooth transition */
+        min-width: 250px;
+    }
+
+    .success-popup.show {
+        top: 20px;
+        /* Slide down to 20px from top */
+        opacity: 1;
+        /* Fade in */
+    }
+</style>
+</head>
+
+<body>
+    <!-- Main Content Area for the table -->
+    <main class="table-container">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl lg:text-3xl font-bold italic text-purple-800 text-center flex-grow "
+                style="animation: slideUp 0.8s ease forwards; transform: translateY(20px);">Builty List
+            </h2>
+            <form method="GET" class="flex items-center space-x-2 mr-3">
+                <input type="text" name="global_search" value="{{ global_search|default:'' }}"
+                    placeholder="Search By Vehicle No..." class="rounded-lg px-3 py-2 text-sm text-gray-800 border border-gray-300 shadow-sm 
+               focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                    style="box-shadow: 0 0 0 2px rgba(106, 27, 154, 0.2);">
+
+                <button type="submit"
+                    class="text-white font-bold py-2 px-4 rounded-lg shadow flex items-center transition duration-200"
+                    style="background-color: #6a1b9a; border: none;">
+                    <i class="fas fa-search mr-1"></i>
+                    Search
+                </button>
+            </form>
+
+            <div class="flex space-x-3">
+                <a href="{% url 'export_consignments_excel' %}" id="exportExcelBtn"
+                    class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out flex items-center whitespace-nowrap">
+                    <i class="fas fa-file-excel mr-2"></i>
+                    <!-- Export to Excel -->
+                </a>
+
+                <a href="{% url 'export_consignments_pdf' %}" id="exportPdfBtn"
+                    class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out flex items-center whitespace-nowrap">
+                    <i class="fas fa-file-pdf mr-2"></i>
+                    <!-- Export to PDF -->
+                </a>
+
+                <a href="{% url 'consignment' %}"
+                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out flex items-center whitespace-nowrap">
+                    <i class="fas fa-plus mr-2"></i>
+                    <!-- Add New CN -->
+                </a>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>CN No</th>
+                    <th>Vehicle No</th>
+                    <th>Consignee</th>
+                    <!--<th>Consigner</th>-->
+                    <th>From Location</th>
+                    <th>To Location</th>
+                    <!-- <th>Booking Date</th> -->
+                    <th>Loading Date</th>
+                    <th>Unloading Date</th>
+                    <!-- <th>Truck Freight</th>
+                    <th>Advance Amount</th>
+                    <th>Balance Amount</th> -->
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="consignmentTableBody">
+                {% for c in page_obj %}
+                <tr data-cnid="{{ c.CNID }}">
+                    <td>{{ page_obj.start_index|add:forloop.counter0 }}</td>
+                    <td data-field="Cn_No">{{ c.Cn_No }}</td>
+                    <td data-field="Vehicle_No" data-id="{{ c.vehicle_no_id }}">{{ c.Vehicle_No }}</td>
+                    <td data-field="consignee" data-id="{{ c.consignee_id }}">{{ c.consignee }}</td>
+                    <!-- <td data-field="consigner" data-id="{{ c.consigner_id }}">{{ c.consigner }}</td> -->
+                    <td data-field="from_location" data-id="{{ c.from_location_id }}">{{ c.from_location }}</td>
+                    <td data-field="To_Location" data-id="{{ c.To_Location_id }}">{{ c.To_Location }}</td>
+                    <!-- <td data-field="Booking_Date">{{ c.Booking_Date|date:"Y-m-d" }}</td> -->
+                    <td data-field="Loading_Date">{{ c.Loading_Date|date:"Y-m-d" }}</td>
+                    <td data-field="Unloading_Date">{{ c.Unloading_Date|date:"Y-m-d" }}</td>
+                    <!-- <td data-field="Truck_Freight">{{ c.Truck_Freight }}</td>
+                    <td data-field="Advance_Amount">{{ c.Advance_Amount }}</td>
+                    <td data-field="Balance_Amount">{{ c.Balance_Amount }}</td> -->
+                    <td style="white-space: nowrap;">
+                        <a href="{% url 'edit_consignment' cnid=c.CNID %}" class="action-btn edit-btn"
+                            title="Edit Consignment">
+                            <i class="fa-solid fa-pencil"></i>
+                        </a>
+                        <button type="button" class="action-btn delete-btn" data-cnid="{{ c.CNID }}"
+                            title="Delete Consignment">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                        <button type="button" class="action-btn save-btn" data-cnid="{{ c.CNID }}" title="Save Changes"
+                            style="display:none;">
+                            <i class="fa-solid fa-check"></i>
+                        </button>
+                        <button type="button" class="action-btn cancel-btn" data-cnid="{{ c.CNID }}" title="Cancel Edit"
+                            style="display:none;">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <a href="{% url 'print_bill' cnid=c.CNID %}" target="_blank" title="Print">
+                            <i class="fa fa-print"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="14" class="text-center py-4 text-gray-500 italic">No builty entries found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination Controls -->
+        <div class="flex justify-center mt-6">
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                {% if start_page > 1 %}
+                <a href="?page={{ start_page|add:" -1" }}"
+                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-purple-700 hover:bg-purple-300">
+                    &laquo;
+                </a>
+
+                {% endif %}
+
+                {% for i in page_range %}
+                {% if i == current_page %}
+                <span
+                    class="relative inline-flex items-center px-4 py-2 border border-purple-600 bg-purple-600 text-white text-sm font-medium">
+                    {{ i }}
+                </span>
+                {% else %}
+                <a href="?page={{ i }}"
+                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-purple-300">
+                    {{ i }}
+                </a>
+                {% endif %}
+                {% endfor %}
+
+                {% if end_page < total_pages %} <a href="?page={{ end_page|add:" 1" }}"
+                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-purple-700 hover:bg-purple-300">
+                    &raquo;
+                    </a>
+                    {% endif %}
+            </nav>
+        </div>
+    </main>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModalOverlay" class="modal-overlay">
+        <div id="confirmationModalContent" class="modal-content">
+            <p id="confirmationMessage"></p>
+            <div id="confirmationModalButtons" class="modal-buttons">
+                <button id="confirmYesBtn" class="yes-btn">Yes</button>
+                <button id="confirmNoBtn" class="no-btn">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Popup -->
+    <div id="successPopup" class="success-popup">
+        Action successful!
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            attachActionBtnListeners();
+        });
+
+        function attachActionBtnListeners() {
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const cnid = this.getAttribute('data-cnid');
+                    showConfirmationDialog(
+                        "Are you sure you want to delete this consignment?",
+                        async () => {
+                            try {
+                                const response = await fetch(`/dapple/consignment/delete/${cnid}/`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': getCSRFToken(),
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    }
+                                });
+
+                                const result = await response.json();
+                                if (response.ok && result.success) {
+                                    showSuccessPopup("Consignment deleted successfully.");
+                                    refreshConsignmentTable();
+                                } else {
+                                    showSuccessPopup(result.message || "Failed to delete.");
+                                }
+                            } catch (error) {
+                                console.error("Delete error:", error);
+                                showSuccessPopup("An error occurred.");
+                            }
+                        }
+                    );
+                });
+            });
+        }
+
+        function getCSRFToken() {
+            const name = 'csrftoken';
+            const cookieValue = document.cookie.split('; ')
+                .find(row => row.startsWith(name + '='))?.split('=')[1];
+            return cookieValue;
+        }
+
+        function showConfirmationDialog(message, onConfirm) {
+            const overlay = document.getElementById('confirmationModalOverlay');
+            const messageBox = document.getElementById('confirmationMessage');
+            const yesBtn = document.getElementById('confirmYesBtn');
+            const noBtn = document.getElementById('confirmNoBtn');
+
+            messageBox.textContent = message;
+            overlay.style.display = 'flex';
+
+            const confirmHandler = () => {
+                overlay.style.display = 'none';
+                yesBtn.removeEventListener('click', confirmHandler);
+                noBtn.removeEventListener('click', cancelHandler);
+                onConfirm();
+            };
+
+            const cancelHandler = () => {
+                overlay.style.display = 'none';
+                yesBtn.removeEventListener('click', confirmHandler);
+                noBtn.removeEventListener('click', cancelHandler);
+            };
+
+            yesBtn.addEventListener('click', confirmHandler);
+            noBtn.addEventListener('click', cancelHandler);
+        }
+
+        async function refreshConsignmentTable() {
+            try {
+                const currentUrl = window.location.href;
+                const response = await fetch(currentUrl, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const html = await response.text();
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                const newTableBody = tempDiv.querySelector('#consignmentTableBody');
+
+                if (newTableBody) {
+                    document.getElementById('consignmentTableBody').innerHTML = newTableBody.innerHTML;
+                    attachActionBtnListeners(); // re-bind
+                }
+            } catch (error) {
+                console.error('Error refreshing table:', error);
+                showSuccessPopup("Failed to refresh. Reload manually.");
+            }
+        }
+
+        function showSuccessPopup(message) {
+            const popup = document.getElementById('successPopup');
+            popup.textContent = message;
+            popup.style.display = 'block';
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 2500);
+        }
+    </script>
+</body>
+
+
+
+<!-- <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const exportExcelBtn = document.getElementById('exportExcelBtn');
+            const consignmentTableBody = document.getElementById('consignmentTableBody');
+
+            // Custom Confirmation Modal elements
+            const confirmationModalOverlay = document.getElementById('confirmationModalOverlay');
+            const confirmationMessage = document.getElementById('confirmationMessage');
+            const confirmYesBtn = document.getElementById('confirmYesBtn');
+            const confirmNoBtn = document.getElementById('confirmNoBtn');
+            let confirmCallback = null; // Callback function for confirmation
+
+            // Success Popup Element
+            const successPopup = document.getElementById('successPopup');
+
+            // Store original row HTML during edit mode
+            let originalRowHTML = {};
+
+
+            // Global data for searchable dropdowns
+            let allVehicles = [];
+            let allConsignees = [];
+            let allConsigners = [];
+            let allLocations = [];
+
+            // Function to get CSRF token
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            const csrftoken = getCookie('csrftoken');
+
+            // --- Show/Hide Success Popup ---
+            function showSuccessPopup(message) {
+                console.log("Success:", message);
+                successPopup.textContent = message;
+                successPopup.style.display = 'block'; // Make it visible
+                successPopup.classList.add('show'); // Add 'show' class to trigger animation
+                setTimeout(() => {
+                    successPopup.classList.remove('show'); // Remove 'show' class to trigger reverse animation
+                    setTimeout(() => {
+                        successPopup.style.display = 'none'; // Hide it completely after animation
+                    }, 500); // This should match the transition duration
+                }, 3000); // Display for 3 seconds
+            }
+
+            // Function to show custom confirmation modal
+            function showConfirmationModal(message, callback) {
+                confirmationMessage.textContent = message;
+                confirmCallback = callback;
+                confirmationModalOverlay.style.display = 'flex';
+            }
+
+            // Event listeners for custom confirmation modal buttons
+            confirmYesBtn.addEventListener('click', () => {
+                if (confirmCallback) {
+                    confirmCallback(true);
+                }
+                confirmationModalOverlay.style.display = 'none';
+            });
+
+            confirmNoBtn.addEventListener('click', () => {
+                if (confirmCallback) {
+                    confirmCallback(false);
+                }
+                confirmationModalOverlay.style.display = 'none';
+            });
+
+
+            // Function to re-fetch and render consignment data (used after delete/save)
+            async function refreshConsignmentTable() {
+                try {
+                    // Get current URL to maintain pagination and filters
+                    const currentUrl = window.location.href;
+                    const response = await fetch(currentUrl, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest', // Indicate AJAX request
+                        },
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const html = await response.text();
+                    // Create a temporary div to parse the HTML and extract the table body
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
+                    const newTableBody = tempDiv.querySelector('#consignmentTableBody');
+
+                    if (newTableBody && consignmentTableBody) {
+                        consignmentTableBody.innerHTML = newTableBody.innerHTML;
+                        attachActionBtnListeners(); // Re-attach listeners to new buttons
+                    } else {
+                        console.error('Could not find #consignmentTableBody in the fetched HTML.');
+                    }
+                } catch (error) {
+                    console.error('Error refreshing consignment table:', error);
+                    showSuccessPopup('Failed to refresh data. Please refresh the page manually.');
+                }
+            }
+
+            // --- Master Data Fetching Functions ---
+            async function fetchMasterData(url, dataArray) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        // Clear and populate the passed dataArray
+                        dataArray.splice(0, dataArray.length, ...data.items); // Assuming 'items' key from API
+                    } else {
+                        console.error(`Error fetching data from ${url}:`, data.message || 'Unknown error');
+                    }
+                } catch (error) {
+                    console.error(`Network error fetching data from ${url}:`, error);
+                }
+            }
+
+            // Helper to create select options
+            function createSelectOptions(dataList, selectedId, idKey, displayKey) {
+                let options = '<option value="">-- Select --</option>'; // Default empty option
+                dataList.forEach(item => {
+                    const isSelected = item[idKey] == selectedId ? 'selected' : '';
+                    options += `<option value="${item[idKey]}" ${isSelected}>${item[displayKey]}</option>`;
+                });
+                return options;
+            }
+
+            // --- Inline Edit Functions ---
+            function editRow(button) {
+                const row = button.closest('tr');
+                const cnid = row.dataset.cnid;
+
+                // Store original HTML
+                originalRowHTML[cnid] = row.innerHTML;
+
+                // Hide edit/delete, show save/cancel
+                row.querySelector('.edit-btn').style.display = 'none';
+                row.querySelector('.delete-btn').style.display = 'none';
+                row.querySelector('.save-btn').style.display = 'inline-block';
+                row.querySelector('.cancel-btn').style.display = 'inline-block';
+
+                // Get current values
+                const currentData = {
+                    Cn_No: row.querySelector('[data-field="Cn_No"]').textContent,
+                    Vehicle_No_id: row.querySelector('[data-field="Vehicle_No"]').dataset.id,
+                    consignee_id: row.querySelector('[data-field="consignee"]').dataset.id,
+                    consigner_id: row.querySelector('[data-field="consigner"]').dataset.id,
+                    from_location_id: row.querySelector('[data-field="from_location"]').dataset.id,
+                    To_Location_id: row.querySelector('[data-field="To_Location"]').dataset.id,
+                    Booking_Date: row.querySelector('[data-field="Booking_Date"]').textContent,
+                    Loading_Date: row.querySelector('[data-field="Loading_Date"]').textContent,
+                    Unloading_Date: row.querySelector('[data-field="Unloading_Date"]').textContent,
+                    Truck_Freight: row.querySelector('[data-field="Truck_Freight"]').textContent,
+                    Advance_Amount: row.querySelector('[data-field="Advance_Amount"]').textContent,
+                    Balance_Amount: row.querySelector('[data-field="Balance_Amount"]').textContent,
+                };
+
+                // Replace td content with inputs/selects
+                row.querySelector('[data-field="Cn_No"]').innerHTML = `<input type="text" value="${currentData.Cn_No}" data-name="Cn_No">`;
+
+                row.querySelector('[data-field="Vehicle_No"]').innerHTML = `
+                    <select data-name="vehicle_no">
+                        ${createSelectOptions(allVehicles, currentData.Vehicle_No_id, 'id', 'vehicle_number')}
+                    </select>
+                `;
+                row.querySelector('[data-field="consignee"]').innerHTML = `
+                    <select data-name="consignee">
+                        ${createSelectOptions(allConsignees, currentData.consignee_id, 'id', 'consignee_name')}
+                    </select>
+                `;
+                row.querySelector('[data-field="consigner"]').innerHTML = `
+                    <select data-name="consigner">
+                        ${createSelectOptions(allConsigners, currentData.consigner_id, 'id', 'consigner_name')}
+                    </select>
+                `;
+                row.querySelector('[data-field="from_location"]').innerHTML = `
+                    <select data-name="from_location">
+                        ${createSelectOptions(allLocations, currentData.from_location_id, 'id', 'location_name')}
+                    </select>
+                `;
+                row.querySelector('[data-field="To_Location"]').innerHTML = `
+                    <select data-name="To_Location">
+                        ${createSelectOptions(allLocations, currentData.To_Location_id, 'id', 'location_name')}
+                    </select>
+                `;
+                row.querySelector('[data-field="Booking_Date"]').innerHTML = `<input type="date" value="${currentData.Booking_Date}" data-name="Booking_Date">`;
+                row.querySelector('[data-field="Loading_Date"]').innerHTML = `<input type="date" value="${currentData.Loading_Date}" data-name="Loading_Date">`;
+                row.querySelector('[data-field="Unloading_Date"]').innerHTML = `<input type="date" value="${currentData.Unloading_Date}" data-name="Unloading_Date">`;
+                row.querySelector('[data-field="Truck_Freight"]').innerHTML = `<input type="number" step="0.01" value="${currentData.Truck_Freight}" data-name="Truck_Freight">`;
+                row.querySelector('[data-field="Advance_Amount"]').innerHTML = `<input type="number" step="0.01" value="${currentData.Advance_Amount}" data-name="Advance_Amount">`;
+                row.querySelector('[data-field="Balance_Amount"]').innerHTML = `<input type="number" step="0.01" value="${currentData.Balance_Amount}" data-name="Balance_Amount">`;
+            }
+
+            async function saveRow(button) {
+                const row = button.closest('tr');
+                const cnid = row.dataset.cnid;
+                const updatedData = {
+                    CNID: cnid, // Include CNID for backend identification
+                };
+
+                // Collect data from all input/select elements in the row
+                row.querySelectorAll('td [data-name]').forEach(input => {
+                    let value = input.value;
+                    const fieldName = input.dataset.name;
+
+                    // Handle empty select values for ForeignKeys to be null/empty string
+                    if (input.tagName === 'SELECT' && value === '') {
+                        updatedData[fieldName] = null; // Send null for empty selection
+                    } else if (input.type === 'number') {
+                        updatedData[fieldName] = parseFloat(value) || 0;
+                    } else {
+                        updatedData[fieldName] = value;
+                    }
+                });
+
+                showConfirmationModal(`Are you sure you want to save changes for Consignment Note ID: ${cnid}?`, async (confirmed) => {
+                    if (confirmed) {
+                        try {
+                            const response = await fetch(`/consignments/update/${cnid}/`, {
+                                method: 'PATCH', // Use PATCH for partial updates
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrftoken,
+                                },
+                                body: JSON.stringify(updatedData),
+                            });
+
+                            const data = await response.json();
+
+                            if (response.ok && data.success) {
+                                showSuccessPopup(data.message);
+                                refreshConsignmentTable(); // Reload data to show updated values
+                            } else {
+                                let errorMessage = data.message || 'Failed to save changes.';
+                                if (data.errors) {
+                                    try {
+                                        const errors = JSON.parse(data.errors);
+                                        let errorMessages = [];
+                                        for (const field in errors) {
+                                            errors[field].forEach(err => { errorMessages.push(`${field}: ${err.message || err.code || err}`); });
+                                        }
+                                        errorMessage += "\nDetails:\n" + errorMessages.join('; ');
+                                    } catch (e) {
+                                        // If JSON parsing fails, use raw errors
+                                        errorMessage += "\nDetails: " + data.errors;
+                                    }
+                                }
+                                console.error('Save error:', errorMessage);
+                                showSuccessPopup(`Error: ${errorMessage}`);
+                                cancelEdit(button); // Revert on error
+                            }
+                        } catch (error) {
+                            console.error('Network error during save:', error);
+                            showSuccessPopup('Network error during saving changes. Please try again.');
+                            cancelEdit(button); // Revert on network error
+                        }
+                    } else {
+                        cancelEdit(button); // Cancel if not confirmed
+                    }
+                });
+            }
+
+            function cancelEdit(button) {
+                const row = button.closest('tr');
+                const cnid = row.dataset.cnid;
+                if (originalRowHTML[cnid]) {
+                    row.innerHTML = originalRowHTML[cnid];
+                    // Re-attach listeners to the restored buttons in this specific row
+                    row.querySelector('.edit-btn').addEventListener('click', function () { editRow(this); });
+                    row.querySelector('.delete-btn').addEventListener('click', function () { deleteConsignment(this.dataset.cnid); });
+                }
+                // Clear the stored HTML for this row
+                delete originalRowHTML[cnid];
+            }
+
+
+            // Function to attach event listeners to action buttons
+            function attachActionBtnListeners() {
+                document.querySelectorAll('.edit-btn').forEach(button => {
+                    button.addEventListener('click', function () {
+                        editRow(this);
+                    });
+                });
+
+                document.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', function () {
+                        deleteConsignment(this.dataset.cnid);
+                    });
+                });
+
+                document.querySelectorAll('.save-btn').forEach(button => {
+                    button.addEventListener('click', function () {
+                        saveRow(this);
+                    });
+                });
+
+                document.querySelectorAll('.cancel-btn').forEach(button => {
+                    button.addEventListener('click', function () {
+                        cancelEdit(this);
+                    });
+                });
+            }
+
+            // Function to handle consignment deletion
+            async function deleteConsignment(cnid) {
+                showConfirmationModal(`Are you sure you want to delete Consignment Note ID: ${cnid}?`, async (confirmed) => {
+                    if (confirmed) {
+                        try {
+                            const response = await fetch(`/consignments/delete/${cnid}/`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrftoken,
+                                },
+                            });
+
+                            const data = await response.json();
+
+                            if (response.ok && data.success) {
+                                showSuccessPopup(data.message);
+                                refreshConsignmentTable(); // Refresh the table after deletion
+                            } else {
+                                const errorMessage = data.message || 'Failed to delete consignment.';
+                                console.error('Delete error:', errorMessage);
+                                showSuccessPopup(`Error: ${errorMessage}`);
+                            }
+                        } catch (error) {
+                            console.error('Network error during delete:', error);
+                            showSuccessPopup('Network error during deletion. Please try again.');
+                        }
+                    }
+                });
+            }
+
+
+            // Original Excel export functionality
+            // if (exportExcelBtn) {
+            //     exportExcelBtn.addEventListener('click', async function () {
+            //         showConfirmationModal("Do you want to export all consignment data to Excel (CSV)?", async (confirmed) => {
+            //             if (confirmed) {
+            //                 try {
+            //                     // Fetch all consignment data
+            //                     const response = await fetch('/consignments/get_all/', {
+            //                         method: 'GET',
+            //                         headers: {
+            //                             'Content-Type': 'application/json',
+            //                             'X-CSRFToken': csrftoken,
+            //                         },
+            //                     });
+
+            //                     if (!response.ok) {
+            //                         throw new Error(`HTTP error! status: ${response.status}`);
+            //                     }
+
+            //                     const data = await response.json();
+
+            //                     if (data.success && data.consignments) {
+            //                         const consignments = data.consignments;
+
+            //                         if (consignments.length === 0) {
+            //                             showSuccessPopup("No data available to export.");
+            //                             return;
+            //                         }
+
+            //                         // Define CSV headers - match your table headers
+            //                         const headers = [
+            //                             "S.No", "CN No", "Vehicle No", "Consignee", "Consigner",
+            //                             "From Location", "To Location", "Booking Date", "Loading Date",
+            //                             "Unloading Date", "Truck Freight", "Advance Amount", "Balance Amount"
+            //                         ];
+
+            //                         // Create CSV content
+            //                         let csvContent = headers.join(",") + "\n"; // Add headers
+
+            //                         consignments.forEach((cn, index) => {
+            //                             const row = [
+            //                                 index + 1, // S.No
+            //                                 cn.Cn_No,
+            //                                 cn.Vehicle_No,
+            //                                 cn.consignee,
+            //                                 cn.consigner,
+            //                                 cn.from_location,
+            //                                 cn.To_Location,
+            //                                 cn.Booking_Date,
+            //                                 cn.Loading_Date,
+            //                                 cn.Unloading_Date,
+            //                                 cn.Truck_Freight,
+            //                                 cn.Advance_Amount,
+            //                                 cn.Balance_Amount
+            //                             ];
+            //                             csvContent += row.map(item => `"${String(item).replace(/"/g, '""')}"`).join(",") + "\n";
+            //                         });
+
+            //                         // Create a Blob and trigger download
+            //                         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            //                         const link = document.createElement('a');
+            //                         if (link.download !== undefined) { // Feature detection for download attribute
+            //                             const url = URL.createObjectURL(blob);
+            //                             link.setAttribute('href', url);
+            //                             link.setAttribute('download', 'consignment_data.csv');
+            //                             link.style.visibility = 'hidden';
+            //                             document.body.appendChild(link);
+            //                             link.click();
+            //                             document.body.removeChild(link);
+            //                             URL.revokeObjectURL(url);
+            //                             showSuccessPopup("Consignment data exported successfully!");
+            //                         } else {
+            //                             // Fallback for browsers that don't support download attribute
+            //                             showSuccessPopup("Your browser does not support downloading files directly. Please copy the data manually.");
+            //                         }
+
+            //                     } else {
+            //                         console.error('API response indicates failure:', data.message || 'No consignments data found.');
+            //                         showSuccessPopup('Failed to retrieve consignment data for export. ' + (data.message || 'Please try again.'));
+            //                     }
+
+            //                 } catch (error) {
+            //                     console.error('Error exporting to Excel:', error);
+            //                     showSuccessPopup('An error occurred during export: ' + error.message);
+            //                 }
+            //             }
+            //         });
+            //     });
+            // }
+
+            // Initial fetch of master data and attachment of listeners when the page loads
+            async function initializePage() {
+                await fetchMasterData('/vehicles/get/', allVehicles); // Assuming this returns { success: true, vehicles: [...] }
+                // Need to rename 'vehicles' key to 'items' in the fetchMasterData helper
+                // OR adjust fetchMasterData to expect a specific key and then map to `allVehicles` etc.
+                // For simplicity now, let's assume get methods return a list directly or fix fetchMasterData
+                // Let's modify fetchMasterData to be more generic.
+
+                // Re-fetch functions
+                const fetchAndPopulateVehicles = async () => {
+                    try {
+                        const response = await fetch('/vehicles/get/');
+                        const data = await response.json();
+                        if (data.success) {
+                            allVehicles = data.vehicles;
+                        } else {
+                            console.error('Failed to load vehicles:', data.message);
+                        }
+                    } catch (error) {
+                        console.error('Network error loading vehicles:', error);
+                    }
+                };
+
+                const fetchAndPopulateConsignees = async () => {
+                    try {
+                        const response = await fetch('/consignees/get/');
+                        const data = await response.json();
+                        if (data.success) {
+                            allConsignees = data.consignees;
+                        } else {
+                            console.error('Failed to load consignees:', data.message);
+                        }
+                    } catch (error) {
+                        console.error('Network error loading consignees:', error);
+                    }
+                };
+
+                const fetchAndPopulateConsigners = async () => {
+                    try {
+                        const response = await fetch('/consigners/get/');
+                        const data = await response.json();
+                        if (data.success) {
+                            allConsigners = data.consigners;
+                        } else {
+                            console.error('Failed to load consigners:', data.message);
+                        }
+                    } catch (error) {
+                        console.error('Network error loading consigners:', error);
+                    }
+                };
+
+                const fetchAndPopulateLocations = async () => {
+                    try {
+                        const response = await fetch('/locations/get/');
+                        const data = await response.json();
+                        if (data.success) {
+                            allLocations = data.locations;
+                        } else {
+                            console.error('Failed to load locations:', data.message);
+                        }
+                    } catch (error) {
+                        console.error('Network error loading locations:', error);
+                    }
+                };
+
+                await Promise.all([
+                    fetchAndPopulateVehicles(),
+                    fetchAndPopulateConsignees(),
+                    fetchAndPopulateConsigners(),
+                    fetchAndPopulateLocations()
+                ]);
+
+                attachActionBtnListeners();
+            }
+
+            initializePage();
+
+        });
+    </script> -->
+</body>
+{% endblock %}
