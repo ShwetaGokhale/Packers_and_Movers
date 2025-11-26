@@ -6,57 +6,82 @@ from django.contrib import messages
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_date
-import traceback
-from django.views.decorators.http import require_POST
+from django.views import View
+from django.conf import settings
+
 # ─────────────────────────────────────────────────────────────────────────────
 # DJANGO HTTP & UTILITIES
 # ─────────────────────────────────────────────────────────────────────────────
 from django.http import JsonResponse, HttpResponse
-from django.utils.timezone import now
 from django.core.paginator import Paginator
+from django.utils.timezone import now
+from django.utils import timezone
 from django.urls import reverse
+
 # ─────────────────────────────────────────────────────────────────────────────
 # DJANGO ORM & DATABASE
 # ─────────────────────────────────────────────────────────────────────────────
 from django.db import models, transaction
 from django.db.models import Max, Sum, OuterRef, Subquery, Q
 from django.db.models.functions import Coalesce, ExtractMonth, ExtractYear
-from reportlab.lib import colors
+
 # ─────────────────────────────────────────────────────────────────────────────
 # PYTHON STANDARD LIBRARIES
 # ─────────────────────────────────────────────────────────────────────────────
-from datetime import datetime, date, timedelta
-from django.utils import timezone
-
+import os
+import json
+import random
+import traceback
+from datetime import datetime, date, timedelta,time
 from decimal import Decimal
 from math import ceil
 from collections import defaultdict
 from calendar import month_abbr, month_name
-import random
-import json
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PDF & REPORTLAB
+# ─────────────────────────────────────────────────────────────────────────────
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import cm
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.colors import HexColor
 from reportlab.pdfgen import canvas
-from openpyxl.drawing.image import Image as XLImage
-from reportlab.lib import colors  # ✅ Corrected import
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.platypus import (
+    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+
 from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+
+
 import os
-from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
+
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.styles import getSampleStyleSheet, TA_CENTER
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+
+
+from reportlab.pdfbase import pdfmetrics
+# ─────────────────────────────────────────────────────────────────────────────
+# EXCEL EXPORT (OPENPYXL)
+# ─────────────────────────────────────────────────────────────────────────────
+import openpyxl
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from openpyxl.drawing.image import Image as XLImage
+
 # ─────────────────────────────────────────────────────────────────────────────
 # FORMS & MODELS
 # ─────────────────────────────────────────────────────────────────────────────
 from .forms import (
     RegisterForm,
     LoginForm,
-    #ConsignmentForm,
     ConsignmentCreateForm,
     ConsignmentEditForm,
     VehicleForm,
@@ -72,34 +97,25 @@ from .models import *
 # ─────────────────────────────────────────────────────────────────────────────
 from .utils import send_otp_to_email
 from num2words import num2words
-# ─────────────────────────────────────────────────────────────────────────────
-# EXCEL EXPORT
-# ─────────────────────────────────────────────────────────────────────────────
-import openpyxl
-from openpyxl import Workbook
-from openpyxl.utils import get_column_letter
-from openpyxl.styles import *
-from openpyxl.styles import PatternFill
-from reportlab.lib.colors import HexColor
+
 # ─────────────────────────────────────────────────────────────────────────────
 # DJANGO REST FRAMEWORK
 # ─────────────────────────────────────────────────────────────────────────────
-from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.authtoken.models import Token
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DRF SERIALIZERS
 # ─────────────────────────────────────────────────────────────────────────────
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
-from django.db.models import Sum, Q
 
-# ─────────────────────────────────────────────────────────────────────────────
-# WEB: LOGIN VIEW
-# ─────────────────────────────────────────────────────────────────────────────
+def index_view(request):
+    return render(request, 'index.html')
+
 def login_view(request):
     if request.method == "POST":
         form = LoginForm(request.POST)
@@ -227,11 +243,11 @@ def consignment_form_view(request):
 
         # Patch foreign keys into data before validation
         patched_data = data.copy()
-        patched_data["Vehicle_No"] = data.get("Vehicle_No")
+        patched_data["vehicle_no"] = data.get("vehicle_no")
         patched_data["consignee"] = data.get("consignee")
         patched_data["consigner"] = data.get("consigner")
         patched_data["from_location"] = data.get("from_location")
-        patched_data["To_Location"] = data.get("to_location")
+        patched_data["To_Location"] = data.get("to_location")  # Match model field case
 
         form = ConsignmentCreateForm(patched_data)
 
@@ -281,7 +297,7 @@ def consignment_form_view(request):
                     # Save total fare
                     consignment_instance.total_fare = total_fare_amount
                     consignment_instance.save(update_fields=["total_fare"])
-                    
+
                     # --- Vehicle existence check ---
                     submitted_vehicle_no_id = consignment_instance.Vehicle_No_id
                     vehicle_entry_date = consignment_instance.Booking_Date or timezone.now().date()
@@ -390,141 +406,6 @@ def consignment_form_view(request):
                         except Exception as to_loc_err:
                             print(f"Error ensuring to location: {str(to_loc_err)}")
 
-                    # ✅ NEW: Send WhatsApp message after successful save
-                    phone_number = None
-                    if consignment_instance.consignee and hasattr(consignment_instance.consignee, 'contact_no'):
-                        phone_number = str(consignment_instance.consignee.contact_no).strip() if consignment_instance.consignee.contact_no else None
-                    print(f"📞 DEBUG: Consignee Contact Number: '{phone_number}'")
-
-                    # Prepare WhatsApp data if phone exists
-                    if phone_number and len(phone_number) > 0:
-                        try:
-                            # Get first goods item for the template
-                            first_goods = goods_items[0] if goods_items else {}
-                            
-                            # Get from_party and to_party names
-                            from_party_name = ""
-                            to_party_name = ""
-                            
-                            if first_goods.get('from_party'):
-                                try:
-                                    from_party_obj = Consignee.objects.get(pk=first_goods.get('from_party'))
-                                    from_party_name = from_party_obj.consignee_name
-                                except Consignee.DoesNotExist:
-                                    pass
-                            
-                            if first_goods.get('to_party'):
-                                try:
-                                    to_party_obj = Consignee.objects.get(pk=first_goods.get('to_party'))
-                                    to_party_name = to_party_obj.consignee_name
-                                except Consignee.DoesNotExist:
-                                    pass
-                            
-                            whatsapp_data = {
-                                'phone_number': phone_number,
-                                'consignee_name': consignment_instance.consignee.consignee_name if consignment_instance.consignee else '',
-                                'date': consignment_instance.Loading_Date.strftime('%Y-%m-%d') if consignment_instance.Loading_Date else '',
-                                'party_name': consignment_instance.consignee.consignee_name if consignment_instance.consignee else '',
-                                'unit': first_goods.get('unit', ''),
-                                'quantity': str(first_goods.get('quantity', 0)),
-                                'rate': str(first_goods.get('rate', 0)),
-                                'amount': str(first_goods.get('amount', 0)),
-                                'from_party': from_party_name,
-                                'to_party': to_party_name
-                            }
-                            
-                            # Send WhatsApp message asynchronously (won't block the response)
-                            import threading
-                            def send_whatsapp_async():
-                                try:
-                                    # WhatsApp API configuration
-                                    API_KEY = '0a5ec0be-a8e2-11f0-98fc-02c8a5e042bd'
-                                    PHONE_NUMBER_ID = '852055087990782'
-                                    
-                                    # Clean and format phone number
-                                    clean_phone = whatsapp_data['phone_number'].replace('+', '').replace(' ', '').replace('-', '').strip()
-                                    if not clean_phone.startswith('91'):
-                                        clean_phone = '91' + clean_phone
-                                    
-                                    if len(clean_phone) != 12 or not clean_phone.isdigit():
-                                        print(f"❌ Invalid phone number format: {whatsapp_data['phone_number']}")
-                                        return
-                                    
-                                    url = f'https://partnersv1.pinbot.ai/v3/{PHONE_NUMBER_ID}/messages'
-                                    headers = {
-                                        'Content-Type': 'application/json',
-                                        'apikey': API_KEY
-                                    }
-
-                                    # Prepare payload matching your working API test
-                                    payload = {
-                                        "messaging_product": "whatsapp",
-                                        "recipient_type": "individual",
-                                        "to": clean_phone,
-                                        "type": "template",
-                                        "template": {
-                                            "name": "bilty",
-                                            "language": {
-                                                "code": "en"
-                                            },
-                                            "components": [
-                                                {
-                                                    "type": "header",
-                                                    "parameters": [
-                                                        {
-                                                            "type": "IMAGE",
-                                                            "image": {
-                                                                "id": "1234891225354261"
-                                                            }
-                                                        }
-                                                    ]
-                                                },
-                                                {
-                                                    "type": "body",
-                                                    "parameters": [
-                                                        {"type": "text", "text": str(whatsapp_data['consignee_name'])},
-                                                        {"type": "text", "text": str(whatsapp_data['date'])},
-                                                        {"type": "text", "text": str(whatsapp_data['party_name'])},
-                                                        {"type": "text", "text": str(whatsapp_data['unit'])},
-                                                        {"type": "text", "text": str(whatsapp_data['quantity'])},
-                                                        {"type": "text", "text": str(whatsapp_data['rate'])},
-                                                        {"type": "text", "text": str(whatsapp_data['amount'])},
-                                                        {"type": "text", "text": str(whatsapp_data['from_party'])},
-                                                        {"type": "text", "text": str(whatsapp_data['to_party'])}
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    }
-
-                                    print("=" * 70)
-                                    print("📤 Sending Consignment WhatsApp via Pinbot API")
-                                    print(json.dumps(payload, indent=2))
-                                    print("=" * 70)
-
-                                    # Send request
-                                    wa_response = requests.post(url, headers=headers, json=payload, timeout=15)
-                                    print(f"📥 WhatsApp Response: {wa_response.status_code} - {wa_response.text}")
-                                    
-                                    if wa_response.status_code in [200, 201]:
-                                        print(f"✅ WhatsApp message sent successfully to +{clean_phone}")
-                                    else:
-                                        print(f"❌ WhatsApp send failed: {wa_response.text}")
-                                        
-                                except Exception as e:
-                                    import traceback
-                                    print(f"❌ WhatsApp send error: {e}")
-                                    traceback.print_exc()
-                            
-                            # Start async thread
-                            thread = threading.Thread(target=send_whatsapp_async)
-                            thread.daemon = True
-                            thread.start()
-                            
-                        except Exception as e:
-                            print(f"⚠️ WhatsApp preparation error: {e}")
-                            # Don't fail the consignment save if WhatsApp fails
-
                 return JsonResponse(
                     {"success": True, "message": "Consignment Form saved successfully!"},
                     status=200,
@@ -532,8 +413,6 @@ def consignment_form_view(request):
 
             except Exception as e:
                 print(f"Error during consignment save transaction: {e}")
-                import traceback
-                traceback.print_exc()
                 return JsonResponse(
                     {"success": False, "message": f"An unexpected server error occurred: {str(e)}"},
                     status=500,
@@ -717,7 +596,7 @@ def add_consignee(request):
 @login_required(login_url="login")
 def get_consignees(request):
     if request.method == "GET":
-        consignees = Consignee.objects.all().values("id", "consignee_name", "date_added", "consignee_address", "contact_no")
+        consignees = Consignee.objects.all().values("id", "consignee_name", "date_added", "consignee_address")
         return JsonResponse({
             "success": True,
             "consignees": [
@@ -726,7 +605,6 @@ def get_consignees(request):
                     "consignee_name": c["consignee_name"],
                     "date_added": c["date_added"].strftime("%Y-%m-%d"),
                     "consignee_address": c["consignee_address"],
-                    "contact_no": c["contact_no"],
                 } for c in consignees
             ]
         })
@@ -907,267 +785,110 @@ def delete_location(request, location_id):
 # ──────────────────────────────────────────────────────────────
 # DASHBOARD VIEW
 # ──────────────────────────────────────────────────────────────
-import requests
-# ============================================
-# WHATSAPP CONFIGURATION
-# ⚠️ IMPORTANT: Update TEMPLATE_NAME with your actual approved template name
-# ============================================
-WHATSAPP_CONFIG = {
-    'API_KEY': '0a5ec0be-a8e2-11f0-98fc-02c8a5e042bd',
-    'PHONE_NUMBER_ID': '852055087990782',
-    'WABA_ID': '1350448273276179',
-    'FROM_NUMBER': '+919423007400',
-    'TEMPLATE_NAME': 'payment_reminder',   # ✅ Confirmed working
-    'LANGUAGE_CODE': 'hi',                 # ✅ Hindi as in Postman
-    'HEADER_IMAGE_ID': '1992752834598861', # ✅ From your successful Postman payload
-    'FOOTER_TEXT': 'Kakashree'             # ✅ From Postman
-}
-
-
-
-
-
-
-# @login_required(login_url="login")
-# def dashboard_view(request):
-#     """Main dashboard view with financial summaries"""
-#     try:
-#         selected_year = int(request.GET.get("year", date.today().year))
-#     except (ValueError, TypeError):
-#         selected_year = date.today().year
-
-#     goods_filtered = GoodsInfo.objects.filter(consignment__Booking_Date__year=selected_year)
-#     goods_all = GoodsInfo.objects.filter(consignment__Booking_Date__year__in=[2024, 2025])
-
-#     years = Consignment.objects.annotate(year=ExtractYear("Booking_Date")) \
-#         .filter(year__gte=2024).values_list("year", flat=True).distinct().order_by("-year")
-
-#     summary = goods_all.aggregate(
-#         total_advance=Sum("paid_amount"),
-#         total_fare=Sum("gi_amount"),
-#     )
-#     summary["total_advance"] = summary["total_advance"] or 0
-#     summary["total_fare"] = summary["total_fare"] or 0
-#     summary["total_balance"] = summary["total_fare"] - summary["total_advance"]
-
-#     # Monthly Chart Data
-#     monthly_data = goods_filtered.annotate(month=ExtractMonth("consignment__Booking_Date")) \
-#         .values("month").annotate(
-#             total_advance=Sum("paid_amount"),
-#             total_fare=Sum("gi_amount"),
-#         ).order_by("month")
-
-#     month_labels, advance_values, balance_values, fare_values = [], [], [], []
-#     monthly_summary = {entry["month"]: entry for entry in monthly_data}
-
-#     for i in range(1, 13):
-#         month_labels.append(month_abbr[i])
-#         entry = monthly_summary.get(i)
-#         advance = float(entry["total_advance"] or 0) if entry else 0
-#         fare = float(entry["total_fare"] or 0) if entry else 0
-#         balance = fare - advance
-#         advance_values.append(advance)
-#         balance_values.append(balance)
-#         fare_values.append(fare)
-
-#     # Truck Summary
-#     truck_totals = Consignment.objects.filter(Booking_Date__year__in=[2024, 2025]) \
-#         .values("Vehicle_No__vehicle_number") \
-#         .annotate(
-#             total_advance=Sum("Advance_Amount"),
-#             total_balance=Sum("Balance_Amount"),
-#             total_fare=Sum("Truck_Freight"),
-#             total_innam=Sum("Innam")
-#         ).order_by("Vehicle_No__vehicle_number")
-
-#     for item in truck_totals:
-#         item["vehicle_number"] = item.pop("Vehicle_No__vehicle_number")
-
-#     total_truck_advance = sum(t["total_advance"] or 0 for t in truck_totals)
-#     total_truck_balance = sum(t["total_balance"] or 0 for t in truck_totals)
-#     total_truck_fare = sum(t["total_fare"] or 0 for t in truck_totals)
-
-#     # Party Summary (From → To)
-#     grouped_data = {}
-#     goods_queryset = GoodsInfo.objects.select_related("from_party", "to_party") \
-#         .filter(consignment__Booking_Date__year__in=[2024, 2025], to_party__isnull=False)
-
-#     for item in goods_queryset:
-#         key = (item.from_party, item.to_party)
-#         grouped_data.setdefault(key, {
-#             "amount": 0, 
-#             "paid": 0, 
-#             "phone": item.to_party.contact_no if item.to_party else None
-#         })
-#         grouped_data[key]["amount"] += item.gi_amount or 0
-#         grouped_data[key]["paid"] += item.paid_amount or 0
-
-#     sorted_grouped = sorted(
-#         grouped_data.items(),
-#         key=lambda x: ((x[0][1].consignee_name or "") if x[0][1] else "").lower()
-#     )
-
-#     goods_summary_grouped = []
-#     for i, ((from_party, to_party), totals) in enumerate(sorted_grouped, 1):
-#         amount = totals["amount"]
-#         paid = totals["paid"]
-#         due = amount - paid
-#         goods_summary_grouped.append({
-#             "sr": i,
-#             "from_party": from_party,
-#             "to_party": to_party,
-#             "total_gi": amount,
-#             "total_paid": paid,
-#             "total_balance": due,
-#             "contact_no": totals.get("phone")
-#         })
-
-#     total_gi = sum(g["total_gi"] for g in goods_summary_grouped)
-#     total_paid = sum(g["total_paid"] for g in goods_summary_grouped)
-
-#     context = {
-#         "years": list(years),
-#         "selected_year": selected_year,
-#         "summary": summary,
-#         "truck_totals": truck_totals,
-#         "truck_totals_summary": {
-#             "advance": total_truck_advance,
-#             "balance": total_truck_balance,
-#             "fare": total_truck_fare,
-#         },
-#         "month_labels": json.dumps(month_labels),
-#         "advance_values": json.dumps(advance_values),
-#         "balance_values": json.dumps(balance_values),
-#         "fare_values": json.dumps(fare_values),
-#         "goods_summary_grouped": goods_summary_grouped,
-#         "goods_summary_total": {
-#             "gi_amount": total_gi,
-#             "paid_amount": total_paid,
-#             "balance_amount": total_gi - total_paid,
-#         }
-#     }
-    
-#     return render(request, 'dashboard.html', context)
-
+from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 
 @login_required(login_url="login")
 def dashboard_view(request):
-    """Main dashboard view with financial summaries"""
     try:
         selected_year = int(request.GET.get("year", date.today().year))
     except (ValueError, TypeError):
-        selected_year = date.today().year
+        selected_year = datetime.today().year
 
+    # Goods filtered by selected year
     goods_filtered = GoodsInfo.objects.filter(consignment__Booking_Date__year=selected_year)
+
+    # Goods for 2024 and 2025 (for totals)
     goods_all = GoodsInfo.objects.filter(consignment__Booking_Date__year__in=[2024, 2025])
 
-    years = Consignment.objects.annotate(year=ExtractYear("Booking_Date")) \
-        .filter(year__gte=2024).values_list("year", flat=True).distinct().order_by("-year")
-
-    summary = goods_all.aggregate(
-        total_advance=Sum("paid_amount"),
-        total_fare=Sum("gi_amount"),
+    # Years list for dropdown filter
+    years = (
+        Consignment.objects
+        .annotate(year=ExtractYear("Booking_Date"))
+        .filter(year__gte=2024)
+        .values_list("year", flat=True)
+        .distinct()
+        .order_by("-year")
     )
-    summary["total_advance"] = summary["total_advance"] or 0
-    summary["total_fare"] = summary["total_fare"] or 0
-    summary["total_balance"] = summary["total_fare"] - summary["total_advance"]
 
-    # Monthly Chart Data
-    monthly_data = goods_filtered.annotate(month=ExtractMonth("consignment__Booking_Date")) \
-        .values("month").annotate(
-            total_advance=Sum("paid_amount"),
-            total_fare=Sum("gi_amount"),
-        ).order_by("month")
+    # Overall Summary (use PaymentRecord for paid, GoodsInfo for fare)
+    total_fare = goods_all.aggregate(total=Sum("gi_amount"))["total"] or 0
+    total_paid = PaymentRecord.objects.filter(goods_info__in=goods_all).aggregate(total=Sum("paid_amount"))["total"] or 0
+    summary = {
+        "total_advance": total_paid,
+        "total_fare": total_fare,
+        "total_balance": total_fare - total_paid,
+    }
 
-    month_labels, advance_values, balance_values, fare_values = [], [], [], []
-    monthly_summary = {entry["month"]: entry for entry in monthly_data}
+    # Monthly Chart Data (paid from PaymentRecord, fare from GoodsInfo)
+    monthly_data = []
+    for month in range(1, 13):
+        goods_month = goods_filtered.filter(consignment__Booking_Date__month=month)
+        fare = goods_month.aggregate(total=Sum("gi_amount"))["total"] or 0
+        paid = PaymentRecord.objects.filter(goods_info__in=goods_month).aggregate(total=Sum("paid_amount"))["total"] or 0
+        monthly_data.append({
+            "month": month,
+            "total_advance": paid,
+            "total_fare": fare,
+        })
 
-    for i in range(1, 13):
-        month_labels.append(month_abbr[i])
-        entry = monthly_summary.get(i)
-        advance = float(entry["total_advance"] or 0) if entry else 0
-        fare = float(entry["total_fare"] or 0) if entry else 0
-        balance = fare - advance
-        advance_values.append(advance)
-        balance_values.append(balance)
-        fare_values.append(fare)
+    month_labels = [month_abbr[i] for i in range(1, 13)]
+    advance_values = [float(d["total_advance"] or 0) for d in monthly_data]
+    fare_values = [float(d["total_fare"] or 0) for d in monthly_data]
+    balance_values = [f - a for f, a in zip(fare_values, advance_values)]
 
-    # Truck Summary
-    truck_totals = Consignment.objects.filter(Booking_Date__year__in=[2024, 2025]) \
-        .values("Vehicle_No__vehicle_number") \
+    # Truck-wise Summary (unchanged)
+    truck_totals = (
+        Consignment.objects
+        .filter(Booking_Date__year__in=[2024, 2025])
+        .values("Vehicle_No__vehicle_number")
         .annotate(
+            total_innam=Sum("Innam"),
             total_advance=Sum("Advance_Amount"),
             total_balance=Sum("Balance_Amount"),
-            total_fare=Sum("Truck_Freight"),
-            total_innam=Sum("Innam")
-        ).order_by("Vehicle_No__vehicle_number")
-
+            total_fare=Sum("Truck_Freight")
+        )
+        .order_by("Vehicle_No__vehicle_number")
+    )
     for item in truck_totals:
         item["vehicle_number"] = item.pop("Vehicle_No__vehicle_number")
 
+    total_truck_innam = sum(t["total_innam"] or 0 for t in truck_totals)
     total_truck_advance = sum(t["total_advance"] or 0 for t in truck_totals)
     total_truck_balance = sum(t["total_balance"] or 0 for t in truck_totals)
     total_truck_fare = sum(t["total_fare"] or 0 for t in truck_totals)
 
-    # ✅ FIXED: Party Summary (From → To) with proper payment calculation
-    grouped_data = {}
-    goods_queryset = GoodsInfo.objects.select_related("from_party", "to_party") \
-        .filter(consignment__Booking_Date__year__in=[2024, 2025], to_party__isnull=False)
-
-    # First, collect all GoodsInfo records by party
-    for item in goods_queryset:
-        key = (item.from_party, item.to_party)
-        grouped_data.setdefault(key, {
-            "amount": Decimal('0'),  # ✅ Use Decimal instead of int
-            "paid": Decimal('0'),    # ✅ Use Decimal instead of int
-            "phone": item.to_party.contact_no if item.to_party else None,
-            "goods_ids": []  # Track GoodsInfo IDs
-        })
-        grouped_data[key]["amount"] += item.gi_amount or Decimal('0')  # ✅ Use Decimal
-        grouped_data[key]["goods_ids"].append(item.GI_ID)  # ✅ Use GI_ID instead of id
-
-    # ✅ Now calculate actual paid amounts from PaymentRecord
-    for key, data in grouped_data.items():
-        goods_ids = data["goods_ids"]
-        
-        # Get total paid from PaymentRecord for these GoodsInfo items
-        total_paid_from_records = PaymentRecord.objects.filter(
-            goods_info__GI_ID__in=goods_ids  # ✅ Use GI_ID
-        ).aggregate(total=Sum("paid_amount"))["total"] or Decimal('0')  # ✅ Use Decimal
-        
-        # Also check GoodsInfo.paid_amount as fallback
-        total_paid_from_goods = GoodsInfo.objects.filter(
-            GI_ID__in=goods_ids  # ✅ Use GI_ID
-        ).aggregate(total=Sum("paid_amount"))["total"] or Decimal('0')  # ✅ Use Decimal
-        
-        # Use the maximum of both to ensure we capture all payments
-        data["paid"] = max(total_paid_from_records, total_paid_from_goods)  # ✅ Keep as Decimal
-        
-        # Remove goods_ids from final data (not needed in template)
-        del data["goods_ids"]
-
-    sorted_grouped = sorted(
-        grouped_data.items(),
-        key=lambda x: ((x[0][1].consignee_name or "") if x[0][1] else "").lower()
+    # Party-wise Summary (paid from PaymentRecord, fare from GoodsInfo)
+    goods_summary_grouped = (
+        GoodsInfo.objects
+        .filter(
+            consignment__Booking_Date__year__in=[2024, 2025],
+            to_party__isnull=False
+        )
+        .values(
+            "from_party_id",
+            "from_party__consignee_name",
+            "to_party_id",
+            "to_party__consignee_name"
+        )
+        .annotate(
+            total_gi=Sum("gi_amount"),
+        )
+        .order_by("to_party__consignee_name")
     )
 
-    goods_summary_grouped = []
-    for i, ((from_party, to_party), totals) in enumerate(sorted_grouped, 1):
-        amount = totals["amount"]
-        paid = totals["paid"]
-        due = amount - paid
-        goods_summary_grouped.append({
-            "sr": i,
-            "from_party": from_party,
-            "to_party": to_party,
-            "total_gi": amount,
-            "total_paid": paid,
-            "total_balance": due,
-            "contact_no": totals.get("phone")
-        })
+    # Add paid and balance for each party group
+    for group in goods_summary_grouped:
+        party_goods = GoodsInfo.objects.filter(
+            from_party_id=group["from_party_id"],
+            to_party_id=group["to_party_id"],
+            consignment__Booking_Date__year__in=[2024, 2025]
+        )
+        paid = PaymentRecord.objects.filter(goods_info__in=party_goods).aggregate(total=Sum("paid_amount"))["total"] or 0
+        group["total_paid"] = paid
+        group["total_balance"] = (group["total_gi"] or 0) - paid
 
-    total_gi = sum(g["total_gi"] for g in goods_summary_grouped)
-    total_paid = sum(g["total_paid"] for g in goods_summary_grouped)
+    total_gi = sum((g["total_gi"] or 0) for g in goods_summary_grouped)
+    total_paid = sum((g["total_paid"] or 0) for g in goods_summary_grouped)
 
     context = {
         "years": list(years),
@@ -1175,6 +896,7 @@ def dashboard_view(request):
         "summary": summary,
         "truck_totals": truck_totals,
         "truck_totals_summary": {
+            "innam": total_truck_innam,
             "advance": total_truck_advance,
             "balance": total_truck_balance,
             "fare": total_truck_fare,
@@ -1190,416 +912,17 @@ def dashboard_view(request):
             "balance_amount": total_gi - total_paid,
         }
     }
-    
-    return render(request, 'dashboard.html', context)
 
-# ──────────────────────────────────────────────────────────────
-# On Server daashboard view
-# ──────────────────────────────────────────────────────────────
-# @login_required(login_url="login")
-# def dashboard_view(request):
-#     """Main dashboard view with financial summaries"""
-#     try:
-#         selected_year = int(request.GET.get("year", date.today().year))
-#     except (ValueError, TypeError):
-#         selected_year = date.today().year
-
-#     goods_filtered = GoodsInfo.objects.filter(consignment__Booking_Date__year=selected_year)
-#     goods_all = GoodsInfo.objects.filter(consignment__Booking_Date__year__in=[2024, 2025])
-
-#     years = Consignment.objects.annotate(year=ExtractYear("Booking_Date")) \
-#         .filter(year__gte=2024).values_list("year", flat=True).distinct().order_by("-year")
-
-#     summary = goods_all.aggregate(
-#         total_advance=Sum("paid_amount"),
-#         total_fare=Sum("gi_amount"),
-#     )
-#     summary["total_advance"] = summary["total_advance"] or 0
-#     summary["total_fare"] = summary["total_fare"] or 0
-#     summary["total_balance"] = summary["total_fare"] - summary["total_advance"]
-
-#     # Monthly Chart Data
-#     monthly_data = goods_filtered.annotate(month=ExtractMonth("consignment__Booking_Date")) \
-#         .values("month").annotate(
-#             total_advance=Sum("paid_amount"),
-#             total_fare=Sum("gi_amount"),
-#         ).order_by("month")
-
-#     month_labels, advance_values, balance_values, fare_values = [], [], [], []
-#     monthly_summary = {entry["month"]: entry for entry in monthly_data}
-
-#     for i in range(1, 13):
-#         month_labels.append(month_abbr[i])
-#         entry = monthly_summary.get(i)
-#         advance = float(entry["total_advance"] or 0) if entry else 0
-#         fare = float(entry["total_fare"] or 0) if entry else 0
-#         balance = fare - advance
-#         advance_values.append(advance)
-#         balance_values.append(balance)
-#         fare_values.append(fare)
-
-#     # Truck Summary
-#     truck_totals = Consignment.objects.filter(Booking_Date__year__in=[2024, 2025]) \
-#         .values("Vehicle_No__vehicle_number") \
-#         .annotate(
-#             total_advance=Sum("Advance_Amount"),
-#             total_balance=Sum("Balance_Amount"),
-#             total_fare=Sum("Truck_Freight"),
-#             total_innam=Sum("Innam")
-#         ).order_by("Vehicle_No__vehicle_number")
-
-#     for item in truck_totals:
-#         item["vehicle_number"] = item.pop("Vehicle_No__vehicle_number")
-
-#     total_truck_advance = sum(t["total_advance"] or 0 for t in truck_totals)
-#     total_truck_balance = sum(t["total_balance"] or 0 for t in truck_totals)
-#     total_truck_fare = sum(t["total_fare"] or 0 for t in truck_totals)
-
-#     # ✅ FIXED: Party Summary (From → To) with proper payment calculation
-#     grouped_data = {}
-#     goods_queryset = GoodsInfo.objects.select_related("from_party", "to_party") \
-#         .filter(consignment__Booking_Date__year__in=[2024, 2025], to_party__isnull=False) \
-#         .order_by('created_at')  # ✅ Order by creation time for chronological processing
-
-#     # First pass: Collect all goods and calculate total amounts
-#     for item in goods_queryset:
-#         key = (item.from_party, item.to_party)
-#         if key not in grouped_data:
-#             grouped_data[key] = {
-#                 "amount": Decimal('0'),
-#                 "paid": Decimal('0'),
-#                 "phone": item.to_party.contact_no if item.to_party else None,
-#                 "goods_items": []
-#             }
-#         grouped_data[key]["amount"] += item.gi_amount or Decimal('0')
-#         grouped_data[key]["goods_items"].append(item)
-
-#     # ✅ Second pass: Calculate payments chronologically
-#     for key, data in grouped_data.items():
-#         total_amount = data["amount"]
-        
-#         # Get all payment records for this party combination (chronologically)
-#         all_payments = PaymentRecord.objects.filter(
-#             goods_info__in=data["goods_items"]
-#         ).order_by('payment_date', 'created_at')
-        
-#         # Sum up all payments
-#         total_paid = all_payments.aggregate(
-#             total=Sum("paid_amount")
-#         )["total"] or Decimal('0')
-        
-#         # ✅ Ensure paid never exceeds amount (this prevents negative balance)
-#         data["paid"] = min(total_paid, total_amount)
-        
-#         # Clean up temporary data
-#         del data["goods_items"]
-
-#     sorted_grouped = sorted(
-#         grouped_data.items(),
-#         key=lambda x: ((x[0][1].consignee_name or "") if x[0][1] else "").lower()
-#     )
-
-#     goods_summary_grouped = []
-#     for i, ((from_party, to_party), totals) in enumerate(sorted_grouped, 1):
-#         amount = totals["amount"]
-#         paid = totals["paid"]
-#         due = max(amount - paid, Decimal('0'))  # ✅ Ensure balance is never negative
-        
-#         goods_summary_grouped.append({
-#             "sr": i,
-#             "from_party": from_party,
-#             "to_party": to_party,
-#             "total_gi": amount,
-#             "total_paid": paid,
-#             "total_balance": due,
-#             "contact_no": totals.get("phone")
-#         })
-
-#     total_gi = sum(g["total_gi"] for g in goods_summary_grouped)
-#     total_paid = sum(g["total_paid"] for g in goods_summary_grouped)
-
-#     context = {
-#         "years": list(years),
-#         "selected_year": selected_year,
-#         "summary": summary,
-#         "truck_totals": truck_totals,
-#         "truck_totals_summary": {
-#             "advance": total_truck_advance,
-#             "balance": total_truck_balance,
-#             "fare": total_truck_fare,
-#         },
-#         "month_labels": json.dumps(month_labels),
-#         "advance_values": json.dumps(advance_values),
-#         "balance_values": json.dumps(balance_values),
-#         "fare_values": json.dumps(fare_values),
-#         "goods_summary_grouped": goods_summary_grouped,
-#         "goods_summary_total": {
-#             "gi_amount": total_gi,
-#             "paid_amount": total_paid,
-#             "balance_amount": max(total_gi - total_paid, Decimal('0')),  # ✅ Ensure never negative
-#         }
-#     }
-    
-#     return render(request, 'dashboard.html', context)
-
-
-
-
-# ──────────────────────────────────────────────────────────────
-# Whatsapp Api Integration View
-# ──────────────────────────────────────────────────────────────
-
-@csrf_exempt
-@require_POST
-def send_whatsapp_message(request):
-    """Send WhatsApp message via Pinbot API"""
-    try:
-        # Parse request data
-        data = json.loads(request.body)
-        party_name = data.get('party_name', 'Customer')
-        phone_number = data.get('phone_number')
-        total_balance = data.get('total_balance', 0)
-
-        # Validate phone number
-        if not phone_number:
-            return JsonResponse({
-                'success': False,
-                'error': 'Phone number missing for this party. Please add contact number in party master.'
-            }, status=400)
-
-        # Clean and format phone
-        clean_phone = phone_number.replace('+', '').replace(' ', '').replace('-', '').strip()
-        if not clean_phone.startswith('91'):
-            clean_phone = '91' + clean_phone
-        if len(clean_phone) != 12 or not clean_phone.isdigit():
-            return JsonResponse({'success': False, 'error': f'Invalid phone number: {phone_number}'}, status=400)
-
-        # Load config
-        API_KEY = WHATSAPP_CONFIG['API_KEY']
-        PHONE_NUMBER_ID = WHATSAPP_CONFIG['PHONE_NUMBER_ID']
-        TEMPLATE_NAME = WHATSAPP_CONFIG['TEMPLATE_NAME']
-        LANGUAGE_CODE = WHATSAPP_CONFIG['LANGUAGE_CODE']
-        HEADER_IMAGE_ID = WHATSAPP_CONFIG['HEADER_IMAGE_ID']
-        FOOTER_TEXT = WHATSAPP_CONFIG['FOOTER_TEXT']
-
-        url = f'https://partnersv1.pinbot.ai/v3/{PHONE_NUMBER_ID}/messages'
-        headers = {'Content-Type': 'application/json', 'apikey': API_KEY}
-        formatted_balance = f"₹{float(total_balance):,.2f}"
-
-        # ✅ Exact payload from your working Postman test
-        payload = {
-            "messaging_product": "whatsapp",
-            "to": clean_phone,
-            "type": "template",
-            "template": {
-                "name": TEMPLATE_NAME,
-                "language": {"code": LANGUAGE_CODE},
-                "components": [
-                    {
-                        "type": "header",
-                        "parameters": [
-                            {
-                                "type": "image",
-                                "image": {"id": HEADER_IMAGE_ID}
-                            }
-                        ]
-                    },
-                    {
-                        "type": "body",
-                        "parameters": [
-                            {"type": "text", "text": str(party_name)},
-                            {"type": "text", "text": str(formatted_balance)}
-                        ]
-                    },
-                    {
-                        "type": "footer",
-                        "parameters": [
-                            {"type": "text", "text": FOOTER_TEXT}
-                        ]
-                    }
-                ]
-            }
-        }
-
-        # Debug info
-        print("="*70)
-        print("📤 Sending WhatsApp message via Pinbot API")
-        print(json.dumps(payload, indent=2))
-        print("="*70)
-
-        # Send request
-        response = requests.post(url, headers=headers, json=payload, timeout=15)
-        print(f"📥 Response: {response.status_code} - {response.text}")
-
-        # Handle success
-        if response.status_code in [200, 201]:
-            return JsonResponse({
-                "success": True,
-                "message": f" WhatsApp message sent successfully to +{clean_phone}",
-                "response": response.json()
-            })
-
-        # Handle API errors
-        else:
-            try:
-                err = response.json()
-            except:
-                err = {"error": response.text}
-            return JsonResponse({
-                "success": False,
-                "status_code": response.status_code,
-                "error": err
-            }, status=response.status_code)
-
-    except json.JSONDecodeError as e:
-        return JsonResponse({'success': False, 'error': f'Invalid JSON: {e}'}, status=400)
-    except Exception as e:
-        import traceback; traceback.print_exc()
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-# ──────────────────────────────────────────────────────────────
-# Whatsapp Api Integration View  for Consignment form
-# ──────────────────────────────────────────────────────────────
-# In views.py, add this new function after your existing send_whatsapp_message function
-
-
-@csrf_exempt
-def send_consignment_whatsapp(request):
-    """Send WhatsApp message with consignment details"""
-    if request.method != "POST":
-        return JsonResponse({"error": "Invalid request method"}, status=405)
-
-    try:
-        data = json.loads(request.body)
-        
-        # Extract consignment data
-        phone_number = data.get('phone_number')
-        consignee_name = data.get('consignee_name', '')
-        date = data.get('date', '')
-        party_name = data.get('party_name', '')
-        unit = data.get('unit', '')
-        quantity = data.get('quantity', '0')
-        rate = data.get('rate', '0')
-        amount = data.get('amount', '0')
-        from_party = data.get('from_party', '')
-        to_party = data.get('to_party', '')
-
-        # Validate phone number
-        if not phone_number:
-            return JsonResponse({
-                'success': False,
-                'error': 'Phone number is required'
-            }, status=400)
-
-        # Clean and format phone number
-        clean_phone = phone_number.replace('+', '').replace(' ', '').replace('-', '').strip()
-        if not clean_phone.startswith('91'):
-            clean_phone = '91' + clean_phone
-        
-        if len(clean_phone) != 12 or not clean_phone.isdigit():
-            return JsonResponse({
-                'success': False,
-                'error': f'Invalid phone number format: {phone_number}'
-            }, status=400)
-
-        # WhatsApp API configuration
-        API_KEY = '0a5ec0be-a8e2-11f0-98fc-02c8a5e042bd'
-        PHONE_NUMBER_ID = '852055087990782'
-        
-        url = f'https://partnersv1.pinbot.ai/v3/{PHONE_NUMBER_ID}/messages'
-        headers = {
-            'Content-Type': 'application/json',
-            'apikey': API_KEY
-        }
-
-        # Prepare payload matching your working API test
-        payload = {
-            "messaging_product": "whatsapp",
-            "recipient_type": "individual",
-            "to": clean_phone,
-            "type": "template",
-            "template": {
-                "name": "bilty",
-                "language": {
-                    "code": "en"
-                },
-                "components": [
-                    {
-                        "type": "header",
-                        "parameters": [
-                            {
-                                "type": "IMAGE",
-                                "image": {
-                                    "id": "1234891225354261"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "type": "body",
-                        "parameters": [
-                            {"type": "text", "text": str(consignee_name)},
-                            {"type": "text", "text": str(date)},
-                            {"type": "text", "text": str(party_name)},
-                            {"type": "text", "text": str(unit)},
-                            {"type": "text", "text": str(quantity)},
-                            {"type": "text", "text": str(rate)},
-                            {"type": "text", "text": str(amount)},
-                            {"type": "text", "text": str(from_party)},
-                            {"type": "text", "text": str(to_party)}
-                        ]
-                    }
-                ]
-            }
-        }
-
-        print("=" * 70)
-        print("📤 Sending Consignment WhatsApp via Pinbot API")
-        print(json.dumps(payload, indent=2))
-        print("=" * 70)
-
-        # Send request
-        response = requests.post(url, headers=headers, json=payload, timeout=15)
-        print(f"📥 Response: {response.status_code} - {response.text}")
-
-        if response.status_code in [200, 201]:
-            return JsonResponse({
-                "success": True,
-                "message": f"✅ WhatsApp message sent successfully to +{clean_phone}",
-                "response": response.json()
-            })
-        else:
-            try:
-                err = response.json()
-            except:
-                err = {"error": response.text}
-            return JsonResponse({
-                "success": False,
-                "status_code": response.status_code,
-                "error": err
-            }, status=response.status_code)
-
-    except json.JSONDecodeError as e:
-        return JsonResponse({'success': False, 'error': f'Invalid JSON: {e}'}, status=400)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-
-
-
-
+    return render(request, "dashboard.html", context)
 
 # ──────────────────────────────────────────────────────────────
 #  Party-wise Summary PDF View
 # ─────────────────────────────────────────────────────────────
 @login_required(login_url="login")
 def partywise_summary_pdf(request, year):
-    # ─── Get Query Parameter ──────────────────────────
     party_query = request.GET.get("party", "").strip().lower()
 
-    # ─── PDF Setup ─────────────────────────────────────
+    # ─── PDF Setup ──────────────────────────
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = f"attachment; filename=PartyWiseSummary_{year}.pdf"
 
@@ -1613,7 +936,7 @@ def partywise_summary_pdf(request, year):
     styles = getSampleStyleSheet()
     elements = []
 
-    # ─── Header ──────────────────────────────────────
+    # ─── Header ─────────────────────────────
     company_style = styles['Title'].clone('CompanyStyle')
     company_style.fontSize = 16
     company_style.textColor = colors.HexColor('#1a365d')
@@ -1662,44 +985,62 @@ def partywise_summary_pdf(request, year):
     elements.append(header_table)
     elements.append(Spacer(1, 15))
 
-    # ─── Title ────────────────────────────────────────
+    # ─── Title ──────────────────────────────
     title_style = styles['Title'].clone('TitleStyle')
     title_style.fontSize = 14
     title_style.textColor = colors.HexColor('#6a1b9a')
     title_style.alignment = TA_CENTER
 
-    # ✅ Always display plain title (no filtering text)
     title_text = f"<b>Party-wise Summary - {year}</b>"
     elements.append(Paragraph(title_text, title_style))
     elements.append(Spacer(1, 12))
 
-    # ─── Data Aggregation ─────────────────────────────
+    # ─── Data Aggregation ───────────────────
     goods_queryset = GoodsInfo.objects.select_related("from_party", "to_party") \
         .filter(consignment__Booking_Date__year=year, to_party__isnull=False)
 
-    # Apply filter if party is searched
     if party_query:
         goods_queryset = goods_queryset.filter(
             Q(from_party__consignee_name__icontains=party_query) |
             Q(to_party__consignee_name__icontains=party_query)
         )
 
+    # Use PaymentRecord for paid calculation (like dashboard)
     grouped_data = {}
     for item in goods_queryset:
         key = (item.from_party, item.to_party)
-        grouped_data.setdefault(key, {"amount": 0, "paid": 0})
+        if key not in grouped_data:
+            grouped_data[key] = {"amount": 0, "paid": 0}
         grouped_data[key]["amount"] += item.gi_amount or 0
-        grouped_data[key]["paid"] += item.paid_amount or 0
+
+    # Calculate paid using PaymentRecord for each party group
+    for key in grouped_data:
+        from_party, to_party = key
+        party_goods = GoodsInfo.objects.filter(
+            from_party=from_party,
+            to_party=to_party,
+            consignment__Booking_Date__year=year
+        )
+        paid = PaymentRecord.objects.filter(goods_info__in=party_goods).aggregate(total=Sum("paid_amount"))["total"] or 0
+        grouped_data[key]["paid"] = paid
+
+    # ✅ Sort alphabetically if no search filter
+    sorted_items = list(grouped_data.items())
+    if not party_query:
+        sorted_items.sort(key=lambda x: (
+            x[0][0].consignee_name.lower() if x[0][0] else "",
+            x[0][1].consignee_name.lower() if x[0][1] else ""
+        ))
 
     # Table Header
     data = [["Sr No", "From Party", "To Party", "Amount", "Paid", "Balance"]]
 
-    # Totals
-    total_amount = 0
-    total_paid = 0
-    total_balance = 0
+    total_amount = total_paid = total_balance = 0
 
-    for i, ((from_party, to_party), totals) in enumerate(grouped_data.items(), 1):
+    def fmt(num):
+        return f"{num:,.2f}".rstrip('0').rstrip('.') if num % 1 else f"{int(num):,}"
+
+    for i, ((from_party, to_party), totals) in enumerate(sorted_items, 1):
         amount = totals["amount"]
         paid = totals["paid"]
         balance = amount - paid
@@ -1711,21 +1052,21 @@ def partywise_summary_pdf(request, year):
             i,
             from_party.consignee_name if from_party else "—",
             to_party.consignee_name if to_party else "—",
-            f"{amount:,.2f}",
-            f"{paid:,.2f}",
-            f"{balance:,.2f}"
+            fmt(amount),
+            fmt(paid),
+            fmt(balance)
         ])
 
     # Totals Row
     data.append([
         "", "", "Total",
-        f"{total_amount:,.2f}",
-        f"{total_paid:,.2f}",
-        f"{total_balance:,.2f}"
+        fmt(total_amount),
+        fmt(total_paid),
+        fmt(total_balance)
     ])
 
-    # ─── Table Rendering ──────────────────────────────
-    table = Table(data, repeatRows=1, colWidths=[2.5*cm, 6*cm, 6*cm, 4*cm, 4*cm, 4*cm])
+    # ─── Table Rendering ───────────────────
+    table = Table(data, repeatRows=1, colWidths=[2.5 * cm, 6*cm, 6*cm, 4*cm, 4*cm, 4*cm])
     table.setStyle(TableStyle([
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),
@@ -1738,11 +1079,10 @@ def partywise_summary_pdf(request, year):
         ('BACKGROUND', (-6, -1), (-1, -1), colors.lightgrey),
         ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
     ]))
-
     elements.append(table)
     elements.append(Spacer(1, 20))
 
-    # ─── Footer ───────────────────────────────────────
+    # ─── Footer ────────────────────────────
     footer_text = f"Generated on: {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
     footer_style = styles['Normal'].clone('FooterStyle')
     footer_style.fontSize = 8
@@ -1750,36 +1090,32 @@ def partywise_summary_pdf(request, year):
     footer_style.alignment = TA_CENTER
     elements.append(Paragraph(footer_text, footer_style))
 
-    # ─── Build PDF ────────────────────────────────────
     doc.build(elements)
     return response
-
 # ─────────────────────────────────────────────────────────────
 # Party-wise Summary Excel View
 # ────────────────────────────────────────────────────────────
 @login_required(login_url="login")
 def partywise_summary_excel(request, year):
-    # --- Initialize Workbook ---
     wb = Workbook()
     ws = wb.active
     ws.title = f"Party Summary {year}"
 
-    # --- Header: Company Info ---
+    # --- Header and Logo ---
     ws.merge_cells('A1:F1')
-    ws.merge_cells('A2:F2')
-    ws.merge_cells('A3:F3')
-    ws.merge_cells('A4:F4')
-
     ws['A1'] = "DHANLAXMI AGRO ACTIVITIES & TRANSLOGISTICS"
+    ws['A1'].font = Font(bold=True, size=12)
+    ws['A1'].alignment = Alignment(horizontal='center')
+    ws.merge_cells('A2:F2')
     ws['A2'] = "IMPORT | EXPORT | FRUIT PROCESSING AGRO MARKETING & TRADING"
+    ws['A2'].alignment = Alignment(horizontal='center')
+    ws.merge_cells('A3:F3')
     ws['A3'] = "18, 3rd Floor, Dharmaveer Raje Sambhaji Vyapari Sankul, Ugaon, Tal-Niphad, Dist-Nashik - 422304"
+    ws['A3'].alignment = Alignment(horizontal='center')
+    ws.merge_cells('A4:F4')
     ws['A4'] = "Mob: +91 9830357491 | Email: kakashri7314@gmail.com"
+    ws['A4'].alignment = Alignment(horizontal='center')
 
-    for i in range(1, 5):
-        ws[f"A{i}"].font = Font(bold=(i == 1), size=11)
-        ws[f"A{i}"].alignment = Alignment(horizontal='center')
-
-    # --- Add Logo if available ---
     try:
         logo_paths = [
             os.path.join(settings.BASE_DIR, 'accounts', 'static', 'images', 'logo.png'),
@@ -1808,7 +1144,6 @@ def partywise_summary_excel(request, year):
     # --- Table Headers ---
     headers = ["Sr. No", "From Party", "To Party", "Amount (₹)", "Paid (₹)", "Balance (₹)"]
     ws.append(headers)
-
     header_fill = PatternFill(start_color='B3E5FC', end_color='B3E5FC', fill_type='solid')
     for cell in ws[ws.max_row]:
         cell.font = Font(bold=True)
@@ -1817,46 +1152,79 @@ def partywise_summary_excel(request, year):
 
     # --- Filter & Prepare Data ---
     party_query = request.GET.get("party", "").strip().lower()
-    goods_filtered = GoodsInfo.objects.filter(consignment__Booking_Date__year=year)
+    goods_queryset = GoodsInfo.objects.select_related("from_party", "to_party") \
+        .filter(consignment__Booking_Date__year=year, to_party__isnull=False)
 
+    # --- Search Logic: Exact match if found, else partial ---
     if party_query:
-        goods_filtered = goods_filtered.filter(to_party__consignee_name__icontains=party_query)
+        all_party_names = set()
+        for g in goods_queryset:
+            if g.from_party and g.from_party.consignee_name:
+                all_party_names.add(g.from_party.consignee_name.lower())
+            if g.to_party and g.to_party.consignee_name:
+                all_party_names.add(g.to_party.consignee_name.lower())
 
-    summary_data = defaultdict(lambda: {"gi": 0, "paid": 0, "balance": 0})
+        if party_query in all_party_names:
+            goods_queryset = goods_queryset.filter(
+                Q(from_party__consignee_name__iexact=party_query) |
+                Q(to_party__consignee_name__iexact=party_query)
+            )
+        else:
+            goods_queryset = goods_queryset.filter(
+                Q(from_party__consignee_name__icontains=party_query) |
+                Q(to_party__consignee_name__icontains=party_query)
+            )
 
-    for gi in goods_filtered.select_related("from_party", "to_party"):
-        key = (
-            gi.from_party.consignee_name if gi.from_party else "",
-            gi.to_party.consignee_name if gi.to_party else "",
+    # --- Group Data ---
+    grouped_data = {}
+    for item in goods_queryset:
+        key = (item.from_party, item.to_party)
+        if key not in grouped_data:
+            grouped_data[key] = {"amount": 0, "paid": 0}
+        grouped_data[key]["amount"] += item.gi_amount or 0
+
+    # --- Calculate Paid using PaymentRecord ---
+    for key in grouped_data:
+        from_party, to_party = key
+        party_goods = GoodsInfo.objects.filter(
+            from_party=from_party,
+            to_party=to_party,
+            consignment__Booking_Date__year=year
         )
+        paid = PaymentRecord.objects.filter(goods_info__in=party_goods).aggregate(total=Sum("paid_amount"))["total"] or 0
+        grouped_data[key]["paid"] = paid
 
-        gi_amt = gi.gi_amount or 0
-        paid_amt = gi.paid_amount or 0
-        balance_amt = gi_amt - paid_amt
-
-        summary_data[key]["gi"] += gi_amt
-        summary_data[key]["paid"] += paid_amt
-        summary_data[key]["balance"] += balance_amt
+    # --- Sort alphabetically if no search filter ---
+    sorted_items = list(grouped_data.items())
+    if not party_query:
+        sorted_items.sort(key=lambda x: (
+            x[0][0].consignee_name.lower() if x[0][0] else "",
+            x[0][1].consignee_name.lower() if x[0][1] else ""
+        ))
 
     # --- Populate Rows ---
-    for idx, ((from_party, to_party), data) in enumerate(summary_data.items(), 1):
+    total_amount = total_paid = total_balance = 0
+    for idx, ((from_party, to_party), totals) in enumerate(sorted_items, 1):
+        amount = totals["amount"]
+        paid = totals["paid"]
+        balance = amount - paid
+        total_amount += amount
+        total_paid += paid
+        total_balance += balance
+
         row = [
             idx,
-            from_party,
-            to_party,
-            round(data["gi"], 2),
-            round(data["paid"], 2),
-            round(data["balance"], 2),
+            from_party.consignee_name if from_party else "—",
+            to_party.consignee_name if to_party else "—",
+            round(amount, 2),
+            round(paid, 2),
+            round(balance, 2),
         ]
         ws.append(row)
 
     # --- Grand Total Row ---
     ws.append([])  # Spacer Row
-    total_gi = sum(d["gi"] for d in summary_data.values())
-    total_paid = sum(d["paid"] for d in summary_data.values())
-    total_balance = sum(d["balance"] for d in summary_data.values())
-
-    total_row = ["", "", "Grand Total", round(total_gi, 2), round(total_paid, 2), round(total_balance, 2)]
+    total_row = ["", "", "Grand Total", round(total_amount, 2), round(total_paid, 2), round(total_balance, 2)]
     ws.append(total_row)
     for i, cell in enumerate(ws[ws.max_row], start=1):
         cell.font = Font(bold=True)
@@ -2007,6 +1375,59 @@ def delete_vehicle(request, vehicle_id):
 # ──────────────────────────────────────────────────────────────
 # party VIEW
 # ──────────────────────────────────────────────────────────────
+# from itertools import chain
+# from operator import attrgetter
+
+# def party_list_view(request):
+#     consignees = list(Consignee.objects.all())
+#     consigners = list(Consigner.objects.all())
+
+#     # Tag party type and unify fields
+#     for c in consignees:
+#         c.party_type = 'consignee'
+#         c.party_name = c.consignee_name
+#         c.party_address = c.consignee_address
+
+#     for c in consigners:
+#         c.party_type = 'consigner'
+#         c.party_name = c.consigner_name
+#         c.party_address = c.consigner_address
+#         c.contact_no = None
+
+#     combined_parties = sorted(
+#         chain(consignees, consigners),
+#         key=attrgetter("date_added"),
+#         reverse=True,
+#     )
+
+#     paginator = Paginator(combined_parties, 25)
+#     page_number = int(request.GET.get("page", 1))
+#     page_obj = paginator.get_page(page_number)
+
+#     total_pages = paginator.num_pages
+#     max_pages_display = 4  # Show 4 pages at a time
+
+#     start_page = max(1, page_number - (max_pages_display // 2))
+#     end_page = min(total_pages, start_page + max_pages_display - 1)
+
+#     # Adjust start_page if we're near the end
+#     if end_page - start_page < max_pages_display - 1:
+#         start_page = max(1, end_page - max_pages_display + 1)
+
+#     page_range = range(start_page, end_page + 1)
+
+#     return render(
+#         request,
+#         "party_list.html",
+#         {
+#             "page_obj": page_obj,
+#             "current_page": page_number,
+#             "page_range": page_range,
+#             "start_page": start_page,
+#             "end_page": end_page,
+#             "total_pages": total_pages,
+#         },
+#     )
 from itertools import chain
 from operator import attrgetter
 
@@ -2032,32 +1453,11 @@ def party_list_view(request):
         reverse=True,
     )
 
-    paginator = Paginator(combined_parties, 25)
-    page_number = int(request.GET.get("page", 1))
-    page_obj = paginator.get_page(page_number)
-
-    total_pages = paginator.num_pages
-    max_pages_display = 4  # Show 4 pages at a time
-
-    start_page = max(1, page_number - (max_pages_display // 2))
-    end_page = min(total_pages, start_page + max_pages_display - 1)
-
-    # Adjust start_page if we're near the end
-    if end_page - start_page < max_pages_display - 1:
-        start_page = max(1, end_page - max_pages_display + 1)
-
-    page_range = range(start_page, end_page + 1)
-
     return render(
         request,
         "party_list.html",
         {
-            "page_obj": page_obj,
-            "current_page": page_number,
-            "page_range": page_range,
-            "start_page": start_page,
-            "end_page": end_page,
-            "total_pages": total_pages,
+            "parties": combined_parties
         },
     )
 
@@ -2152,7 +1552,7 @@ def cn_data_view(request):
         })
 
     # ✅ 6. Pagination
-    paginator = Paginator(formatted_consignments, 10)
+    paginator = Paginator(formatted_consignments,30)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
@@ -2184,99 +1584,65 @@ def cn_data_view(request):
 
 @login_required(login_url="login")
 def export_consignments_excel(request):
-    # Lookup dictionaries
-    vehicles_lookup = {str(v.id): str(v.vehicle_number) for v in Vehicle.objects.all()}
-    consignees_lookup = {str(c.id): str(c.consignee_name) for c in Consignee.objects.all()}
-    consigners_lookup = {str(cs.id): str(cs.consigner_name) for cs in Consigner.objects.all()}
-    locations_lookup = {str(l.id): str(l.location_name) for l in Location.objects.all()}
-
-    consignments = Consignment.objects.all().order_by("-Booking_Date")
-
-    wb = Workbook()
+    wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Consignments"
 
-    # --- Header: Company Info ---
-    ws.merge_cells('A1:M1')
-    ws.merge_cells('A2:M2')
-    ws.merge_cells('A3:M3')
-    ws.merge_cells('A4:M4')
-
-    ws['A1'] = "DHANLAXMI AGRO ACTIVITIES & TRANSLOGISTICS"
-    ws['A2'] = "IMPORT | EXPORT | FRUIT PROCESSING AGRO MARKETING & TRADING"
-    ws['A3'] = "18, 3rd Floor, Dharmaveer Raje Sambhaji Vyapari Sankul, Ugaon, Tal-Niphad, Dist-Nashik - 422304"
-    ws['A4'] = "Mob: +91 9830357491 | Email: kakashri7314@gmail.com"
-
-    for i in range(1, 5):
-        ws[f"A{i}"].font = Font(bold=(i == 1), size=11)
-        ws[f"A{i}"].alignment = Alignment(horizontal='center')
-
-    # --- Logo ---
-    try:
-        logo_paths = [
-            os.path.join(settings.BASE_DIR, 'accounts', 'static', 'images', 'logo.png'),
-            os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png'),
-            os.path.join(settings.BASE_DIR, 'media', 'logo.png'),
-        ]
-        for path in logo_paths:
-            if os.path.exists(path):
-                img = XLImage(path)
-                img.width = 100
-                img.height = 75
-                ws.add_image(img, 'M1')
-                break
-    except Exception:
-        pass
-
-    ws.append([])  # spacer
-
-    # --- Title Row ---
-    ws.merge_cells('A6:M6')
-    ws['A6'] = "Consignment Report"
-    ws['A6'].font = Font(bold=True, size=14, color="0D47A1")
-    ws['A6'].alignment = Alignment(horizontal='center')
-    ws.append([])
-
-    # --- Table Headers ---
     headers = [
         "S.No",
         "CN No",
         "Vehicle No",
         "Consignee",
+        "Consigner",
         "From Location",
         "To Location",
+        "Booking Date",
         "Loading Date",
         "Unloading Date",
+        "Truck Freight",
+        "Advance Amount",
+        "Balance Amount",
     ]
     ws.append(headers)
 
-    # Style header row
-    header_fill = PatternFill(start_color='B3E5FC', end_color='B3E5FC', fill_type='solid')
-    for cell in ws[ws.max_row]:
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(horizontal='center')
-        cell.fill = header_fill
+    # Convert all values to plain strings to avoid ValueError
+    vehicles_lookup = {str(v.id): str(v.vehicle_number) for v in Vehicle.objects.all()}
+    consignees_lookup = {
+        str(c.id): str(c.consignee_name) for c in Consignee.objects.all()
+    }
+    consigners_lookup = {
+        str(cs.id): str(cs.consigner_name) for cs in Consigner.objects.all()
+    }
+    locations_lookup = {str(l.id): str(l.location_name) for l in Location.objects.all()}
 
-    # --- Table Data ---
+    consignments = Consignment.objects.all().order_by("-Booking_Date")
+
     for idx, c in enumerate(consignments, start=1):
-        row = [
-            idx,
-            str(c.Cn_No),
-            vehicles_lookup.get(str(c.Vehicle_No), str(c.Vehicle_No)),
-            consignees_lookup.get(str(c.consignee), str(c.consignee)),
-            locations_lookup.get(str(c.from_location), str(c.from_location)),
-            locations_lookup.get(str(c.To_Location), str(c.To_Location)),
-            str(c.Loading_Date) if c.Loading_Date else "",
-            str(c.Unloading_Date) if c.Unloading_Date else "",
-        ]
-        ws.append(row)
+        ws.append(
+            [
+                str(idx),
+                str(c.Cn_No),
+                vehicles_lookup.get(c.Vehicle_No, str(c.Vehicle_No)),
+                consignees_lookup.get(c.consignee, str(c.consignee)),
+                consigners_lookup.get(c.consigner, str(c.consigner)),
+                locations_lookup.get(c.from_location, str(c.from_location)),
+                locations_lookup.get(c.To_Location, str(c.To_Location)),
+                str(c.Booking_Date),
+                str(c.Loading_Date),
+                str(c.Unloading_Date),
+                str(c.Truck_Freight),
+                str(c.Advance_Amount),
+                str(c.Balance_Amount),
+            ]
+        )
 
-    # --- Auto-fit Columns ---
-    for col in ws.columns:
-        max_len = max(len(str(cell.value or "")) for cell in col)
-        ws.column_dimensions[get_column_letter(col[0].column)].width = min(max_len + 2, 25)
+    # Auto-size columns
+    for column_cells in ws.columns:
+        length = max(len(str(cell.value)) for cell in column_cells)
+        ws.column_dimensions[get_column_letter(column_cells[0].column)].width = (
+            length + 2
+        )
 
-    # --- Return Response ---
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
@@ -2292,257 +1658,59 @@ def export_consignments_pdf(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="consignment_data.pdf"'
 
-    doc = SimpleDocTemplate(
-        response,
-        pagesize=landscape(A4),
-        leftMargin=1 * cm,
-        rightMargin=1 * cm,
-        topMargin=1.5 * cm,
-        bottomMargin=1 * cm
-    )
+    doc = SimpleDocTemplate(response, pagesize=landscape(A4), leftMargin=1*cm, rightMargin=1*cm)
     elements = []
     styles = getSampleStyleSheet()
-
-    # Header Styles
-    company_style = styles['Title'].clone('CompanyStyle')
-    company_style.fontSize = 16
-    company_style.textColor = colors.HexColor('#1a365d')
-    company_style.alignment = TA_CENTER
-
-    subtitle_style = styles['Normal'].clone('SubtitleStyle')
-    subtitle_style.fontSize = 10
-    subtitle_style.alignment = TA_CENTER
-
-    address_style = styles['Normal'].clone('AddressStyle')
-    address_style.fontSize = 9
-    address_style.alignment = TA_CENTER
-
-    # Logo
-    logo_paths = [
-        os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png'),
-        os.path.join(settings.BASE_DIR, 'media', 'logo.png'),
-    ]
-    logo_cell = None
-    for logo_path in logo_paths:
-        if os.path.exists(logo_path):
-            logo = Image(logo_path, width=3 * cm, height=2.5 * cm)
-            logo.hAlign = 'RIGHT'
-            logo_cell = logo
-            break
-    else:
-        logo_cell = Paragraph("DHANLAXMI", company_style)
-
-    # Address Block
-    address_block = [
-        Paragraph("<b>DHANLAXMI AGRO ACTIVITIES & TRANSLOGISTICS</b>", company_style),
-        Paragraph("<b>IMPORT | EXPORT | FRUIT PROCESSING AGRO MARKETING & TRADING</b>", subtitle_style),
-        Paragraph("18, 3rd Floor, Dharmaveer Raje Sambhaji Vyapari Sankul, Ugaon, Tal-Niphad, Dist-Nashik - 422304", address_style),
-        Paragraph("Mob: +91 9830357491 | Email: kakashri7314@gmail.com", address_style),
-    ]
-
-    # Header Table
-    header_table = Table([[address_block, logo_cell]], colWidths=[16 * cm, 5 * cm])
-    header_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (0, 0), (0, 0), 'RIGHT'),
-        ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
-    elements.append(header_table)
-    elements.append(Spacer(1, 15))
-
-    # Title
-    title_style = styles['Title'].clone('TitleStyle')
-    title_style.fontSize = 14
-    title_style.textColor = colors.HexColor('#6a1b9a')
-    title_style.alignment = TA_CENTER
-    elements.append(Paragraph("<b>Consignment Report</b>", title_style))
+    title = Paragraph("Builty Data", styles["Title"])
+    elements.append(title)
     elements.append(Spacer(1, 12))
 
-    # Table Headers
     headers = [
-        "S.No", "CN No", "Vehicle No", "Consignee",
-        "From Location", "To Location",
-        "Loading Date", "Unloading Date"
+        "S.No", "CN No", "Vehicle No", "Consignee", "Consigner",
+        "From Location", "To Location", "Booking Date",
+        "Loading Date", "Unloading Date", "Truck Freight",
+        "Advance", "Balance"
     ]
     data = [headers]
 
-    # Lookups
     vehicles = {str(v.id): v.vehicle_number for v in Vehicle.objects.all()}
     consignees = {str(c.id): c.consignee_name for c in Consignee.objects.all()}
+    consigners = {str(c.id): c.consigner_name for c in Consigner.objects.all()}
     locations = {str(l.id): l.location_name for l in Location.objects.all()}
 
-    # Data Rows
     consignments = Consignment.objects.all().order_by("-Booking_Date")
     for i, c in enumerate(consignments, 1):
         data.append([
-            i,
-            c.Cn_No,
-            vehicles.get(str(c.Vehicle_No), c.Vehicle_No),
-            consignees.get(str(c.consignee), c.consignee),
-            locations.get(str(c.from_location), c.from_location),
-            locations.get(str(c.To_Location), c.To_Location),
-            str(c.Loading_Date) if c.Loading_Date else "",
-            str(c.Unloading_Date) if c.Unloading_Date else "",
+            i, c.Cn_No,
+            vehicles.get(c.Vehicle_No, c.Vehicle_No),
+            consignees.get(c.consignee, c.consignee),
+            consigners.get(c.consigner, c.consigner),
+            locations.get(c.from_location, c.from_location),
+            locations.get(c.To_Location, c.To_Location),
+            str(c.Booking_Date), str(c.Loading_Date), str(c.Unloading_Date),
+            str(c.Truck_Freight), str(c.Advance_Amount), str(c.Balance_Amount),
         ])
 
-    # Wider column widths for a bigger table
-    col_widths = [2.0 * cm, 3.0 * cm, 3.0 * cm, 4.0 * cm, 4.0 * cm, 4.0 * cm, 3.0 * cm, 3.0 * cm]
-
-    # Table Style
-    table = Table(data, repeatRows=1, colWidths=col_widths)
+    table = Table(data, repeatRows=1)
     table.setStyle(TableStyle([
-        # Removed background
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),  # Bold header
-        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),      # Normal rest
+        ("BACKGROUND", (0, 0), (-1, 0), colors.purple),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 8),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
     ]))
+
     elements.append(table)
-    elements.append(Spacer(1, 20))
-
-    # Footer Timestamp
-    footer_text = f"Generated on: {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
-    footer_style = styles['Normal'].clone('FooterStyle')
-    footer_style.fontSize = 8
-    footer_style.textColor = colors.grey
-    footer_style.alignment = TA_CENTER
-    elements.append(Paragraph(footer_text, footer_style))
-
     doc.build(elements)
     return response
+
 
 
 # ──────────────────────────────────────────────────────────────
 # REPORTS VIEW
 # ──────────────────────────────────────────────────────────────
-
-
-# @login_required(login_url="login")
-# def reports_data_view(request):
-#     consignment_list = Consignment.objects.prefetch_related('goods_items').order_by("CNID")
-#     global_search_query = request.GET.get("global_search", "").strip()
-
-#     if global_search_query:
-#         q_objects = Q(Cn_No__icontains=global_search_query)
-
-#         matching_vehicle_ids = Vehicle.objects.filter(
-#             vehicle_number__icontains=global_search_query
-#         ).values_list("id", flat=True)
-#         if matching_vehicle_ids:
-#             q_objects |= Q(Vehicle_No__in=matching_vehicle_ids)
-
-#         matching_consignee_ids = Consignee.objects.filter(
-#             consignee_name__icontains=global_search_query
-#         ).values_list("id", flat=True)
-#         if matching_consignee_ids:
-#             q_objects |= Q(consignee__in=matching_consignee_ids)
-
-#         matching_consigner_ids = Consigner.objects.filter(
-#             consigner_name__icontains=global_search_query
-#         ).values_list("id", flat=True)
-#         if matching_consigner_ids:
-#             q_objects |= Q(consigner__in=matching_consigner_ids)
-
-#         matching_location_ids = Location.objects.filter(
-#             location_name__icontains=global_search_query
-#         ).values_list("id", flat=True)
-#         if matching_location_ids:
-#             q_objects |= Q(from_location__in=matching_location_ids) | Q(To_Location__in=matching_location_ids)
-
-#         consignment_list = consignment_list.filter(q_objects)
-
-#     # Lookup dictionaries
-#     vehicles_lookup = {str(v.id): v.vehicle_number for v in Vehicle.objects.all()}
-#     consignees_lookup = {str(c.id): c.consignee_name for c in Consignee.objects.all()}
-#     consigners_lookup = {str(cs.id): cs.consigner_name for cs in Consigner.objects.all()}
-#     locations_lookup = {str(l.id): l.location_name for l in Location.objects.all()}
-
-#     formatted_consignments = []
-
-#     for c in consignment_list:
-#         goods_infos = c.goods_items.all()
-
-#         # If there are goods entries, create a row per goods_info
-#         if goods_infos.exists():
-#             for gi in goods_infos:
-#                 formatted_consignments.append({
-#                     "CNID": c.CNID,
-#                     "Cn_No": c.Cn_No,
-#                     "Vehicle_No": vehicles_lookup.get(str(c.Vehicle_No.id), str(c.Vehicle_No)),
-#                     "consignee": consignees_lookup.get(str(c.consignee.id), str(c.consignee)),
-#                     "consigner": consigners_lookup.get(str(c.consigner.id), str(c.consigner)),
-#                     "from_location": locations_lookup.get(str(c.from_location_id), str(c.from_location_id)),
-#                     "To_Location": locations_lookup.get(str(c.To_Location_id), str(c.To_Location_id)),
-#                     "Booking_Date": c.Booking_Date.strftime("%Y-%m-%d") if c.Booking_Date else "",
-#                     "Loading_Date": c.Loading_Date.strftime("%Y-%m-%d") if c.Loading_Date else "",
-#                     "Unloading_Date": c.Unloading_Date.strftime("%Y-%m-%d") if c.Unloading_Date else "",
-#                     "Truck_Freight": c.Truck_Freight,
-#                     "Advance_Amount": c.Advance_Amount,
-#                     "Balance_Amount": c.Balance_Amount,
-#                     "from_party": gi.from_party.consignee_name if gi.from_party else "",
-#                     "to_party": gi.to_party.consignee_name if gi.to_party else "",
-#                 })
-                
-
-#         else:
-#             # If no goods_info, still add one row with blank parties
-#             formatted_consignments.append({
-#                 "CNID": c.CNID,
-#                 "Cn_No": c.Cn_No,
-#                 "Vehicle_No": vehicles_lookup.get(str(c.Vehicle_No.id), str(c.Vehicle_No)),
-#                 "consignee": consignees_lookup.get(str(c.consignee.id), str(c.consignee)),
-#                 "consigner": consigners_lookup.get(str(c.consigner.id), str(c.consigner)),
-#                 "from_location": locations_lookup.get(c.from_location, c.from_location),
-#                 "To_Location": locations_lookup.get(c.To_Location, c.To_Location),
-#                 "Booking_Date": c.Booking_Date.strftime("%Y-%m-%d") if c.Booking_Date else "",
-#                 "Loading_Date": c.Loading_Date.strftime("%Y-%m-%d") if c.Loading_Date else "",
-#                 "Unloading_Date": c.Unloading_Date.strftime("%Y-%m-%d") if c.Unloading_Date else "",
-#                 "Truck_Freight": c.Truck_Freight,
-#                 "Advance_Amount": c.Advance_Amount,
-#                 "Balance_Amount": c.Balance_Amount,
-#                 "from_party": "",
-#                 "to_party": "",
-#             })
-
-#     # Pagination logic
-#     paginator = Paginator(formatted_consignments, 10)
-#     page_number = int(request.GET.get("page", 1))
-#     page_obj = paginator.get_page(page_number)
-
-#     total_pages = paginator.num_pages
-#     window_size = 4
-#     current_window = ceil(page_number / window_size)
-#     start_page = (current_window - 1) * window_size + 1
-#     end_page = min(start_page + window_size - 1, total_pages)
-#     custom_page_range = range(start_page, end_page + 1)
-
-#     query_params = request.GET.copy()
-#     if "page" in query_params:
-#         del query_params["page"]
-
-#     current_filters = {
-#         "global_search": global_search_query,
-#     }
-
-#     return render(request, "reports.html", {
-#         "page_obj": page_obj,
-#         "query_string": query_params.urlencode() if query_params else "",
-#         "current_filters": current_filters,
-#         "page_range": custom_page_range,
-#         "current_page": page_number,
-#         "start_page": start_page,
-#         "end_page": end_page,
-#         "total_pages": total_pages,
-#     })
-
 
 @login_required(login_url="login")
 def reports_data_view(request):
@@ -2601,7 +1769,7 @@ def reports_data_view(request):
             "Balance_Amount": c.Balance_Amount,
         })
 
-    paginator = Paginator(formatted_consignments, 10)
+    paginator = Paginator(formatted_consignments, 30)
     page_number = int(request.GET.get("page", 1))
     page_obj = paginator.get_page(page_number)
 
@@ -2630,27 +1798,40 @@ def reports_data_view(request):
 # ──────────────────────────────────────────────────────────────
 # Export to Excel 
 # ──────────────────────────────────────────────────────────────
+
 @login_required(login_url="login")
 def export_builty_excel(request):
     global_search_query = request.GET.get("global_search", "").strip()
+    consignment_list = Consignment.objects.prefetch_related("goods_items").order_by("CNID")
 
-    # Fetch consignment data with related goods_items
-    consignment_list = Consignment.objects.prefetch_related('goods_items').order_by("CNID")
-
-    # Apply global search filter if present
     if global_search_query:
-        consignment_list = consignment_list.filter(
-            Q(Cn_No__icontains=global_search_query) |
-            Q(Vehicle_No__Vehicle_Number__icontains=global_search_query) |
-            Q(consignee__name__icontains=global_search_query)
-        )
+        q_objects = Q(Cn_No__icontains=global_search_query)
 
-    # Create Excel workbook and worksheet
+        vehicle_ids = Vehicle.objects.filter(vehicle_number__icontains=global_search_query).values_list("id", flat=True)
+        if vehicle_ids:
+            q_objects |= Q(Vehicle_No__in=vehicle_ids)
+
+        consignee_ids = Consignee.objects.filter(consignee_name__icontains=global_search_query).values_list("id", flat=True)
+        if consignee_ids:
+            q_objects |= Q(consignee__in=consignee_ids)
+
+        consigner_ids = Consigner.objects.filter(consigner_name__icontains=global_search_query).values_list("id", flat=True)
+        if consigner_ids:
+            q_objects |= Q(consigner__in=consigner_ids)
+
+        location_ids = Location.objects.filter(location_name__icontains=global_search_query).values_list("id", flat=True)
+        if location_ids:
+            q_objects |= Q(from_location__in=location_ids) | Q(To_Location__in=location_ids)
+
+        consignment_list = consignment_list.filter(q_objects)
+
+    vehicles_lookup = {str(v.id): v.vehicle_number for v in Vehicle.objects.all()}
+    consignees_lookup = {str(c.id): c.consignee_name for c in Consignee.objects.all()}
+
     wb = Workbook()
     ws = wb.active
-    ws.title = "Ledger Report"
+    ws.title = "Builty Reports"
 
-    # Define headers
     headers = [
         "Bill No", "Loading Date", "Vehicle No", "Consignee",
         "20kg Qty", "10kg Qty", "Builty Fare", "Truck Fare",
@@ -2658,39 +1839,52 @@ def export_builty_excel(request):
     ]
     ws.append(headers)
 
-    # Add data rows
     for c in consignment_list:
         goods = c.goods_items.all()
-        total_20kg = sum(float(gi.quantity or 0) for gi in goods if gi.unit == "20kg")
-        total_10kg = sum(float(gi.quantity or 0) for gi in goods if gi.unit == "10kg")
-        total_builty = sum(float(gi.gi_amount or 0) for gi in goods)
-        total = (c.Truck_Freight or 0) + (c.Innam or 0) + (c.Extra_TF or 0)
+
+        qty_20kg = sum(float(gi.quantity or 0) for gi in goods if (gi.unit or "").strip().upper() == "20KG")
+        qty_10kg = sum(float(gi.quantity or 0) for gi in goods if (gi.unit or "").strip().upper() == "10KG")
+        builty_fare = sum(float(gi.gi_amount or 0) for gi in goods)
+
+        truck_freight = float(c.Truck_Freight or 0)
+        innam = float(c.Innam or 0)
+        extra_tf = float(c.Extra_TF or 0)
+        advance = float(c.Advance_Amount or 0)
+        balance = float(c.Balance_Amount or 0)
+
+        total = truck_freight + innam + extra_tf
 
         ws.append([
             c.Cn_No,
             c.Loading_Date.strftime("%Y-%m-%d") if c.Loading_Date else "",
-            str(c.Vehicle_No),
-            str(c.consignee),
-            total_20kg,
-            total_10kg,
-            total_builty,
-            c.Truck_Freight or 0,
-            c.Innam or 0,
-            c.Extra_TF or 0,
-            total,
-            c.Advance_Amount or 0,
-            c.Balance_Amount or 0,
+            vehicles_lookup.get(str(c.Vehicle_No_id), str(c.Vehicle_No_id)),
+            consignees_lookup.get(str(c.consignee_id), str(c.consignee_id)),
+            f"{qty_20kg:.2f}".rstrip('0').rstrip('.'),
+            f"{qty_10kg:.2f}".rstrip('0').rstrip('.'),
+            f"{builty_fare:.2f}".rstrip('0').rstrip('.'),
+            f"{truck_freight:.2f}".rstrip('0').rstrip('.'),
+            f"{innam:.2f}".rstrip('0').rstrip('.'),
+            f"{extra_tf:.2f}".rstrip('0').rstrip('.'),
+            f"{total:.2f}".rstrip('0').rstrip('.'),
+            f"{advance:.2f}".rstrip('0').rstrip('.'),
+            f"{balance:.2f}".rstrip('0').rstrip('.'),
         ])
 
-    # Prepare response
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename=ledger_report.xlsx'
+
+    for column_cells in ws.columns:
+        max_length = max(len(str(cell.value or "")) for cell in column_cells)
+        ws.column_dimensions[get_column_letter(column_cells[0].column)].width = max_length + 2
+
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = 'attachment; filename="builty_report.xlsx"'
     wb.save(response)
     return response
 
+
 # ───────────────────────────────────────────────────────────────
 # PDF Report Export 
-# ─────────────────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
+
 def export_builty_pdf(request):
     global_search_query = request.GET.get("global_search", "").strip()
     consignment_list = Consignment.objects.prefetch_related("goods_items").order_by("CNID")
@@ -2852,7 +2046,6 @@ def export_builty_pdf(request):
 
     doc.build(elements)
     return response
-
 # ──────────────────────────────────────────────────────────────
 # RECORD PAYMENT VIEW
 # ──────────────────────────────────────────────────────────────
@@ -2993,7 +2186,7 @@ def ledger_view(request):
     ledger_data = list(queryset)
 
     # Paginate ledger_data – 1 date group per page
-    paginator = Paginator(ledger_data, 10)
+    paginator = Paginator(ledger_data, 30)
     page_number = int(request.GET.get("page", 1))
     page_obj = paginator.get_page(page_number)
 
@@ -3018,7 +2211,6 @@ def ledger_view(request):
         "query_string": query_params.urlencode(),
         "global_search": global_search_query,
     })
-
 # ────────────────────────────────────────────────────────────────
 # Ledger Excel Export
 # ───────────────────────────────────────────────────────────────
@@ -3134,7 +2326,7 @@ def export_ledger_pdf(request):
     consignees_lookup = {str(c.id): c.consignee_name for c in Consignee.objects.all()}
 
     response = HttpResponse(content_type="application/pdf")
-    response['Content-Disposition'] = 'attachment; filename="ledger.pdf"'
+    response['Content-Disposition'] = 'attachment; filename="Vehicle_Report.pdf"'
 
     doc = SimpleDocTemplate(
         response,
@@ -3224,7 +2416,7 @@ def export_ledger_pdf(request):
             f"{float(c.Balance_Amount or 0):.2f}".rstrip('0').rstrip('.'),
         ])
 
-    col_widths = [2.5*cm, 2.5*cm, 3.0*cm, 3.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm]
+    col_widths = [2.5 * cm, 2.5 * cm, 3.0 * cm, 3.5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm]
 
     table = Table(data, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
@@ -3253,142 +2445,8 @@ def export_ledger_pdf(request):
     return response
 
 
-
 # ──────────────────────────────────────────────────────────────
-# def party_ledger_view(request):
-#     search_query = request.GET.get("global_search", "").strip()
-#     consignment_list = Consignment.objects.all().order_by("-Loading_Date")
-
-#     if search_query:
-#         consignment_list = consignment_list.filter(
-#             consignee__consignee_name__icontains=search_query
-#         )
-
-#     vehicles = {str(v.id): v.vehicle_number for v in Vehicle.objects.all()}
-#     consignees = {str(c.id): c.consignee_name for c in Consignee.objects.all()}
-#     consigners = {str(c.id): c.consigner_name for c in Consigner.objects.all()}
-
-#     entries = []
-
-#     for c in consignment_list:
-#         goods_items = GoodsInfo.objects.filter(consignment=c)
-
-#         # ✅ GROUP BY to_party_id to create separate entries
-#         unique_parties = goods_items.values('to_party_id', 'from_party_id').distinct()
-
-#         for party_group in unique_parties:
-#             to_party_id = party_group['to_party_id']
-#             from_party_id = party_group['from_party_id']
-            
-#             # Filter goods for this specific party combination
-#             party_goods = goods_items.filter(
-#                 to_party_id=to_party_id,
-#                 from_party_id=from_party_id
-#             )
-
-#             # Get party names
-#             from_party = consignees.get(str(from_party_id), "") if from_party_id else ""
-#             to_party = consignees.get(str(to_party_id), "") if to_party_id else ""
-
-#             # Filter using 'unit' not 'quantity'
-#             items_10kg = party_goods.filter(unit="10KG")
-#             items_20kg = party_goods.filter(unit="20KG")
-
-#             qty_10kg = items_10kg.aggregate(total=Sum("quantity"))["total"] or 0
-#             qty_20kg = items_20kg.aggregate(total=Sum("quantity"))["total"] or 0
-
-#             rates_10kg = list(items_10kg.values_list("rate", flat=True))
-#             rates_20kg = list(items_20kg.values_list("rate", flat=True))
-
-#             # Fetch fare from gi_amount column (DB value, exact fare)
-#             fare_10kg_db = items_10kg.aggregate(total=Sum("gi_amount"))["total"] or 0
-#             fare_20kg_db = items_20kg.aggregate(total=Sum("gi_amount"))["total"] or 0
-
-#             # If both 10KG and 20KG items are present → calculate
-#             if items_10kg.exists() and items_20kg.exists():
-#                 fare_10kg = sum(qty * rate for qty, rate in items_10kg.values_list("quantity", "rate"))
-#                 fare_20kg = sum(qty * rate for qty, rate in items_20kg.values_list("quantity", "rate"))
-#             else:
-#                 fare_10kg = fare_10kg_db
-#                 fare_20kg = fare_20kg_db
-
-#             total_fare = fare_10kg + fare_20kg
-
-#             # ✅ Calculate payments for this specific party
-#             # Note: You might need to modify this based on how payments are linked to specific parties
-#             # Currently assuming payments are at consignment level
-#             total_paid = PaymentRecord.objects.filter(
-#                 consignment=c,
-#                 payment_type__in=["Parcha", "Part Payment"]
-#             ).aggregate(total=Sum("paid_amount"))["total"] or 0
-
-#             # ✅ Proportional payment calculation based on fare percentage
-#             total_consignment_fare = GoodsInfo.objects.filter(consignment=c).aggregate(
-#                 total=Sum("gi_amount"))["total"] or 0
-            
-#             if total_consignment_fare > 0:
-#                 payment_proportion = total_fare / total_consignment_fare
-#                 allocated_paid = total_paid * payment_proportion
-#             else:
-#                 allocated_paid = 0
-
-#             due_amount = total_fare - allocated_paid
-
-#             avg_rate_10kg = round(sum(rates_10kg) / len(rates_10kg), 2) if rates_10kg else 0
-#             avg_rate_20kg = round(sum(rates_20kg) / len(rates_20kg), 2) if rates_20kg else 0
-
-#             # ✅ Skip entries where no goods exist for this party
-#             if qty_10kg == 0 and qty_20kg == 0:
-#                 continue
-
-#             entries.append({
-#                 "cn_id": c.CNID,
-#                 "Date": c.Loading_Date,
-#                 "Vehicle_No": vehicles.get(str(c.Vehicle_No_id), c.Vehicle_No_id),
-#                 "consignee": consignees.get(str(c.consignee_id), c.consignee_id),
-#                 "from_party": from_party,   
-#                 "to_party": to_party,       
-#                 "qty_10kg": qty_10kg,
-#                 "rate_10kg": avg_rate_10kg,
-#                 "qty_20kg": qty_20kg,
-#                 "rate_20kg": avg_rate_20kg,
-#                 "fare_10kg": fare_10kg,
-#                 "fare_20kg": fare_20kg,
-#                 "total_fare": total_fare,
-#                 "Paid_Amount": round(allocated_paid, 2),
-#                 "Due_Amount": round(due_amount, 2),
-#             })
-
-#     paginator = Paginator(entries, 10)
-#     page = int(request.GET.get("page", 1))
-#     page_obj = paginator.get_page(page)
-
-#     total_pages = paginator.num_pages
-#     group_size = 4
-#     current_window = ceil(page / group_size)
-#     start_page = (current_window - 1) * group_size + 1
-#     end_page = min(start_page + group_size - 1, total_pages)
-
-#     query_params = request.GET.copy()
-#     query_params.pop("page", None)
-
-#     return render(
-#         request,
-#         "party_ledger.html",
-#         {
-#             "page_obj": page_obj,
-#             "page_range": range(start_page, end_page + 1),
-#             "current_page": page,
-#             "start_page": start_page,
-#             "end_page": end_page,
-#             "total_pages": total_pages,
-#             "query_string": query_params.urlencode(),
-#             "current_filters": {"global_search": search_query},
-#         },
-#     )
-
-
-
+ 
 def party_ledger_view(request):
     to_party_search = request.GET.get("to_party_search", "").strip()
     vehicle_search = request.GET.get("vehicle_search", "").strip()
@@ -3458,7 +2516,7 @@ def party_ledger_view(request):
             })
 
     # Pagination
-    paginator = Paginator(entries, 10)
+    paginator = Paginator(entries, 30)
     page = int(request.GET.get("page", 1))
     page_obj = paginator.get_page(page)
 
@@ -3488,155 +2546,6 @@ def party_ledger_view(request):
             }
         },
     )
-
-
-# def party_ledger_view(request):
-#     search_query = request.GET.get("global_search", "").strip()
-#     to_party_search = request.GET.get("to_party_search", "").strip()  # ✅ New search input for To Party
-
-#     consignment_list = Consignment.objects.all().order_by("-Loading_Date")
-
-#     if search_query:
-#         consignment_list = consignment_list.filter(
-#             consignee__consignee_name__icontains=search_query
-#         )
-
-#     vehicles = {str(v.id): v.vehicle_number for v in Vehicle.objects.all()}
-#     consignees = {str(c.id): c.consignee_name for c in Consignee.objects.all()}
-#     consigners = {str(c.id): c.consigner_name for c in Consigner.objects.all()}
-
-#     entries = []
-
-#     # ✅ Prepare To Party filter list (IDs)
-#     matched_to_party_ids = []
-#     if to_party_search:
-#         matched_to_party_ids = list(
-#             Consignee.objects.filter(
-#                 consignee_name__icontains=to_party_search
-#             ).values_list("id", flat=True)
-#         )
-
-#     for c in consignment_list:
-#         goods_items = GoodsInfo.objects.filter(consignment=c)
-
-#         # ✅ GROUP BY to_party_id to create separate entries
-#         unique_parties = goods_items.values('to_party_id', 'from_party_id').distinct()
-
-#         for party_group in unique_parties:
-#             to_party_id = party_group['to_party_id']
-#             from_party_id = party_group['from_party_id']
-            
-#             # ✅ Filter by To Party name if search applied
-#             if to_party_search and to_party_id not in matched_to_party_ids:
-#                 continue
-
-#             # Filter goods for this specific party combination
-#             party_goods = goods_items.filter(
-#                 to_party_id=to_party_id,
-#                 from_party_id=from_party_id
-#             )
-
-#             # Get party names
-#             from_party = consignees.get(str(from_party_id), "") if from_party_id else ""
-#             to_party = consignees.get(str(to_party_id), "") if to_party_id else ""
-
-#             # Filter using 'unit' not 'quantity'
-#             items_10kg = party_goods.filter(unit="10KG")
-#             items_20kg = party_goods.filter(unit="20KG")
-
-#             qty_10kg = items_10kg.aggregate(total=Sum("quantity"))["total"] or 0
-#             qty_20kg = items_20kg.aggregate(total=Sum("quantity"))["total"] or 0
-
-#             rates_10kg = list(items_10kg.values_list("rate", flat=True))
-#             rates_20kg = list(items_20kg.values_list("rate", flat=True))
-
-#             # Fetch fare from gi_amount column (DB value, exact fare)
-#             fare_10kg_db = items_10kg.aggregate(total=Sum("gi_amount"))["total"] or 0
-#             fare_20kg_db = items_20kg.aggregate(total=Sum("gi_amount"))["total"] or 0
-
-#             # If both 10KG and 20KG items are present → calculate
-#             if items_10kg.exists() and items_20kg.exists():
-#                 fare_10kg = sum(qty * rate for qty, rate in items_10kg.values_list("quantity", "rate"))
-#                 fare_20kg = sum(qty * rate for qty, rate in items_20kg.values_list("quantity", "rate"))
-#             else:
-#                 fare_10kg = fare_10kg_db
-#                 fare_20kg = fare_20kg_db
-
-#             total_fare = fare_10kg + fare_20kg
-
-#             # ✅ Calculate payments for this specific party
-#             total_paid = PaymentRecord.objects.filter(
-#                 consignment=c,
-#                 payment_type__in=["Parcha", "Part Payment"]
-#             ).aggregate(total=Sum("paid_amount"))["total"] or 0
-
-#             # ✅ Proportional payment calculation based on fare percentage
-#             total_consignment_fare = GoodsInfo.objects.filter(consignment=c).aggregate(
-#                 total=Sum("gi_amount"))["total"] or 0
-            
-#             if total_consignment_fare > 0:
-#                 payment_proportion = total_fare / total_consignment_fare
-#                 allocated_paid = total_paid * payment_proportion
-#             else:
-#                 allocated_paid = 0
-
-#             due_amount = total_fare - allocated_paid
-
-#             avg_rate_10kg = round(sum(rates_10kg) / len(rates_10kg), 2) if rates_10kg else 0
-#             avg_rate_20kg = round(sum(rates_20kg) / len(rates_20kg), 2) if rates_20kg else 0
-
-#             # ✅ Skip entries where no goods exist for this party
-#             if qty_10kg == 0 and qty_20kg == 0:
-#                 continue
-
-#             entries.append({
-#                 "cn_id": c.CNID,
-#                 "Date": c.Loading_Date,
-#                 "Vehicle_No": vehicles.get(str(c.Vehicle_No_id), c.Vehicle_No_id),
-#                 "consignee": consignees.get(str(c.consignee_id), c.consignee_id),
-#                 "from_party": from_party,   
-#                 "to_party": to_party,       
-#                 "qty_10kg": qty_10kg,
-#                 "rate_10kg": avg_rate_10kg,
-#                 "qty_20kg": qty_20kg,
-#                 "rate_20kg": avg_rate_20kg,
-#                 "fare_10kg": fare_10kg,
-#                 "fare_20kg": fare_20kg,
-#                 "total_fare": total_fare,
-#                 "Paid_Amount": round(allocated_paid, 2),
-#                 "Due_Amount": round(due_amount, 2),
-#             })
-
-#     paginator = Paginator(entries, 10)
-#     page = int(request.GET.get("page", 1))
-#     page_obj = paginator.get_page(page)
-
-#     total_pages = paginator.num_pages
-#     group_size = 4
-#     current_window = ceil(page / group_size)
-#     start_page = (current_window - 1) * group_size + 1
-#     end_page = min(start_page + group_size - 1, total_pages)
-
-#     query_params = request.GET.copy()
-#     query_params.pop("page", None)
-
-#     return render(
-#         request,
-#         "party_ledger.html",
-#         {
-#             "page_obj": page_obj,
-#             "page_range": range(start_page, end_page + 1),
-#             "current_page": page,
-#             "start_page": start_page,
-#             "end_page": end_page,
-#             "total_pages": total_pages,
-#             "query_string": query_params.urlencode(),
-#             "current_filters": {
-#                 "global_search": search_query,
-#                 "to_party_search": to_party_search,  # ✅ Include in context
-#             },
-#         },
-#     )
 
 # ──────────────────────────────────────────────────────────────
 import logging
@@ -3669,167 +2578,52 @@ def get_payment_history(request):
         "total_paid": str(total_paid),
         "latest_balance": str(latest_balance),
     })
-# ──────────────────────────────────────────────────────────────
-# Export to Excel 
-# ──────────────────────────────────────────────────────────────
+#________________________________________
+# party_ledger_pdf_export
+# ────────────────────────────────────────────────────────────
 
-@login_required(login_url="login")
-def export_party_ledger_excel(request):
-    # Initialize Workbook
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Goods_report"
-
-    # Header: Company Info
-    ws.merge_cells('A1:O1')
-    ws.merge_cells('A2:O2')
-    ws.merge_cells('A3:O3')
-    ws.merge_cells('A4:O4')
-
-    ws['A1'] = "DHANLAXMI AGRO ACTIVITIES & TRANSLOGISTICS"
-    ws['A2'] = "IMPORT | EXPORT | FRUIT PROCESSING AGRO MARKETING & TRADING"
-    ws['A3'] = "18, 3rd Floor, Dharmaveer Raje Sambhaji Vyapari Sankul, Ugaon, Tal-Niphad, Dist-Nashik - 422304"
-    ws['A4'] = "Mob: +91 9830357491 | Email: kakashri7314@gmail.com"
-
-    for i in range(1, 5):
-        ws[f"A{i}"].font = Font(bold=(i == 1), size=11)
-        ws[f"A{i}"].alignment = Alignment(horizontal='center')
-
-    # Add Logo if Available
-    try:
-        logo_paths = [
-            os.path.join(settings.BASE_DIR, 'accounts', 'static', 'images', 'logo.png'),
-            os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png'),
-            os.path.join(settings.BASE_DIR, 'media', 'logo.png'),
-        ]
-        for path in logo_paths:
-            if os.path.exists(path):
-                img = XLImage(path)
-                img.width = 100
-                img.height = 75
-                ws.add_image(img, 'O1')
-                break
-    except Exception:
-        pass
-
-    ws.append([])  # Spacer Row
-
-    # Title Row
-    ws.merge_cells('A6:O6')
-    ws['A6'] = "Goods Report"
-    ws['A6'].font = Font(bold=True, size=14, color="0D47A1")
-    ws['A6'].alignment = Alignment(horizontal='center')
-    ws.append([])
-
-    # Table Headers
-    headers = [
-        "CN No", "Date", "Truck No", "Consignee", "From Party", "To Party",
-        "10KG Qty", "10KG Rate", "10KG Fare",
-        "20KG Qty", "20KG Rate", "20KG Fare",
-        "Total Fare", "Paid", "Due"
-    ]
-    ws.append(headers)
-
-    header_fill = PatternFill(start_color='B3E5FC', end_color='B3E5FC', fill_type='solid')
-    for cell in ws[ws.max_row]:
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(horizontal='center')
-        cell.fill = header_fill
-
-    # --- Filters from Request ---
-    consignee_query = request.GET.get("consignee_search", "").strip()
-    to_party_query = request.GET.get("to_party_search", "").strip()
-    vehicle_query = request.GET.get("vehicle_search", "").strip()
-
-    vehicles = {str(v.id): v.vehicle_number for v in Vehicle.objects.all()}
-    consignees = {c.id: c.consignee_name for c in Consignee.objects.all()}
-
-    # Base QuerySet
-    goods_list = GoodsInfo.objects.select_related("consignment").order_by("-created_at")
-
-    # Apply Filters
-    if consignee_query:
-        goods_list = goods_list.filter(consignment__consignee__consignee_name__icontains=consignee_query)
-    if to_party_query:
-        goods_list = goods_list.filter(to_party__consignee_name__icontains=to_party_query)
-    if vehicle_query:
-        goods_list = goods_list.filter(consignment__Vehicle_No__vehicle_number__icontains=vehicle_query)
-
-    # --- Populate Table Data ---
-    for gi in goods_list:
-        c = gi.consignment
-        vehicle_no = vehicles.get(str(c.Vehicle_No_id), c.Vehicle_No_id)
-        consignee_name = consignees.get(c.consignee_id, c.consignee_id)
-        from_party = consignees.get(gi.from_party_id, gi.from_party_id)
-        to_party = consignees.get(gi.to_party_id, gi.to_party_id)
-
-        gi_amount = (gi.quantity or 0) * (gi.rate or 0)
-
-        total_paid = PaymentRecord.objects.filter(
-            consignment=c, payment_type__in=["Parcha", "Part Payment"]
-        ).aggregate(total=Sum("paid_amount"))["total"] or 0
-
-        due_amount = gi_amount - total_paid
-
-        # Handle Unit-based Split
-        unit = (gi.unit or "").strip().upper()
-        qty_10 = rate_10 = fare_10 = qty_20 = rate_20 = fare_20 = 0
-
-        if unit == "10KG":
-            qty_10, rate_10, fare_10 = gi.quantity or 0, gi.rate or 0, gi_amount
-        elif unit == "20KG":
-            qty_20, rate_20, fare_20 = gi.quantity or 0, gi.rate or 0, gi_amount
-
-        row = [
-            c.Cn_No,
-            c.Loading_Date.strftime('%d-%m-%Y') if c.Loading_Date else '',
-            vehicle_no,
-            consignee_name,
-            from_party,
-            to_party,
-            f"{qty_10:.2f}".rstrip('0').rstrip('.') if qty_10 else "0",
-            f"{rate_10:.2f}".rstrip('0').rstrip('.') if rate_10 else "0",
-            f"{fare_10:.2f}".rstrip('0').rstrip('.') if fare_10 else "0",
-            f"{qty_20:.2f}".rstrip('0').rstrip('.') if qty_20 else "0",
-            f"{rate_20:.2f}".rstrip('0').rstrip('.') if rate_20 else "0",
-            f"{fare_20:.2f}".rstrip('0').rstrip('.') if fare_20 else "0",
-            f"{gi_amount:.2f}".rstrip('0').rstrip('.') if gi_amount else "0",
-            f"{total_paid:.2f}".rstrip('0').rstrip('.') if total_paid else "0",
-            f"{due_amount:.2f}".rstrip('0').rstrip('.') if due_amount else "0"
-        ]
-        ws.append(row)
-
-    # Auto-fit Columns
-    for col in ws.columns:
-        max_length = max(len(str(cell.value or "")) for cell in col)
-        ws.column_dimensions[get_column_letter(col[0].column)].width = min(max_length + 2, 25)
-
-    # Return Response
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename=Goods_report.xlsx'
-    wb.save(response)
-    return response
-# ──────────────────────────────────────────────────────────────
-# Export to PDF 
-# ──────────────────────────────────────────────────────────────
 @login_required(login_url="login")
 def export_party_ledger_pdf(request):
     to_party_search = request.GET.get("to_party_search", "").strip()
     vehicle_search = request.GET.get("vehicle_search", "").strip()
-    global_search = request.GET.get("global_search", "").strip()
+
+    consignment_list = Consignment.objects.all().order_by("-Loading_Date")
+
+    # Filter by To Party (GoodsInfo.to_party_id)
+    if to_party_search:
+        matching_to_party_ids = Consignee.objects.filter(
+            consignee_name__icontains=to_party_search
+        ).values_list("id", flat=True)
+
+        matching_consignment_ids = GoodsInfo.objects.filter(
+            to_party_id__in=matching_to_party_ids
+        ).values_list("consignment__CNID", flat=True).distinct()
+
+        consignment_list = consignment_list.filter(CNID__in=matching_consignment_ids)
+
+    # Filter by Vehicle No
+    if vehicle_search:
+        consignment_list = consignment_list.filter(Vehicle_No__vehicle_number__icontains=vehicle_search)
+
+    vehicles_lookup = {str(v.id): v.vehicle_number for v in Vehicle.objects.all()}
+    consignees_lookup = {str(c.id): c.consignee_name for c in Consignee.objects.all()}
 
     response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = "attachment; filename=Party_Ledger_Report.pdf"
+    response['Content-Disposition'] = 'attachment; filename="Party_Ledger_Report.pdf"'
+
     doc = SimpleDocTemplate(
         response,
         pagesize=landscape(A4),
-        leftMargin=1 * cm, rightMargin=1 * cm,
-        topMargin=1.5 * cm, bottomMargin=1 * cm
+        leftMargin=0 * cm,
+        rightMargin=0 * cm,
+        topMargin=1.0 * cm,
+        bottomMargin=1.0 * cm
     )
+
     styles = getSampleStyleSheet()
     elements = []
 
-    # ─── Header Styles ────────────────────────────
+    # Header Section
     company_style = styles['Title'].clone('CompanyStyle')
     company_style.fontSize = 16
     company_style.textColor = colors.HexColor('#1a365d')
@@ -3843,7 +2637,6 @@ def export_party_ledger_pdf(request):
     address_style.fontSize = 9
     address_style.alignment = TA_CENTER
 
-    # ─── Logo Block ───────────────────────────────
     logo_paths = [
         os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png'),
         os.path.join(settings.BASE_DIR, 'media', 'logo.png'),
@@ -3877,130 +2670,195 @@ def export_party_ledger_pdf(request):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
     ]))
     elements.append(header_table)
-    elements.append(Spacer(1, 15))
+    elements.append(Spacer(1, 10))
 
-    # ─── Title ────────────────────────────────────
+    # Title
     title_style = styles['Title'].clone('TitleStyle')
-    title_style.fontSize = 14
+    title_style.fontSize = 12
     title_style.textColor = colors.HexColor('#6a1b9a')
     title_style.alignment = TA_CENTER
     elements.append(Paragraph("<b>Goods Report</b>", title_style))
-    elements.append(Spacer(1, 12))
+    elements.append(Spacer(1, 10))
 
-    # ─── Table Header ─────────────────────────────
+    # Table Headers with Interchanged Columns
     data = [[
-        "CN No", "Date", "Truck No", "Consignee", "From Party", "To Party",
-        "10KG Qty", "10KG Rate", "10KG Fare",
-        "20KG Qty", "20KG Rate", "20KG Fare",
-        "Total Fare", "Paid", "Due"
+        "CN No.", "Date", "Truck No", "Consignee", "Party",
+        "10 KG", "10KG RATE", "20 KG", "20KG RATE",
+        "10 KG FARE", "20 KG FARE", "TOTAL", "PAID", "DUE"
     ]]
 
-    # ─── Lookup Dictionaries ──────────────────────
-    vehicles = {str(v.id): v.vehicle_number for v in Vehicle.objects.all()}
-    consignees = {c.id: c.consignee_name for c in Consignee.objects.all()}
+    # Data Rows
+    for consignment in consignment_list:
+        goods_items = GoodsInfo.objects.filter(consignment=consignment)
+        for gi in goods_items:
+            vehicle_no = vehicles_lookup.get(str(consignment.Vehicle_No_id), "")
+            consignee_name = consignees_lookup.get(str(consignment.consignee_id), "")
+            to_party_name = consignees_lookup.get(str(gi.to_party_id), "")
 
-    goods_list = GoodsInfo.objects.select_related("consignment").order_by("-created_at")
+            qty = gi.quantity or 0
+            rate = gi.rate or 0
+            paid_amount = gi.paid_amount or 0
+            due_amount = gi.balance_amount or 0
+            gi_amount = gi.gi_amount or qty * rate
 
-    # ─── Apply Filters ────────────────────────────
-    if global_search:
-        consignment_ids = Consignment.objects.filter(
-            Q(Cn_No__icontains=global_search) |
-            Q(Vehicle_No__vehicle_number__icontains=global_search) |
-            Q(consignee__consignee_name__icontains=global_search) |
-            Q(consigner__consigner_name__icontains=global_search)
-        ).values_list('id', flat=True)
+            unit = (gi.unit or "").upper()
+            qty_10 = rate_10 = fare_10 = qty_20 = rate_20 = fare_20 = 0
 
-        goods_list = goods_list.filter(
-            Q(consignment_id__in=consignment_ids) |
-            Q(from_party__consignee_name__icontains=global_search) |
-            Q(to_party__consignee_name__icontains=global_search)
-        )
-    else:
-        if to_party_search:
-            matching_to_party_ids = Consignee.objects.filter(
-                consignee_name__icontains=to_party_search
-            ).values_list("id", flat=True)
+            if unit == "10KG":
+                qty_10, rate_10, fare_10 = qty, rate, gi_amount
+            elif unit == "20KG":
+                qty_20, rate_20, fare_20 = qty, rate, gi_amount
 
-            matching_consignment_ids = GoodsInfo.objects.filter(
-                to_party_id__in=matching_to_party_ids
-            ).values_list("consignment_id", flat=True).distinct()
+            # Interchanged Consignee and Party columns in data row
+            row = [
+                consignment.CNID or "",
+                consignment.Loading_Date.strftime("%d-%m-%Y") if consignment.Loading_Date else "",
+                vehicle_no,
+                to_party_name,    # <-- Party (GoodsInfo.to_party_id)
+                consignee_name,   # <-- Consignee (from Consignment)
+                str(int(qty_10)) if qty_10 else "0",
+                str(int(rate_10)) if rate_10 else "0",
+                str(int(qty_20)) if qty_20 else "0",
+                str(int(rate_20)) if rate_20 else "0",
+                str(int(fare_10)) if fare_10 else "0",
+                str(int(fare_20)) if fare_20 else "0",
+                str(int(gi_amount)) if gi_amount else "0",
+                str(int(paid_amount)) if paid_amount else "0",
+                str(int(due_amount)) if due_amount else "0"
+            ]
+            data.append(row)
 
-            goods_list = goods_list.filter(consignment_id__in=matching_consignment_ids)
+    # Compressed Column Widths
+    col_widths = [
+        1.8 * cm, 1.8 * cm, 2.3 * cm, 2.8 * cm, 2.8 * cm,
+        1.5 * cm, 1.5 * cm, 1.5 * cm, 1.5 * cm,
+        2.0 * cm, 2.0 * cm, 2.0 * cm, 2.0 * cm, 2.0 * cm
+    ]
 
-        if vehicle_search:
-            goods_list = goods_list.filter(consignment__Vehicle_No__vehicle_number__icontains=vehicle_search)
-
-    # ─── Data Rows ────────────────────────────────
-    for gi in goods_list:
-        c = gi.consignment
-        vehicle_no = vehicles.get(str(c.Vehicle_No_id), c.Vehicle_No_id)
-        consignee_name = consignees.get(c.consignee_id, c.consignee_id)
-        from_party = consignees.get(gi.from_party_id, gi.from_party_id)
-        to_party = consignees.get(gi.to_party_id, gi.to_party_id)
-
-        quantity = gi.quantity or 0
-        rate = gi.rate or 0
-        gi_amount = quantity * rate
-
-        paid_amount = gi.paid_amount or 0
-        due_amount = gi.balance_amount or 0
-
-        unit = (gi.unit or "").strip().upper()
-        qty_10 = rate_10 = fare_10 = qty_20 = rate_20 = fare_20 = 0
-
-        if unit == "10KG":
-            qty_10, rate_10, fare_10 = quantity, rate, gi_amount
-        elif unit == "20KG":
-            qty_20, rate_20, fare_20 = quantity, rate, gi_amount
-
-        row = [
-            c.Cn_No, c.Loading_Date.strftime("%d-%m-%Y") if c.Loading_Date else "",
-            vehicle_no, consignee_name, from_party, to_party,
-            f"{qty_10:.2f}".rstrip('0').rstrip('.') if qty_10 else "0",
-            f"{rate_10:.2f}".rstrip('0').rstrip('.') if rate_10 else "0",
-            f"{fare_10:.2f}".rstrip('0').rstrip('.') if fare_10 else "0",
-            f"{qty_20:.2f}".rstrip('0').rstrip('.') if qty_20 else "0",
-            f"{rate_20:.2f}".rstrip('0').rstrip('.') if rate_20 else "0",
-            f"{fare_20:.2f}".rstrip('0').rstrip('.') if fare_20 else "0",
-            f"{gi_amount:.2f}".rstrip('0').rstrip('.') if gi_amount else "0",
-            f"{paid_amount:.2f}".rstrip('0').rstrip('.') if paid_amount else "0",
-            f"{due_amount:.2f}".rstrip('0').rstrip('.') if due_amount else "0"
-        ]
-        data.append([str(cell)[:15] for cell in row])
-
-    # ─── Table Rendering ──────────────────────────
-    table = Table(data, repeatRows=1)
+    table = Table(data, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-        ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
         ("FONTSIZE", (0, 0), (-1, -1), 7),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+        ("TOPPADDING", (0, 0), (-1, -1), 1),
+        ("LEFTPADDING", (0, 0), (-1, -1), 1),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 1),
     ]))
 
     elements.append(table)
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 10))
 
-    # ─── Footer Timestamp ─────────────────────────
+    # Footer Timestamp
     footer_text = f"Generated on: {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
     footer_style = styles['Normal'].clone('FooterStyle')
-    footer_style.fontSize = 8
+    footer_style.fontSize = 7
     footer_style.textColor = colors.grey
     footer_style.alignment = TA_CENTER
     elements.append(Paragraph(footer_text, footer_style))
 
-    # ─── Build PDF ────────────────────────────────
     doc.build(elements)
     return response
 
+#________________________________________
+# Party Ledger Excel Export View
 # ──────────────────────────────────────────────────────────────
-# Print Payment History View
-# ──────────────────────────────────────────────────────────────
+@login_required(login_url="login")
+def export_party_ledger_excel(request):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Goods Report"
 
+    # Header Title
+    ws.merge_cells('A1:N1')
+    ws['A1'] = "DHANLAXMI AGRO ACTIVITIES & TRANSLOGISTICS"
+    ws['A1'].font = Font(bold=True, size=12)
+    ws['A1'].alignment = Alignment(horizontal='center')
 
+    ws.merge_cells('A3:N3')
+    ws['A3'] = "Goods Report"
+    ws['A3'].font = Font(bold=True, size=12, color="800080")
+    ws['A3'].alignment = Alignment(horizontal='center')
+
+    # Table Headers (Party column before Consignee)
+    headers = ["CN No.", "Date", "Truck No", "Consignee", "Party", "10 KG", "10KG Rate", "20 KG", "20KG Rate", "10 KG Fare", "20 KG Fare", "Total", "Paid", "Due"]
+    ws.append(headers)
+
+    header_fill = PatternFill(start_color='9C27B0', end_color='9C27B0', fill_type='solid')
+    for cell in ws[ws.max_row]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+
+    # Search Filters (Same as PDF Logic)
+    to_party_query = request.GET.get("to_party_search", "").strip()
+    vehicle_query = request.GET.get("vehicle_search", "").strip()
+
+    consignment_list = Consignment.objects.all().order_by("-Loading_Date")
+
+    if to_party_query:
+        matching_to_party_ids = Consignee.objects.filter(
+            consignee_name__icontains=to_party_query
+        ).values_list("id", flat=True)
+
+        matching_consignment_ids = GoodsInfo.objects.filter(
+            to_party_id__in=matching_to_party_ids
+        ).values_list("consignment__CNID", flat=True).distinct()
+
+        consignment_list = consignment_list.filter(CNID__in=matching_consignment_ids)
+
+    if vehicle_query:
+        consignment_list = consignment_list.filter(Vehicle_No__vehicle_number__icontains=vehicle_query)
+
+    vehicles_lookup = {str(v.id): v.vehicle_number for v in Vehicle.objects.all()}
+    consignees_lookup = {c.id: c.consignee_name for c in Consignee.objects.all()}
+
+    # Data Rows from GoodsInfo linked to filtered Consignments
+    goods_items = GoodsInfo.objects.filter(consignment__in=consignment_list).order_by("-created_at")
+
+    for gi in goods_items:
+        c = gi.consignment
+        vehicle_no = vehicles_lookup.get(str(c.Vehicle_No_id), c.Vehicle_No_id)
+        consignee_name = consignees_lookup.get(c.consignee_id, c.consignee_id)
+        to_party_name = consignees_lookup.get(gi.to_party_id, gi.to_party_id)
+
+        qty = gi.quantity or 0
+        rate = gi.rate or 0
+        paid_amount = gi.paid_amount or 0
+        due_amount = gi.balance_amount or 0
+        gi_amount = gi.gi_amount or qty * rate
+
+        unit = (gi.unit or "").upper()
+        qty_10 = rate_10 = fare_10 = qty_20 = rate_20 = fare_20 = 0
+
+        if unit == "10KG":
+            qty_10, rate_10, fare_10 = qty, rate, gi_amount
+        elif unit == "20KG":
+            qty_20, rate_20, fare_20 = qty, rate, gi_amount
+
+        row = [
+            c.CNID,
+            c.Loading_Date.strftime('%Y-%m-%d') if c.Loading_Date else '',
+            vehicle_no,
+            to_party_name,   # <-- Party (GoodsInfo.to_party_id)
+            consignee_name,  # <-- Consignee (from Consignment)
+            qty_10, rate_10, qty_20, rate_20,
+            fare_10, fare_20, gi_amount, paid_amount, due_amount
+        ]
+        ws.append(row)
+
+    # Auto-fit Columns
+    for col in ws.columns:
+        max_length = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[get_column_letter(col[0].column)].width = min(max_length + 2, 20)
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=Goods_Report.xlsx'
+    wb.save(response)
+    return response
 # ______________________________________________________________
 # Print Bill View
 # ──────────────────────────────────────────────────────────────
@@ -4018,7 +2876,7 @@ def print_bill(request, cnid):
         goods_items = GoodsInfo.objects.filter(consignment=consignment)
         for item in goods_items:
             all_goods.append({
-                'cnid': consignment.CNID,
+                'cnid': consignment.Cn_No,
                 'truck_no': consignment.Vehicle_No.vehicle_number if consignment.Vehicle_No else '',
                 'from_party': item.from_party,
                 'to_party': item.to_party,
@@ -4067,265 +2925,6 @@ def print_bill(request, cnid):
     
 #_____________________________________________________________________________
 
-
-# @csrf_exempt
-# @login_required(login_url="login")
-# def cash_book_view(request):
-#     if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
-#         data = json.loads(request.body)
-
-#         party = data.get("party")
-#         paid_amount = Decimal(str(data.get("paid_amount", "0")))
-#         payment_date = data.get("payment_date")
-#         payment_type = data.get("payment_type")
-#         payment_mode = data.get("payment_mode")
-#         vehicle_no = data.get("vehicle_no")
-#         loading_date = data.get("date")
-
-#         consignee_id = Consignee.objects.filter(consignee_name=party).values_list("id", flat=True).first()
-#         consigner_id = Consigner.objects.filter(consigner_name=party).values_list("id", flat=True).first()
-#         valid_party_ids = list(filter(None, [consignee_id, consigner_id]))
-
-#         goods_list = GoodsInfo.objects.filter(
-#             to_party__in=valid_party_ids,
-#             consignment__Vehicle_No__vehicle_number=vehicle_no,
-#             consignment__Loading_Date=loading_date,
-#         ).order_by("GI_ID")
-
-#         if not goods_list.exists():
-#             return JsonResponse({"error": "GoodsInfo not found"}, status=404)
-
-#         updated_goods_ids = []
-
-#         for goods in goods_list:
-#             if paid_amount <= 0:
-#                 break
-
-#             total_paid_before = PaymentRecord.objects.filter(goods_info_ids__contains=[goods.id]).aggregate(
-#                 total=Sum('paid_amount'))['total'] or Decimal("0.00")
-
-#             remaining_balance = goods.gi_amount - total_paid_before
-
-#             if remaining_balance <= 0:
-#                 continue
-
-#             pay_now = min(paid_amount, remaining_balance)
-#             balance_after_payment = remaining_balance - pay_now
-
-#             updated_goods_ids.append(goods.id)
-
-#             # Create PaymentRecord (one per goods)
-#             PaymentRecord.objects.create(
-#                 goods_info_ids=[goods.id],
-#                 party=party,
-#                 balance_amount=balance_after_payment,
-#                 paid_amount=pay_now,
-#                 payment_type=payment_type,
-#                 payment_mode=payment_mode,
-#                 payment_date=payment_date,
-#                 remark="remark",
-#                 created_at=timezone.now(),
-#             )
-
-#             # Update GoodsInfo
-#             goods.paid_amount = total_paid_before + pay_now
-#             goods.balance_amount = goods.gi_amount - goods.paid_amount
-#             goods.party_payment = payment_date
-#             goods.save(update_fields=["paid_amount", "balance_amount", "party_payment"])
-
-#             paid_amount -= pay_now
-
-#         return JsonResponse({"success": True})
-
-#     # Get current balance for selected party, vehicle, and date
-#     elif request.GET.get("to_party") and request.GET.get("vehicle_no") and request.GET.get("date"):
-#         party_name = request.GET.get("to_party")
-#         vehicle_no = request.GET.get("vehicle_no")
-#         date = request.GET.get("date")
-
-#         consignee_id = Consignee.objects.filter(consignee_name=party_name).values_list("id", flat=True).first()
-#         consigner_id = Consigner.objects.filter(consigner_name=party_name).values_list("id", flat=True).first()
-#         valid_party_ids = list(filter(None, [consignee_id, consigner_id]))
-
-#         goods_list = GoodsInfo.objects.filter(
-#             to_party__in=valid_party_ids,
-#             consignment__Vehicle_No__vehicle_number=vehicle_no,
-#             consignment__Loading_Date=date,
-#         )
-
-#         if goods_list.exists():
-#             total_gi_amount = goods_list.aggregate(total=Sum('gi_amount'))['total'] or 0
-#             total_paid = 0
-#             for g in goods_list:
-#                 paid = PaymentRecord.objects.filter(goods_info_ids__contains=[g.id]).aggregate(
-#                     total=Sum('paid_amount'))['total'] or 0
-#                 total_paid += paid
-#             balance = total_gi_amount - total_paid
-
-#             return JsonResponse({
-#                 "gi_amount": float(total_gi_amount),
-#                 "paid_amount": float(total_paid),
-#                 "balance_amount": round(float(balance), 2)
-#             })
-#         else:
-#             return JsonResponse({"gi_amount": 0, "paid_amount": 0, "balance_amount": 0})
-
-#     # Get vehicle numbers for selected date
-#     elif request.GET.get("date") and not request.GET.get("vehicle_no"):
-#         date = request.GET.get("date")
-#         vehicles = Consignment.objects.filter(Loading_Date=date).select_related("Vehicle_No").values_list(
-#             "Vehicle_No__vehicle_number", flat=True).distinct()
-#         return JsonResponse(list(vehicles), safe=False)
-
-#     # Get TO PARTY names for selected vehicle
-#     elif request.GET.get("vehicle_no"):
-#         vehicle_no = request.GET.get("vehicle_no")
-
-#         to_party_ids = GoodsInfo.objects.filter(consignment__Vehicle_No__vehicle_number=vehicle_no).values_list(
-#             "to_party", flat=True).distinct()
-
-#         names = set()
-#         for pid in to_party_ids:
-#             if not pid:
-#                 continue
-#             if str(pid).isdigit():
-#                 pid = int(pid)
-#                 name = (
-#                     Consignee.objects.filter(id=pid).values_list("consignee_name", flat=True).first()
-#                     or Consigner.objects.filter(id=pid).values_list("consigner_name", flat=True).first()
-#                 )
-#                 if name:
-#                     names.add(name)
-
-#         return JsonResponse([{"name": name} for name in names], safe=False)
-
-#     return render(request, "cash_book.html")
-
-# @csrf_exempt
-# @login_required(login_url="login")
-# def cash_book_view(request):
-#     if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
-#         data = json.loads(request.body)
-
-#         party = data.get("party")
-#         paid_amount = Decimal(str(data.get("paid_amount", "0")))
-#         payment_date = data.get("payment_date")
-#         payment_type = data.get("payment_type")
-#         payment_mode = data.get("payment_mode")
-#         vehicle_no = data.get("vehicle_no")
-#         loading_date = data.get("date")
-
-#         # Find party ID from either Consignee or Consigner
-#         consignee_id = Consignee.objects.filter(consignee_name=party).values_list("id", flat=True).first()
-#         consigner_id = Consigner.objects.filter(consigner_name=party).values_list("id", flat=True).first()
-#         valid_party_ids = list(filter(None, [consignee_id, consigner_id]))
-
-#         # Find all matching GoodsInfo records ordered by GI_ID
-#         goods_list = GoodsInfo.objects.filter(
-#             to_party__in=valid_party_ids,
-#             consignment__Vehicle_No__vehicle_number=vehicle_no,
-#             consignment__Loading_Date=loading_date,
-#         ).order_by("GI_ID")
-
-#         if not goods_list.exists():
-#             return JsonResponse({"error": "GoodsInfo not found"}, status=404)
-
-#         for goods in goods_list:
-#             if paid_amount <= 0:
-#                 break
-
-#             total_paid_before = PaymentRecord.objects.filter(goods_info=goods).aggregate(
-#                 total=Sum('paid_amount'))['total'] or Decimal("0.00")
-
-#             remaining_balance = goods.gi_amount - total_paid_before
-
-#             if remaining_balance <= 0:
-#                 continue
-
-#             pay_now = min(paid_amount, remaining_balance)
-#             balance_after_payment = remaining_balance - pay_now
-
-#             PaymentRecord.objects.create(
-#                 goods_info=goods,
-#                 consignment=goods.consignment,
-#                 party=party,
-#                 balance_amount=balance_after_payment,
-#                 paid_amount=pay_now,
-#                 payment_type=payment_type,
-#                 payment_mode=payment_mode,
-#                 payment_date=payment_date,
-#                 remark="remark",
-#                 created_at=timezone.now(),
-#             )
-
-#             goods.paid_amount = total_paid_before + pay_now
-#             goods.balance_amount = goods.gi_amount - goods.paid_amount
-#             goods.party_payment = payment_date
-#             goods.save(update_fields=["paid_amount", "balance_amount", "party_payment"])
-
-#             paid_amount -= pay_now
-
-#         return JsonResponse({"success": True})
-
-#     # Get current balance for selected party, vehicle, and date
-#     elif request.GET.get("to_party") and request.GET.get("vehicle_no") and request.GET.get("date"):
-#         party_name = request.GET.get("to_party")
-#         vehicle_no = request.GET.get("vehicle_no")
-#         date = request.GET.get("date")
-
-#         consignee_id = Consignee.objects.filter(consignee_name=party_name).values_list("id", flat=True).first()
-#         consigner_id = Consigner.objects.filter(consigner_name=party_name).values_list("id", flat=True).first()
-#         valid_party_ids = list(filter(None, [consignee_id, consigner_id]))
-
-#         goods_list = GoodsInfo.objects.filter(
-#             to_party__in=valid_party_ids,
-#             consignment__Vehicle_No__vehicle_number=vehicle_no,
-#             consignment__Loading_Date=date,
-#         )
-
-#         if goods_list.exists():
-#             total_gi_amount = goods_list.aggregate(total=Sum('gi_amount'))['total'] or 0
-#             total_paid = PaymentRecord.objects.filter(goods_info__in=goods_list).aggregate(total=Sum('paid_amount'))['total'] or 0
-#             balance = total_gi_amount - total_paid
-
-#             return JsonResponse({
-#                 "gi_amount": float(total_gi_amount),
-#                 "paid_amount": float(total_paid),
-#                 "balance_amount": round(float(balance), 2)
-#             })
-#         else:
-#             return JsonResponse({"gi_amount": 0, "paid_amount": 0, "balance_amount": 0})
-
-#     # Get vehicle numbers for selected date
-#     elif request.GET.get("date") and not request.GET.get("vehicle_no"):
-#         date = request.GET.get("date")
-#         vehicles = Consignment.objects.filter(Loading_Date=date).select_related("Vehicle_No").values_list(
-#             "Vehicle_No__vehicle_number", flat=True).distinct()
-#         return JsonResponse(list(vehicles), safe=False)
-
-#     # Get TO PARTY names for selected vehicle
-#     elif request.GET.get("vehicle_no"):
-#         vehicle_no = request.GET.get("vehicle_no")
-
-#         to_party_ids = GoodsInfo.objects.filter(consignment__Vehicle_No__vehicle_number=vehicle_no).values_list(
-#             "to_party", flat=True).distinct()
-
-#         names = set()
-#         for pid in to_party_ids:
-#             if not pid:
-#                 continue
-#             if str(pid).isdigit():
-#                 pid = int(pid)
-#                 name = (
-#                     Consignee.objects.filter(id=pid).values_list("consignee_name", flat=True).first()
-#                     or Consigner.objects.filter(id=pid).values_list("consigner_name", flat=True).first()
-#                 )
-#                 if name:
-#                     names.add(name)
-
-#         return JsonResponse([{"name": name} for name in names], safe=False)
-
-#     return render(request, "cash_book.html")
 @csrf_exempt
 @login_required(login_url="login")
 def parcha_view(request):
@@ -4459,7 +3058,6 @@ def parcha_view(request):
             return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
 
     return render(request, "record_payment.html")
-
 
 @csrf_exempt
 @login_required(login_url="login")
@@ -4895,7 +3493,8 @@ def record_vehicle_expense(request):
 # ──────────────────────────────────────────────────────────────
 # RECORD EXPENSE VIEW
 # ──────────────────────────────────────────────────────────────
-
+@csrf_exempt
+@login_required(login_url="login")
 @require_http_methods(["GET", "POST"])
 def record_expense_view(request):
     # Handle AJAX request for dropdown data
@@ -4945,8 +3544,100 @@ def record_expense_view(request):
     # Regular GET request - render the template
     return render(request, "record_expense.html")
 
+def record_expense_list_view(request):
+    # Get all types of expense records (Vehicle, Petrol Pump, Staff/Employee)
+    records = RecordExpense.objects.all().order_by("-payment_date")
+    return render(request, 'record_expense_list.html', {'expense_records': records})
 
 
+@csrf_exempt
+def delete_expense_record(request, pk):
+    if request.method == "POST":
+        try:
+            record = get_object_or_404(RecordExpense, pk=pk)
+            record.delete()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+@csrf_exempt
+def record_vehicle_expense(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+
+            vehicle_number = data.get("vehicle_number")
+            amount = Decimal(data.get("amount", 0))
+            payment_date = data.get("payment_date")
+            payment_mode = data.get("payment_mode")
+            remark = data.get("remark", "")
+
+            vehicle = Vehicle.objects.get(vehicle_number=vehicle_number)
+
+            # Get consignments with balance > 0 for this vehicle
+            consignments = Consignment.objects.filter(
+                Vehicle_No=vehicle, Balance_Amount__gt=0
+            ).order_by('CNID')
+
+            remaining = amount
+            for consignment in consignments:
+                if remaining <= 0:
+                    break
+                if consignment.Balance_Amount >= remaining:
+                    consignment.Balance_Amount -= remaining
+                    remaining = 0
+                else:
+                    remaining -= consignment.Balance_Amount
+                    consignment.Balance_Amount = 0
+                consignment.save()
+
+            # Save record in RecordExpense
+            RecordExpense.objects.create(
+                expense_account_type="Vehicle",
+                expense_account_name=vehicle_number,
+                paid_amount=amount,
+                payment_date=payment_date,
+                payment_mode=payment_mode,
+                remark=remark,
+                created_at=timezone.now()
+            )
+
+            return JsonResponse({"success": True})
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+@csrf_exempt
+def vehicle_view(request):
+    vehicle_number = request.GET.get('vehicle_number')
+
+    try:
+        # 1. Get vehicle instance
+        vehicle = Vehicle.objects.get(vehicle_number=vehicle_number)
+
+        # 2. Get all consignments of this vehicle and sum the Balance_Amount
+        from accounts.models import Consignment  # Adjust if needed
+
+        total_balance = (
+            Consignment.objects
+            .filter(Vehicle_No=vehicle)
+            .aggregate(total=models.Sum('Balance_Amount'))['total'] or 0
+        )
+
+        return JsonResponse({
+            "success": True,
+            "balance_amount": float(total_balance)
+        })
+
+    except Vehicle.DoesNotExist:
+        return JsonResponse({
+            "success": False,
+            "error": "Vehicle not found"
+        }, status=404)
+# ──────────────────────────────────────────────────────────────
+# STAFF EMPLOYEE VIEW
+# ──────────────────────────────────────────────────────────────
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
 def staff_employees_view(request):
     # Handle AJAX request for dropdown data (GET)
@@ -5000,6 +3691,8 @@ def staff_employees_view(request):
 # ──────────────────────────────────────────────────────────────
 # PARTY MAINTAINANCE VIEW
 # ──────────────────────────────────────────────────────────────
+
+@login_required(login_url="login")
 def party_maintainance_view(request):
     selected_party_id = request.GET.get('party_id')
     selected_party = None
@@ -5014,15 +3707,16 @@ def party_maintainance_view(request):
     if selected_party_id:
         selected_party = get_object_or_404(Consignee, id=selected_party_id)
 
-        # ✅ Fix: use selected_party.id instead of the object
-        # Get debit entries (consignments related to this party)
-        debit_entries = Consignment.objects.filter(consignee_id=selected_party.id)
-        print("Debit Entries:", debit_entries)
-
+        # Get consignments for any matching party name
+        debit_entries = Consignment.objects.filter(
+            consignee__consignee_name=selected_party.consignee_name
+        )
         total_debit = debit_entries.aggregate(total=Sum('total_fare'))['total'] or 0
-        print("Total Debit:", total_debit)
-        # Get credit entries (payment records related to this party)
-        credit_entries = PaymentRecord.objects.filter(party=selected_party)
+
+        # Get payments where party name matches
+        credit_entries = PaymentRecord.objects.filter(
+            party=selected_party.consignee_name
+        )
         total_credit = credit_entries.aggregate(total=Sum('paid_amount'))['total'] or 0
 
         balance = total_debit - total_credit
@@ -5036,43 +3730,6 @@ def party_maintainance_view(request):
         'total_credit': total_credit,
         'balance': balance,
     })
-
-
-# def party_maintainance_view(request):
-#     selected_party_id = request.GET.get('party_id')
-#     selected_party = None
-#     debit_entries = []
-#     credit_entries = []
-#     total_debit = 0
-#     total_credit = 0
-#     balance = 0
-
-#     parties = Consignee.objects.all()
-
-#     if selected_party_id:
-#         selected_party = get_object_or_404(Consignee, id=selected_party_id)
-
-#         # Get debit entries (consignments related to this party)
-#         debit_entries = Consignment.objects.filter(consignee=selected_party)
-#         total_debit = debit_entries.aggregate(total=Sum('total_fare'))['total'] or 0
-
-#         # Get credit entries (payment records related to this party)
-#         credit_entries = PaymentRecord.objects.filter(party=selected_party)
-#         total_credit = credit_entries.aggregate(total=Sum('paid_amount'))['total'] or 0
-
-#         # Compute balance
-#         balance = total_debit - total_credit
-
-#     return render(request, 'party_maintainance.html', {
-#         'parties': parties,
-#         'selected_party': selected_party,
-#         'debit_entries': debit_entries,
-#         'credit_entries': credit_entries,
-#         'total_debit': total_debit,
-#         'total_credit': total_credit,
-#         'balance': balance,
-#     })
-
 # ──────────────────────────────────────────────────────────────
 # VEHICLE MAINTAINANCE VIEW
 # ──────────────────────────────────────────────────────────────
@@ -5125,25 +3782,14 @@ def delete_payment_record(request, pk):
         try:
             record = get_object_or_404(PaymentRecord, pk=pk)
 
-            # ✅ Restore payment in GoodsInfo (for both Parcha & Part Payment)
-            if record.goods_info:   # Part Payment or Parcha stored with goods_info
-                goods = record.goods_info
+            #  Restore in GoodsInfo before deleting
+            if hasattr(record, "goodsinfo") and record.goodsinfo:
+                goods = record.goodsinfo
                 goods.balance_amount = (goods.balance_amount or 0) + record.paid_amount
                 goods.paid_amount = (goods.paid_amount or 0) - record.paid_amount
-                goods.save(update_fields=["balance_amount", "paid_amount"])
+                goods.save()
 
-            elif record.consignment:   # If only consignment is linked (Parcha case)
-                goods_qs = GoodsInfo.objects.filter(consignment=record.consignment)
-
-                # Restore proportionally or equally (depending on your logic)
-                for goods in goods_qs:
-                    # If this consignment only had one party → restore directly
-                    goods.balance_amount = (goods.balance_amount or 0) + record.paid_amount
-                    goods.paid_amount = (goods.paid_amount or 0) - record.paid_amount
-                    goods.save(update_fields=["balance_amount", "paid_amount"])
-                    break   # remove this if multiple goods need restoring
-
-            # ✅ Now delete record
+            #  Now delete record
             record.delete()
 
             return JsonResponse({'success': True})
@@ -5151,8 +3797,6 @@ def delete_payment_record(request, pk):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
-
-
 
 @csrf_exempt
 def edit_payment_record(request, pk):
@@ -5200,9 +3844,16 @@ def delete_expense_record(request, pk):
 # Cumulative  Report View
 # ──────────────────────────────────────────────────────────────
 
+# ──────────────────────────────────────────────────────────────
+# Cumulative  Report View
+# ──────────────────────────────────────────────────────────────
+@csrf_exempt
 def cumulative_report_view(request):
     goods = GoodsInfo.objects.select_related('consignment', 'to_party').all()
-    payments = PaymentRecord.objects.select_related('consignment').all()
+    payments = PaymentRecord.objects.select_related(
+        'consignment', 'goods_info', 'goods_info__from_party'
+    ).all()
+
 
     party_entries = defaultdict(list)
     cumulative_totals = defaultdict(float)
@@ -5223,8 +3874,9 @@ def cumulative_report_view(request):
             'date': item.consignment.Loading_Date if item.consignment else item.created_at.date(),
             'truck_no': item.consignment.Vehicle_No.vehicle_number if item.consignment and item.consignment.Vehicle_No else '',
             'consignee': item.consignment.consignee.consignee_name if item.consignment and item.consignment.consignee else '',
-            'from_party': item.consignment.consignee.consignee_name if item.consignment and item.consignment.consignee else '',
+            'from_party': item.from_party.consignee_name if item.from_party else '',
             'party': party_name,
+            
             'qty_10kg': qty_10kg,
             'rate_10kg': rate_10kg,
             'qty_20kg': qty_20kg,
@@ -5243,12 +3895,20 @@ def cumulative_report_view(request):
     # 2. Add PAYMENT entries
     for payment in payments:
         party_name = payment.party if payment.party else "Unknown"
+
+        # Access from_party through related GoodsInfo object
+        from_party_name = (
+            payment.goods_info.from_party.consignee_name
+            if payment.goods_info and payment.goods_info.from_party
+            else ''
+        )
+
         payment_entry = {
             'cn_no': '',
             'date': payment.payment_date,
             'truck_no': payment.consignment.Vehicle_No.vehicle_number if payment.consignment and payment.consignment.Vehicle_No else '',
             'consignee': '',
-            'from_party': '',
+            'from_party': from_party_name,
             'party': party_name,
             'qty_10kg': 0,
             'rate_10kg': 0,
@@ -5307,291 +3967,6 @@ def cumulative_report_view(request):
         'total_fare_10kg': total_fare_10kg,
         'total_fare_20kg': total_fare_20kg,  # Add this
     })
-
-
-
-#my old code 
-# def cumulative_report_view(request):
-#     goods = GoodsInfo.objects.select_related('consignment', 'to_party').all()
-#     payments = PaymentRecord.objects.select_related('consignment').all()
-
-#     party_data = defaultdict(list)
-#     cumulative_totals = defaultdict(float)
-#     party_entries = defaultdict(list)
-
-#     # 1. Add GOODS entries
-#     for item in goods:
-#         party_name = item.to_party.consignee_name if item.to_party else "Unknown"
-
-#         qty_10kg = item.quantity if item.unit == "10kg" else 0
-#         qty_20kg = item.quantity if item.unit == "20kg" else 0
-#         rate_10kg = item.rate if item.unit == "10kg" else 0
-#         rate_20kg = item.rate if item.unit == "20kg" else 0
-#         fare_10kg = qty_10kg * rate_10kg
-#         fare_20kg = qty_20kg * rate_20kg
-#         amount = fare_10kg + fare_20kg
-
-#         sort_date = item.created_at  # use datetime for accurate sorting
-
-#         goods_entry = {
-#             'cn_no': item.consignment.CNID if item.consignment else '',
-#             'date': item.consignment.Booking_Date if item.consignment else item.created_at.date(),
-#             'truck_no': item.consignment.Vehicle_No.vehicle_number if item.consignment and item.consignment.Vehicle_No else '',
-#             'consignee': item.consignment.consignee.consignee_name if item.consignment and item.consignment.consignee else '',
-#             'party': party_name,
-#             'qty_10kg': qty_10kg,
-#             'rate_10kg': rate_10kg,
-#             'qty_20kg': qty_20kg,
-#             'rate_20kg': rate_20kg,
-#             'fare_10kg': fare_10kg,
-#             'fare_20kg': fare_20kg,
-#             'total': amount,
-#             'amount': amount,
-#             'paid': 0,
-#             'is_payment': False,
-#             'sort_date': sort_date,
-#             'created_at': item.created_at,
-#         }
-#         party_entries[party_name].append(goods_entry)
-
-#     # 2. Add PAYMENT entries from PaymentRecord
-#     for payment in payments:
-#         party_name = payment.party or "Unknown"
-#         sort_date = payment.created_at  # datetime (accurate)
-
-#         payment_entry = {
-#             'cn_no': '',
-#             'date': payment.payment_date,  # for display only
-#             'truck_no': payment.consignment.Vehicle_No.vehicle_number if payment.consignment and payment.consignment.Vehicle_No else '',
-#             'consignee': '',
-#             'party': party_name,
-#             'qty_10kg': 0,
-#             'rate_10kg': 0,
-#             'qty_20kg': 0,
-#             'rate_20kg': 0,
-#             'fare_10kg': 0,
-#             'fare_20kg': 0,
-#             'total': 0,
-#             'amount': 0,
-#             'paid': payment.paid_amount,
-#             'is_payment': True,
-#             'sort_date': sort_date,
-#             'created_at': payment.created_at,
-#         }
-#         party_entries[party_name].append(payment_entry)
-
-#     # 3. Sort and calculate cumulative
-#     for party_name in party_entries:
-#         party_entries[party_name].sort(key=lambda x: (x['sort_date'], x['created_at']))
-#         cumulative_totals[party_name] = 0.0
-
-#         for entry in party_entries[party_name]:
-#             if entry['is_payment']:
-#                 cumulative_totals[party_name] -= float(entry['paid'])
-#             else:
-#                 cumulative_totals[party_name] += float(entry['amount'])
-
-#             entry['cumulative'] = round(abs(cumulative_totals[party_name]), 2)
-
-#         party_data[party_name] = party_entries[party_name]
-
-#     # Sort all parties alphabetically
-#     party_data = dict(sorted(party_data.items()))
-
-#     return render(request, 'cumulative_report.html', {
-#         'party_data': party_data
-#     })
-
-# This is shweta's code 
-# def cumulative_report_view(request):
-#     goods = GoodsInfo.objects.select_related('consignment', 'to_party').all()
-#     payments = PaymentRecord.objects.select_related('consignment').all()
-
-#     party_data = defaultdict(list)
-#     cumulative_totals = defaultdict(float)
-#     party_entries = defaultdict(list)
-
-#     # 1. Add GOODS entries
-#     for item in goods:
-#         party_name = item.to_party.consignee_name if item.to_party else "Unknown"
-
-#         qty_10kg = item.quantity if item.unit == "10kg" else 0
-#         qty_20kg = item.quantity if item.unit == "20kg" else 0
-#         rate_10kg = item.rate if item.unit == "10kg" else 0
-#         rate_20kg = item.rate if item.unit == "20kg" else 0
-#         fare_10kg = qty_10kg * rate_10kg
-#         fare_20kg = qty_20kg * rate_20kg
-#         amount = fare_10kg + fare_20kg
-
-#         sort_date = item.created_at  # use datetime for accurate sorting
-
-#         goods_entry = {
-#             'cn_no': item.consignment.CNID if item.consignment else '',
-#             'date': item.consignment.Booking_Date if item.consignment else item.created_at.date(),
-#             'truck_no': item.consignment.Vehicle_No.vehicle_number if item.consignment and item.consignment.Vehicle_No else '',
-#             'consignee': item.consignment.consignee.consignee_name if item.consignment and item.consignment.consignee else '',
-#             'party': party_name,
-#             'qty_10kg': qty_10kg,
-#             'rate_10kg': rate_10kg,
-#             'qty_20kg': qty_20kg,
-#             'rate_20kg': rate_20kg,
-#             'fare_10kg': fare_10kg,
-#             'fare_20kg': fare_20kg,
-#             'total': amount,
-#             'amount': amount,
-#             'paid': 0,
-#             'is_payment': False,
-#             'sort_date': sort_date,
-#             'created_at': item.created_at,
-#         }
-#         party_entries[party_name].append(goods_entry)
-
-#     # 2. Add PAYMENT entries from PaymentRecord
-#     for payment in payments:
-#         party_name = payment.party or "Unknown"
-#         sort_date = payment.created_at  # datetime (accurate)
-
-#         payment_entry = {
-#             'cn_no': '',
-#             'date': payment.payment_date,  # for display only
-#             #'truck_no': payment.consignment.Vehicle_No.vehicle_number if payment.consignment and payment.consignment.Vehicle_No else '',
-#             'consignee': '',
-#             'party': party_name,
-#             'qty_10kg': 0,
-#             'rate_10kg': 0,
-#             'qty_20kg': 0,
-#             'rate_20kg': 0,
-#             'fare_10kg': 0,
-#             'fare_20kg': 0,
-#             'total': 0,
-#             'amount': 0,
-#             'paid': payment.paid_amount,
-#             'is_payment': True,
-#             'sort_date': sort_date,
-#             'created_at': payment.created_at,
-#         }
-#         party_entries[party_name].append(payment_entry)
-
-#     # 3. Sort and calculate cumulative
-#     for party_name in party_entries:
-#         party_entries[party_name].sort(key=lambda x: (x['sort_date'], x['created_at']))
-#         cumulative_totals[party_name] = 0.0
-
-#         for entry in party_entries[party_name]:
-#             if entry['is_payment']:
-#                 cumulative_totals[party_name] -= float(entry['paid'])
-#             else:
-#                 cumulative_totals[party_name] += float(entry['amount'])
-
-#             entry['cumulative'] = round(abs(cumulative_totals[party_name]), 2)
-
-#         party_data[party_name] = party_entries[party_name]
-
-#     # Sort all parties alphabetically
-#     party_data = dict(sorted(party_data.items()))
-
-#     return render(request, 'cumulative_report.html', {
-#         'party_data': party_data
-#     })
-# def cumulative_report_view(request):
-#     goods = GoodsInfo.objects.select_related(
-#         'consignment', 'to_party', 'consignment__Vehicle_No', 'consignment__consignee'
-#     ).order_by('created_at')
-
-#     party_data = defaultdict(list)
-#     party_entries = defaultdict(list)
-
-#     # 1. GOODS ENTRIES
-#     for item in goods:
-#         party_name = item.to_party.consignee_name if item.to_party else "Unknown"
-
-#         if item.quantity:
-#             qty_10kg = item.quantity if item.unit == "10kg" else 0
-#             qty_20kg = item.quantity if item.unit == "20kg" else 0
-#             rate_10kg = item.rate if item.unit == "10kg" else 0
-#             rate_20kg = item.rate if item.unit == "20kg" else 0
-#             fare_10kg = qty_10kg * rate_10kg
-#             fare_20kg = qty_20kg * rate_20kg
-#             total_amount = item.gi_amount if item.gi_amount else (fare_10kg + fare_20kg)
-
-#             sort_date = item.consignment.Booking_Date if item.consignment and item.consignment.Booking_Date else item.created_at
-#             if isinstance(sort_date, date) and not isinstance(sort_date, datetime):
-#                 sort_date = datetime.combine(sort_date, datetime.min.time())
-#             if not timezone.is_aware(sort_date):
-#                 sort_date = timezone.make_aware(sort_date)
-
-#             entry = {
-#                 'cn_no': item.consignment.CNID if item.consignment else '',
-#                 'date': sort_date,
-#                 'truck_no': item.consignment.Vehicle_No.vehicle_number if item.consignment and item.consignment.Vehicle_No else '',
-#                 'consignee': item.consignment.consignee.consignee_name if item.consignment and item.consignment.consignee else '',
-#                 'party': party_name,
-#                 'qty_10kg': qty_10kg,
-#                 'rate_10kg': rate_10kg,
-#                 'qty_20kg': qty_20kg,
-#                 'rate_20kg': rate_20kg,
-#                 'fare_10kg': fare_10kg,
-#                 'fare_20kg': fare_20kg,
-#                 'total': total_amount,
-#                 'amount': total_amount,
-#                 'paid': 0,
-#                 'is_payment': False,
-#                 'sort_date': sort_date,
-#                 'created_at': item.created_at,
-#             }
-#             party_entries[party_name].append(entry)
-
-#     # 2. PAYMENT ENTRIES (from PaymentRecord table)
-#     payments = PaymentRecord.objects.all().order_by("payment_date")
-#     for payment in payments:
-#         party_name = payment.party or "Unknown"
-#         payment_date = payment.payment_date or payment.created_at
-
-#         if isinstance(payment_date, date) and not isinstance(payment_date, datetime):
-#             payment_date = datetime.combine(payment_date, datetime.min.time())
-#         if not timezone.is_aware(payment_date):
-#             payment_date = timezone.make_aware(payment_date)
-
-#         payment_entry = {
-#             'cn_no': '',
-#             'date': payment_date,
-#             'truck_no': '',
-#             'consignee': '',
-#             'party': party_name,
-#             'qty_10kg': 0,
-#             'rate_10kg': 0,
-#             'qty_20kg': 0,
-#             'rate_20kg': 0,
-#             'fare_10kg': 0,
-#             'fare_20kg': 0,
-#             'total': 0,
-#             'amount': 0,
-#             'paid': float(payment.paid_amount),
-#             'is_payment': True,
-#             'sort_date': payment_date,
-#             'created_at': payment.created_at,
-#         }
-#         party_entries[party_name].append(payment_entry)
-
-#     # 3. FINAL SORTING AND CUMULATIVE
-#     for party in party_entries:
-#         party_entries[party].sort(key=lambda x: (x['sort_date'], not x['is_payment'], x['created_at']))
-
-#         cumulative = 0.0
-#         for entry in party_entries[party]:
-#             if entry['is_payment']:
-#                 cumulative -= entry['paid']
-#             else:
-#                 cumulative += float(entry['amount'])
-#             entry['cumulative'] = round(abs(cumulative), 2)
-
-#         party_data[party] = party_entries[party]
-
-#     return render(request, 'cumulative_report.html', {
-#         'party_data': dict(sorted(party_data.items()))
-#     })
-
-# from openpyxl.drawing.image import Image as XLImage
 
 # ──────────────────────────────────────────────────────────────
 # Export Cumulative Report in Excel and PDF formats
@@ -5688,7 +4063,8 @@ def export_cumulative_excel(request):
             'date': item.consignment.Booking_Date if item.consignment else item.created_at.date(),
             'truck_no': item.consignment.Vehicle_No.vehicle_number if item.consignment and item.consignment.Vehicle_No else '',
             'consignee': item.consignment.consignee.consignee_name if item.consignment and item.consignment.consignee else '',
-            'from_party': item.consignment.consignee.consignee_name if item.consignment and item.consignment.consignee else '',
+            #'from_party': item.from_party.consignee_name if item.from_party else '',
+            'from_party': item.consignment.consigner.consigner_name.split()[0] if item.consignment and item.consignment.consigner and item.consignment.consigner.consigner_name else '',
             'party': party,
             'qty_10kg': qty_10,
             'rate_10kg': rate_10,
@@ -5713,7 +4089,8 @@ def export_cumulative_excel(request):
             'date': p.payment_date,
             'truck_no': p.consignment.Vehicle_No.vehicle_number if p.consignment and p.consignment.Vehicle_No else '',
             'consignee': '',
-            'from_party': '',
+            #'from_party': p.goods_info.from_party.consignee_name if p.goods_info and p.goods_info.from_party else '',
+            'from_party': item.consignment.consigner.consigner_name.split()[0] if item.consignment and item.consignment.consigner and item.consignment.consigner.consigner_name else '',
             'party': party,
             'qty_10kg': 0,
             'rate_10kg': 0,
@@ -5808,11 +4185,7 @@ def export_cumulative_excel(request):
 
 
 
-# ──────────────────────────────────────────────────────────────
-# Export Cumulative Report in PDF format
-# ──────────────────────────────────────────────────────────────
-from reportlab.lib import colors  # ✅ Corrected import
-
+from reportlab.pdfbase import pdfmetrics
 @login_required(login_url="login")
 def export_cumulative_pdf(request):
     global_search = request.GET.get('global_search', '').strip()
@@ -5820,15 +4193,20 @@ def export_cumulative_pdf(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="cumulative_report.pdf"'
 
-    doc = SimpleDocTemplate(response, pagesize=landscape(A4),
-                            leftMargin=1 * cm, rightMargin=1 * cm,
-                            topMargin=1.5 * cm, bottomMargin=1 * cm)
+    doc = SimpleDocTemplate(
+        response,
+        pagesize=landscape(A4),
+        leftMargin=1 * cm,
+        rightMargin=1 * cm,
+        topMargin=1.5 * cm,
+        bottomMargin=1 * cm,
+    )
     elements = []
     styles = getSampleStyleSheet()
 
     # Custom styles
     wrap_style = styles['Normal'].clone('WrapStyle')
-    wrap_style.fontSize = 8  # slightly increased font
+    wrap_style.fontSize = 8
     wrap_style.leading = 9
     wrap_style.alignment = TA_CENTER
 
@@ -5869,24 +4247,31 @@ def export_cumulative_pdf(request):
     address_block = [
         Paragraph("<b>DHANLAXMI AGRO ACTIVITIES & TRANSLOGISTICS</b>", company_style),
         Paragraph("<b>IMPORT | EXPORT | FRUIT PROCESSING AGRO MARKETING & TRADING</b>", subtitle_style),
-        Paragraph("18, 3rd Floor, Dharmaveer Raje Sambhaji Vyapari Sankul, Ugaon, Tal-Niphad, Dist-Nashik - 422304", address_style),
+        Paragraph(
+            "18, 3rd Floor, Dharmaveer Raje Sambhaji Vyapari Sankul, Ugaon, Tal-Niphad, Dist-Nashik - 422304",
+            address_style,
+        ),
         Paragraph("Mob: +91 9830357491 | Email: kakashri7314@gmail.com", address_style),
     ]
 
     header_table = Table(
         [[address_block, logo_cell]],
         colWidths=[16 * cm, 5 * cm],
-        hAlign='CENTER'
+        hAlign='CENTER',
     )
-    header_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-        ('ALIGN', (1, 0), (1, 0), 'CENTER'),  # logo beside address
-        ('LEFTPADDING', (0, 0), (-1, -1), 2),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 2),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
+    header_table.setStyle(
+        TableStyle(
+            [
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
     elements.append(header_table)
     elements.append(Spacer(1, 10))
 
@@ -5900,37 +4285,46 @@ def export_cumulative_pdf(request):
 
     # Table headers
     headers = [
-        "S.No", "CN No", "Date", "Truck", "Consignee", "From Party", "Party",
-        "10KG", "10KG Rate", "20KG", "20KG Rate", "10KG Fare", "20KG Fare", "Total", "Paid", "Balance"
+        "S.No",
+        "CN No",
+        "Date",
+        "Truck",
+        "Consignee",
+        "From Party",
+        "Party",
+        "10KG",
+        "10KG Rate",
+        "20KG",
+        "20KG Rate",
+        "10KG Fare",
+        "20KG Fare",
+        "Total",
+        "Paid",
+        "Balance",
     ]
     header_row = [Paragraph(f"<b>{header}</b>", wrap_style) for header in headers]
     data = [header_row]
 
-    # Function to wrap text
-    def create_wrapped_paragraph(text, max_chars=10):
+    # --- Helper to auto fit text ---
+    def fit_text_to_cell(text, col_width, max_font=8, min_font=5):
         if not text:
-            return Paragraph("", wrap_style)
-        text = str(text)
-        if len(text) <= max_chars:
-            return Paragraph(text, wrap_style)
-        wrapped_text = ""
-        words = text.split()
-        current_line = ""
-        for word in words:
-            test_line = current_line + " " + word if current_line else word
-            if len(test_line) <= max_chars:
-                current_line = test_line
-            else:
-                if current_line:
-                    wrapped_text += current_line + "<br/>"
-                    current_line = word
-                else:
-                    wrapped_text += word[:max_chars] + "<br/>"
-                    current_line = word[max_chars:]
-        if current_line:
-            wrapped_text += current_line
-        return Paragraph(wrapped_text, wrap_style)
+            return ""
 
+        text = str(text)
+        font_name = wrap_style.fontName
+        font_size = max_font
+
+        while font_size >= min_font:
+            text_width = pdfmetrics.stringWidth(text, font_name, font_size)
+            if text_width <= col_width - 2:
+                return text  # return plain string, no wrapping
+            font_size -= 1
+
+        # truncate with ellipsis
+        max_chars = int(col_width // (min_font * 0.6))
+        return text[:max_chars] + "..."
+
+    # Query data
     goods = GoodsInfo.objects.select_related('consignment', 'to_party').all()
     payments = PaymentRecord.objects.select_related('consignment').all()
     party_entries = defaultdict(list)
@@ -5947,51 +4341,55 @@ def export_cumulative_pdf(request):
         fare_20 = qty_20 * rate_20
         total = fare_10 + fare_20
 
-        party_entries[party].append({
-            'cn_no': item.consignment.CNID if item.consignment else '',
-            'date': item.consignment.Booking_Date if item.consignment else item.created_at.date(),
-            'truck_no': item.consignment.Vehicle_No.vehicle_number if item.consignment and item.consignment.Vehicle_No else '',
-            'consignee': item.consignment.consignee.consignee_name if item.consignment and item.consignment.consignee else '',
-            'from_party': item.consignment.consigner.consigner_name if item.consignment and item.consignment.consigner else '',
-            'party': party,
-            'qty_10kg': qty_10,
-            'rate_10kg': rate_10,
-            'qty_20kg': qty_20,
-            'rate_20kg': rate_20,
-            'fare_10kg': fare_10,
-            'fare_20kg': fare_20,
-            'total': total,
-            'paid': 0,
-            'is_payment': False,
-            'sort_date': item.consignment.Booking_Date if item.consignment else item.created_at.date(),
-            'created_at': item.created_at,
-        })
+        party_entries[party].append(
+            {
+                'cn_no': item.consignment.CNID if item.consignment else '',
+                'date': item.consignment.Booking_Date if item.consignment else item.created_at.date(),
+                'truck_no': item.consignment.Vehicle_No.vehicle_number if item.consignment and item.consignment.Vehicle_No else '',
+                'consignee': item.consignment.consignee.consignee_name if item.consignment and item.consignment.consignee else '',
+                'from_party': item.consignment.consigner.consigner_name.split()[0] if item.consignment and item.consignment.consigner and item.consignment.consigner.consigner_name else '',
+                'party': party,
+                'qty_10kg': qty_10,
+                'rate_10kg': rate_10,
+                'qty_20kg': qty_20,
+                'rate_20kg': rate_20,
+                'fare_10kg': fare_10,
+                'fare_20kg': fare_20,
+                'total': total,
+                'paid': 0,
+                'is_payment': False,
+                'sort_date': item.consignment.Booking_Date if item.consignment else item.created_at.date(),
+                'created_at': item.created_at,
+            }
+        )
 
     for p in payments:
         party = p.party or "Unknown"
         if global_search and global_search.lower() not in party.lower():
             continue
-        party_entries[party].append({
-            'cn_no': "PAYMENT",
-            'date': p.payment_date,
-            'truck_no': p.consignment.Vehicle_No.vehicle_number if p.consignment and p.consignment.Vehicle_No else '',
-            'consignee': '',
-            'from_party': '',
-            'party': party,
-            'qty_10kg': 0,
-            'rate_10kg': 0,
-            'qty_20kg': 0,
-            'rate_20kg': 0,
-            'fare_10kg': 0,
-            'fare_20kg': 0,
-            'total': 0,
-            'paid': p.paid_amount,
-            'is_payment': True,
-            'sort_date': p.payment_date,
-            'created_at': p.created_at,
-        })
+        party_entries[party].append(
+            {
+                'cn_no': "PAYMENT",
+                'date': p.payment_date,
+                'truck_no': p.consignment.Vehicle_No.vehicle_number if p.consignment and p.consignment.Vehicle_No else '',
+                'consignee': '',
+                'from_party': '',
+                'party': party,
+                'qty_10kg': 0,
+                'rate_10kg': 0,
+                'qty_20kg': 0,
+                'rate_20kg': 0,
+                'fare_10kg': 0,
+                'fare_20kg': 0,
+                'total': 0,
+                'paid': p.paid_amount,
+                'is_payment': True,
+                'sort_date': p.payment_date,
+                'created_at': p.created_at,
+            }
+        )
 
-    # Totals calculation
+    # Totals
     total_10kg = total_rate_10kg = total_20kg = 0
     total_fare_10kg = total_fare_20kg = 0
     for party in party_entries:
@@ -6004,27 +4402,53 @@ def export_cumulative_pdf(request):
                 total_fare_20kg += entry['fare_20kg']
 
     total_total = total_fare_10kg + total_fare_20kg
-    total_paid = sum(p.paid_amount for p in payments if not global_search or global_search.lower() in (p.party or '').lower())
+    total_paid = sum(
+        p.paid_amount for p in payments if not global_search or global_search.lower() in (p.party or '').lower()
+    )
     total_balance = total_total - total_paid
 
     # Summary row
     summary_row = [
-        Paragraph("<b>TOTALS</b>", wrap_style),
-        Paragraph("", wrap_style), Paragraph("", wrap_style), Paragraph("", wrap_style),
-        Paragraph("", wrap_style), Paragraph("", wrap_style), Paragraph("", wrap_style),
-        Paragraph(f"<b>{int(total_10kg)}</b>", wrap_style),
-        Paragraph(f"<b>{int(total_rate_10kg)}</b>", wrap_style),
-        Paragraph(f"<b>{int(total_20kg)}</b>", wrap_style),
-        Paragraph("", wrap_style),
-        Paragraph(f"<b>{int(total_fare_10kg)}</b>", wrap_style),
-        Paragraph(f"<b>{int(total_fare_20kg)}</b>", wrap_style),
-        Paragraph(f"<b>{int(total_total)}</b>", wrap_style),
-        Paragraph(f"<b>{int(total_paid)}</b>", wrap_style),
-        Paragraph(f"<b>{int(total_balance)}</b>", wrap_style),
+        "TOTALS",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        str(int(total_10kg)),
+        str(int(total_rate_10kg)),
+        str(int(total_20kg)),
+        "",
+        str(int(total_fare_10kg)),
+        str(int(total_fare_20kg)),
+        str(int(total_total)),
+        str(int(total_paid)),
+        str(int(total_balance)),
     ]
     data.append(summary_row)
 
-    # Add data rows
+    # Add rows
+    col_widths = [
+        1.8 * cm,  # S.No
+        1.6 * cm,  # CN No
+        2.1 * cm,  # Date
+        2.5 * cm,  # Truck
+        2.6 * cm,  # Consignee
+        2.4 * cm,  # From Party
+        2.6 * cm,  # Party
+        1.4 * cm,  # 10KG
+        1.4 * cm,  # 10KG Rate
+        1.4 * cm,  # 20KG
+        1.4 * cm,  # 20KG Rate
+        1.6 * cm,  # 10KG Fare
+        1.6 * cm,  # 20KG Fare
+        1.6 * cm,  # Total
+        1.4 * cm,  # Paid
+        1.6 * cm   # Balance
+    ]
+
+
     serial = 1
     for party in sorted(party_entries.keys()):
         party_entries[party].sort(key=lambda x: (x['sort_date'], x['created_at']))
@@ -6036,47 +4460,46 @@ def export_cumulative_pdf(request):
                 cumulative_balance += float(row['total'])
 
             data_row = [
-                Paragraph(str(serial), wrap_style),
-                Paragraph(str(row['cn_no']), wrap_style),
-                Paragraph(row['date'].strftime('%d-%m-%Y') if row['date'] else '', wrap_style),
-                create_wrapped_paragraph(row['truck_no'], 8),
-                create_wrapped_paragraph(row['consignee'], 10),
-                create_wrapped_paragraph(row['from_party'], 8),
-                create_wrapped_paragraph(row['party'], 10),
-                Paragraph(str(int(row['qty_10kg'])), wrap_style),
-                Paragraph(str(int(row['rate_10kg'])), wrap_style),
-                Paragraph(str(int(row['qty_20kg'])), wrap_style),
-                Paragraph(str(int(row['rate_20kg'])), wrap_style),
-                Paragraph(str(int(row['fare_10kg'])), wrap_style),
-                Paragraph(str(int(row['fare_20kg'])), wrap_style),
-                Paragraph(str(int(row['total'])), wrap_style),
-                Paragraph(str(int(row['paid']) if row['is_payment'] else 0), wrap_style),
-                Paragraph(str(int(abs(cumulative_balance))), wrap_style),
+                fit_text_to_cell(str(serial), col_widths[0]),
+                fit_text_to_cell(str(row['cn_no']), col_widths[1]),
+                fit_text_to_cell(row['date'].strftime('%d-%m-%Y') if row['date'] else '', col_widths[2]),
+                fit_text_to_cell(row['truck_no'], col_widths[3]),
+                Paragraph(row['consignee'], wrap_style),   # ✅ Paragraph
+                Paragraph(row['from_party'], wrap_style),  # ✅ Paragraph
+                Paragraph(row['party'], wrap_style),       # ✅ Paragraph
+                fit_text_to_cell(str(int(row['qty_10kg'])), col_widths[7]),
+                fit_text_to_cell(str(int(row['rate_10kg'])), col_widths[8]),
+                fit_text_to_cell(str(int(row['qty_20kg'])), col_widths[9]),
+                fit_text_to_cell(str(int(row['rate_20kg'])), col_widths[10]),
+                fit_text_to_cell(str(int(row['fare_10kg'])), col_widths[11]),
+                fit_text_to_cell(str(int(row['fare_20kg'])), col_widths[12]),
+                fit_text_to_cell(str(int(row['total'])), col_widths[13]),
+                fit_text_to_cell(str(int(row['paid']) if row['is_payment'] else 0), col_widths[14]),
+                fit_text_to_cell(str(int(abs(cumulative_balance))), col_widths[15]),
             ]
             data.append(data_row)
             serial += 1
 
-    col_widths = [
-        1.0 * cm, 1.4 * cm, 1.6 * cm, 1.8 * cm, 2.2 * cm, 2.0 * cm, 2.2 * cm,
-        1.2 * cm, 1.2 * cm, 1.2 * cm, 1.2 * cm, 1.4 * cm, 1.4 * cm, 1.4 * cm, 1.2 * cm, 1.4 * cm
-    ]
-
+    # Table
     table = Table(data, repeatRows=1, colWidths=col_widths, hAlign='CENTER')
-    table.setStyle(TableStyle([
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
-        ("GRID", (0, 0), (-1, -1), 0.6, colors.black),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-        ("FONTSIZE", (0, 0), (-1, -1), 10),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("ROWBACKGROUNDS", (1, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
-        ("LEFTPADDING", (0, 0), (-1, -1), 5),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("WORDWRAP", (0, 0), (-1, -1), True),
-    ]))
+    table.setStyle(
+        TableStyle(
+            [
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
+                ("GRID", (0, 0), (-1, -1), 0.6, colors.black),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("ROWBACKGROUNDS", (1, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+                ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ]
+        )
+    )
 
     elements.append(table)
     elements.append(Spacer(1, 15))
@@ -6088,11 +4511,9 @@ def export_cumulative_pdf(request):
     return response
 
 
-# ──────────────────────────────────────────────────────────────
+ #──────────────────────────────────────────────────────────────
 # Vehicle Cumulative Report View
 # ──────────────────────────────────────────────────────────────
-from django.conf import settings
-from datetime import datetime, time
 @login_required(login_url='login')
 def vehicle_cumulative_view(request):
     consignments = Consignment.objects.select_related('Vehicle_No', 'consignee').order_by('Loading_Date')
@@ -6197,6 +4618,7 @@ def export_cumulative_vehicle_excel(request):
     global_search = request.GET.get("global_search", "").strip()
 
     entries = Consignment.objects.select_related('Vehicle_No', 'consignee').order_by('-Loading_Date')
+
     if global_search:
         entries = entries.filter(Vehicle_No__vehicle_number__icontains=global_search)
 
@@ -6204,7 +4626,7 @@ def export_cumulative_vehicle_excel(request):
     ws = wb.active
     ws.title = "Cumulative Report"
 
-    # --- Header: Company Name and Info ---
+    # Header: Company Info
     ws.merge_cells('A1:I1')
     ws.merge_cells('A2:I2')
     ws.merge_cells('A3:I3')
@@ -6219,7 +4641,7 @@ def export_cumulative_vehicle_excel(request):
         ws[f"A{i}"].font = Font(bold=True if i == 1 else False, size=11)
         ws[f"A{i}"].alignment = Alignment(horizontal='center')
 
-    # --- Add Logo if available ---
+    # Add Logo if exists
     try:
         logo_paths = [
             os.path.join(settings.BASE_DIR, 'accounts', 'static', 'images', 'logo.png'),
@@ -6238,14 +4660,14 @@ def export_cumulative_vehicle_excel(request):
 
     ws.append([])
 
-    # --- Title Row ---
+    # Title Row
     ws.merge_cells('A6:I6')
     ws['A6'] = "Vehicle Cumulative Report"
     ws['A6'].font = Font(bold=True, size=14, color="6A1B9A")
     ws['A6'].alignment = Alignment(horizontal='center')
     ws.append([])
 
-    # --- Table Headers ---
+    # Table Headers
     headers = ['Bill No', 'Date', 'Truck No', 'Consignee', 'Truck Fare', 'Innam', 'Extra TF', 'Advance', 'Cumulative To Pay']
     ws.append(headers)
     header_fill = PatternFill(start_color='E5CCFF', end_color='E5CCFF', fill_type='solid')
@@ -6254,7 +4676,7 @@ def export_cumulative_vehicle_excel(request):
         cell.alignment = Alignment(horizontal='center')
         cell.fill = header_fill
 
-    # --- Table Data ---
+    # Table Data
     for entry in entries:
         truck_fare = float(entry.Truck_Freight or 0)
         innam = float(entry.Innam or 0)
@@ -6274,26 +4696,29 @@ def export_cumulative_vehicle_excel(request):
             balance,
         ])
 
-    # --- Auto-fit Columns ---
+    # Auto-fit Columns
     for col in ws.columns:
         max_length = max(len(str(cell.value or '')) for cell in col)
         col_letter = get_column_letter(col[0].column)
         ws.column_dimensions[col_letter].width = min(max_length + 2, 25)
 
-    # --- Return Response ---
+    # Return Response
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename=vehicle_cumulative_report.xlsx'
     wb.save(response)
     return response
-
 
 # ──────────────────────────────────────────────────────────────
 # Vehicle Cumulative Report PDF Export
 # ──────────────────────────────────────────────────────────────
 @login_required(login_url="login")
 def export_cumulative_vehicle_pdf(request):
-    
     global_search = request.GET.get('global_search', '').strip()
+
+    entries = Consignment.objects.select_related('Vehicle_No', 'consignee').order_by('-Loading_Date')
+
+    if global_search:
+        entries = entries.filter(Vehicle_No__vehicle_number__icontains=global_search)
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="vehicle_cumulative_report.pdf"'
@@ -6304,7 +4729,7 @@ def export_cumulative_vehicle_pdf(request):
     styles = getSampleStyleSheet()
     elements = []
 
-    # Header styles
+    # Header
     company_style = styles['Title'].clone('CompanyStyle')
     company_style.fontSize = 16
     company_style.textColor = colors.HexColor('#1a365d')
@@ -6320,7 +4745,6 @@ def export_cumulative_vehicle_pdf(request):
 
     # Logo
     try:
-        from django.conf import settings
         logo_paths = [
             os.path.join(settings.BASE_DIR, 'accounts', 'static', 'images', 'logo.png'),
             os.path.join(settings.BASE_DIR, 'staticfiles', 'images', 'logo.png'),
@@ -6373,10 +4797,7 @@ def export_cumulative_vehicle_pdf(request):
     ]
     data = [headers]
 
-    entries = Consignment.objects.select_related('Vehicle_No', 'consignee').order_by('-Loading_Date')
-    if global_search:
-        entries = entries.filter(consignee__consignee_name__icontains=global_search)
-
+    # Table Data Rows
     serial = 1
     for entry in entries:
         row = [
@@ -6394,22 +4815,13 @@ def export_cumulative_vehicle_pdf(request):
         data.append(row)
         serial += 1
 
-    # Table rendering with styles
     col_widths = [1.5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 4 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 3 * cm]
     table = Table(data, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
-        # Header row: bold and black
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-
-        # All data rows: normal weight and black
         ("TEXTCOLOR", (0, 1), (-1, -1), colors.black),
-        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),  # Regular font for data
-
-        # Optional light background for second row (can remove if not needed)
-        # ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#f0f8ff")),
-
-        # Other styles
+        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
         ("FONTSIZE", (0, 0), (-1, -1), 10),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),

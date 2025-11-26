@@ -868,8 +868,7 @@
     }
 </style>
 <div class="form-container">
-    <!-- <h2>Consignment Note Form</h2> -->
-    <h3 class="text-2xl font-bold italic mb-4 text-purple-800 text-center">Consignment Note Form</h3>
+    <h2>Consignment Note Form</h2>
     <!-- <form id="consignmentForm" method="post" action="{% url 'consignment' %}"> -->
     <form id="consignmentForm" method="post"
         action="{% if editing_mode %}{% url 'edit_consignment' cnid %}{% else %}{% url 'consignment' %}{% endif %}">
@@ -896,8 +895,7 @@
                         <!-- <input type="hidden" name="{{ form.Vehicle_No.name }}" id="{{ form.Vehicle_No.id_for_label }}"
                             value="{{ initial_vehicle_id }}"> -->
                         <!-- <input type="hidden" name="{{ form.Vehicle_No.name }}" id="{{ form.Vehicle_No.id_for_label }}"> -->
-                        <input type="hidden" name="{{ form.Vehicle_No.name }}" id="{{ form.Vehicle_No.id_for_label }}"
-                            value="{{ initial_vehicle_id }}">
+                        <input type="hidden" name="{{ form.Vehicle_No.name }}" id="{{ form.Vehicle_No.id_for_label }}" value="{{ initial_vehicle_id }}">
 
                         <!-- Dropdown List -->
                         <div id="vehicleDropdownList" class="custom-dropdown-list"></div>
@@ -1157,7 +1155,7 @@
             </div>
             {# NEW FIELD: Truck Freight #}
             <div style="flex: 1; min-width: 280px;">
-                <label for="{{ form.Truck_Freight.id_for_label }}">Truck Fare</label>
+                <label for="{{ form.Truck_Freight.id_for_label }}">{{ form.Truck_Freight.label }}</label>
                 <input type="number" name="{{ form.Truck_Freight.name }}" id="{{ form.Truck_Freight.id_for_label }}"
                     value="{{ form.Truck_Freight.value|default:'0.00' }}">
                 {% if form.Truck_Freight.errors %}
@@ -1496,7 +1494,7 @@
         // --- Fetch and Display Next CNID (Remains for main form) ---
         async function fetchAndDisplayNextCNID() {
             try {
-                const response = await fetch('/dapple/consignments/get_next_cnid/', {
+                const response = await fetch('/consignments/get_next_cnid/', {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1577,7 +1575,9 @@
                         li.setAttribute('data-value', item[displayKey]);
 
                         li.addEventListener('mousedown', handleDropdownInteraction);
-                        li.addEventListener('touchstart', handleDropdownInteraction);
+                        //li.addEventListener('touchstart', handleDropdownInteraction);
+                        li.addEventListener('touchstart', handleDropdownInteraction, { passive: true });
+
                         li.addEventListener('click', function () {
                             selectItemFromDropdown(this.dataset.id, this.dataset.value);
                         });
@@ -1639,7 +1639,7 @@
                 }
             }
             dropdownIcon.addEventListener('mousedown', handleIconToggle);
-            dropdownIcon.addEventListener('touchstart', handleIconToggle);
+            dropdownIcon.addEventListener('touchstart', handleIconToggle, { passive: true });
 
             // In setupSearchableDropdown function
             searchInput.addEventListener('blur', function () {
@@ -1712,8 +1712,19 @@
 
             return selectItemFromDropdown;
         }
+//-------function to calculate and update the balance ammount in DB
+        function updateBalanceAmount() {
+            const qty = parseFloat(document.getElementById("quantity").value) || 0;
+            const rate = parseFloat(document.getElementById("rate").value) || 0;
+            const paid = parseFloat(document.getElementById("paid_amount").value) || 0;
 
-        //__________________--- Vehicle Management ---__________________________________________________________
+            const giAmount = qty * rate;
+            const balance = giAmount - paid;
+
+            document.getElementById("gi_amount").value = giAmount.toFixed(2);
+            document.getElementById("balance_amount").value = balance.toFixed(2);
+        }
+//__________________--- Vehicle Management ---__________________________________________________________
 
         const addVehicleBtn = document.getElementById('addVehicleBtn');
         const vehicleModalOverlay = document.getElementById('vehicleModalOverlay');
@@ -1736,13 +1747,13 @@
         const newOwnerPhoneInput = document.getElementById("newOwnerPhone");
 
         let selectVehicleGlobal; // To store the returned selection function
-
-
+      
+        
         async function fetchAndRenderVehicles(selectedVehicleId = null) {
             if (vehicleLoadingIndicator) vehicleLoadingIndicator.style.display = 'block';
 
             try {
-                const response = await fetch('/dapple/vehicles/get/', {
+                const response = await fetch('/vehicles/get/', {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1765,7 +1776,7 @@
                         'vehicle_number',
                         'id'
                     );
-                    renderVehicles(allVehicles);
+                    renderVehicles(allVehicles); 
                     //  2️ Editing Mode: Pre-fill vehicle number if already selected
                     if (editingMode && vehicleIdHiddenInput?.value && vehicleSearchInput) {
                         const matchedVehicle = allVehicles.find(v => v.id === parseInt(vehicleIdHiddenInput.value));
@@ -1795,9 +1806,9 @@
         }
 
         function renderVehicles(vehicles) {
-
+            
             if (vehicleTableBody) vehicleTableBody.innerHTML = '';
-
+            
             if (vehicles.length === 0) {
                 if (vehicleTableBody) vehicleTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No vehicles added yet.</td></tr>';
             } else {
@@ -1880,7 +1891,7 @@
                     owner_phone: ownerPhone
                 };
                 //console.log("Sending vehicle payload:", payload);
-                const response = await fetch('/dapple/vehicles/add/', {
+                const response = await fetch('/vehicles/add/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                     body: JSON.stringify(payload)
@@ -1936,7 +1947,7 @@
             if (vehicleLoadingIndicator) vehicleLoadingIndicator.style.display = 'block';
 
             try {
-                const response = await fetch(`/dapple/vehicles/delete/${vehicleId}/`, {
+                const response = await fetch(`/vehicles/delete/${vehicleId}/`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                 });
@@ -1967,8 +1978,8 @@
                 if (vehicleLoadingIndicator) vehicleLoadingIndicator.style.display = 'none';
             }
         }
-
-        //___________________--- Consignee Management ---________________________________________________________
+       
+//___________________--- Consignee Management ---________________________________________________________
 
         const addConsigneeBtn = document.getElementById('addConsigneeBtn');
         const consigneeModalOverlay = document.getElementById('consigneeModalOverlay');
@@ -1992,7 +2003,7 @@
             if (consigneeLoadingIndicator) consigneeLoadingIndicator.style.display = 'block';
 
             try {
-                const response = await fetch('/dapple/consignees/get/', {
+                const response = await fetch('/consignees/get/', {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                 });
@@ -2001,7 +2012,6 @@
 
                 if (response.ok && data.success) {
                     allConsignees = data.consignees;
-                    console.log("📋 Consignees loaded with phones:", allConsignees.map(c => ({ name: c.consignee_name, phone: c.contact_no })));  // Add this line
 
                     // 1️ Re-render the dropdown
                     selectConsigneeGlobal = setupSearchableDropdown(
@@ -2119,7 +2129,7 @@
                     contact_no: contactNo
                 };
 
-                const response = await fetch('/dapple/consignees/add/', {
+                const response = await fetch('/consignees/add/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                     body: JSON.stringify(payload)
@@ -2158,7 +2168,7 @@
             if (consigneeLoadingIndicator) consigneeLoadingIndicator.style.display = 'block';
 
             try {
-                const response = await fetch(`/dapple/consignees/delete/${consigneeId}/`, {
+                const response = await fetch(`/consignees/delete/${consigneeId}/`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                 });
@@ -2183,7 +2193,7 @@
             }
         }
 
-        //_______________________--- Consigner Management ---_________________________________________________________
+//_______________________--- Consigner Management ---_________________________________________________________
         const addConsignerBtn = document.getElementById('addConsignerBtn');
         const consignerModalOverlay = document.getElementById('consignerModalOverlay');
         const closeConsignerModalBtn = document.getElementById('closeConsignerModalBtn');
@@ -2208,7 +2218,7 @@
             if (consignerLoadingIndicator) consignerLoadingIndicator.style.display = 'block';
 
             try {
-                const response = await fetch('/dapple/consigners/get/', {
+                const response = await fetch('/consigners/get/', {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2335,7 +2345,7 @@
                 };
                 console.log("Sending consigner payload:", payload);
 
-                const response = await fetch('/dapple/consigners/add/', {
+                const response = await fetch('/consigners/add/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                     body: JSON.stringify(payload)
@@ -2377,7 +2387,7 @@
             if (consignerLoadingIndicator) consignerLoadingIndicator.style.display = 'block';
 
             try {
-                const response = await fetch(`/dapple/consigners/delete/${consignerId}/`, {
+                const response = await fetch(`/consigners/delete/${consignerId}/`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                 });
@@ -2405,7 +2415,7 @@
                 if (consignerLoadingIndicator) consignerLoadingIndicator.style.display = 'none';
             }
         }
-        //_______________________________--- Location Management ---_____________________________________________
+//_______________________________--- Location Management ---_____________________________________________
         const addToLocationBtn = document.getElementById('addToLocationBtn');
         const locationModalOverlay = document.getElementById('locationModalOverlay');
         const closeLocationModalBtn = document.getElementById('closeLocationModalBtn');
@@ -2455,7 +2465,7 @@
             if (locationLoadingIndicator) locationLoadingIndicator.style.display = 'block';
 
             try {
-                const response = await fetch('/dapple/locations/get/', {
+                const response = await fetch('/locations/get/', {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                 });
@@ -2582,7 +2592,7 @@
 
             try {
                 const payload = { location_name: locationName, date_added: dateAdded };
-                const response = await fetch('/dapple/locations/add/', {
+                const response = await fetch('/locations/add/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                     body: JSON.stringify(payload)
@@ -2619,7 +2629,7 @@
             locationLoadingIndicator.style.display = 'block';
 
             try {
-                const response = await fetch(`/dapple/locations/delete/${locationId}/`, {
+                const response = await fetch(`/locations/delete/${locationId}/`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                 });
@@ -2671,7 +2681,7 @@
                 }
             });
         }
-        //________________________________________________________________________________________________
+//________________________________________________________________________________________________
 
         // --- Globals ---
         const goodsTableBody = document.getElementById('goodsTableBody');
@@ -2682,20 +2692,20 @@
 
         // Initialize goodsItemsData from Django template if in edit mode
         {% if editing_mode %}
-            goodsItemsData = [
-                {% for item in goods_items %}
-                    {
-                        gi_id: "{{ item.GI_ID }}",
-                        unit: "{{ item.unit|escapejs }}",
-                        quantity: {{ item.quantity|default:"0" }},
-                        rate: {{ item.rate|default:"0" }},
-                        amount: {{ item.gi_amount|default:"0" }},
-                        from_party: "{{ item.from_party.id|default:'' }}",
-                        to_party: "{{ item.to_party.id|default:'' }}"
-                    }{% if not forloop.last %}, {% endif %}
-                    {% endfor %}
-                ];
-        {% endif %}
+        goodsItemsData = [
+            {% for item in goods_items %}
+                {
+            gi_id: "{{ item.GI_ID }}",
+            unit: "{{ item.unit|escapejs }}",
+            quantity: {{ item.quantity |default:"0"}},
+        rate: {{ item.rate |default:"0"}},
+        amount: {{ item.gi_amount |default:"0"}},
+        from_party: "{{ item.from_party.id|default:'' }}",
+        to_party: "{{ item.to_party.id|default:'' }}"
+                }{% if not forloop.last %}, {% endif %}
+    {% endfor %}
+        ];
+    {% endif %}
 
     // Get consignees for dropdowns
     {% for consignee in consignees %}
@@ -2940,7 +2950,7 @@
 
     // Call this on page load
     initExistingRows();
-    //_______________________________________________________________________________________________________
+//_______________________________________________________________________________________________________
 
     function updateGoodsInfoHiddenField() {
         if (goodsInfoHiddenInput) { // Added null check

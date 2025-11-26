@@ -13,29 +13,20 @@
     color: white;
     text-align: center;
     padding: 4px 0;
-    /* Reduced padding for thinner height */
     font-size: 10px;
-    /* Smaller font */
     line-height: 1.2;
-    /* Tighter line height */
     z-index: 50;
-  }
-
-  footer.show {
-    bottom: 0;
   }
 
   #pageFooter {
     position: fixed;
     bottom: -100px;
-    /* Initially hidden */
     left: 0;
     width: 100%;
     background-color: #6a1b9a;
     color: white;
     text-align: center;
     padding: 6px 0;
-    /* Slim height */
     font-size: 10px;
     transition: bottom 0.3s ease;
     z-index: 50;
@@ -48,11 +39,215 @@
   .search-input::placeholder {
     font-size: 13px;
   }
+
+  /* WhatsApp Modal Styles */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(3px);
+  }
+
+  .modal-overlay.active {
+    display: flex;
+  }
+
+  .modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease-out;
+  }
+
+  @keyframes modalSlideIn {
+    from {
+      transform: translateY(-50px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e0e0e0;
+  }
+
+  .modal-header i {
+    font-size: 36px;
+    color: #25D366;
+    margin-right: 12px;
+  }
+
+  .modal-header h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #333;
+  }
+
+  .modal-body {
+    margin-bottom: 24px;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 12px;
+  }
+
+  .info-label {
+    font-weight: 600;
+    color: #666;
+    font-size: 14px;
+  }
+
+  .info-value {
+    font-weight: 700;
+    color: #333;
+    font-size: 14px;
+  }
+
+  .info-value.balance {
+    color: #e53935;
+  }
+
+  .form-group {
+    margin-top: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 15px;
+    transition: all 0.3s;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: #25D366;
+    box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+  }
+
+  .form-hint {
+    font-size: 12px;
+    color: #888;
+    margin-top: 6px;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 2px solid #e0e0e0;
+  }
+
+  .btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-whatsapp {
+    background: linear-gradient(135deg, #25D366 0%, #1fa855 100%);
+    color: white;
+  }
+
+  .btn-whatsapp:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
+  }
+
+  .btn-whatsapp:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-cancel {
+    background: #f5f5f5;
+    color: #666;
+  }
+
+  .btn-cancel:hover {
+    background: #e0e0e0;
+  }
+
+  .loading-spinner {
+    display: none;
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .error-message {
+    background: #ffebee;
+    color: #c62828;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 12px;
+    font-size: 13px;
+    display: none;
+  }
+
+  .success-message {
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 12px;
+    font-size: 13px;
+    display: none;
+  }
 </style>
 
 <main class="flex-1 w-full max-w-7xl px-4 py-6 mx-auto">
 
-  <!-- Unique Year Filter (Underline Style) -->
+  <!-- Year Filter -->
   <form id="yearFilterForm" class="mb-8 ml-4 flex items-center gap-3">
     <label for="yearSelect" class="text-base font-semibold text-[#6a1b9a]">📅 Select Year:</label>
     <div class="relative">
@@ -72,15 +267,13 @@
     </div>
   </form>
 
-  <!-- Financial Summary Title -->
+  <!-- Financial Summary -->
   <h2 class="text-2xl font-bold text-gray-800 mb-6 ml-4">
     <i class="fas fa-chart-line mr-2"></i>Financial Summary - {{ selected_year }}
   </h2>
 
-  <!-- Financial Summary Cards -->
   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-4 mb-16">
-    <div
-      class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
+    <div class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
       <div class="text-sm font-semibold text-gray-500 mb-1">
         <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>+Received Amount
       </div>
@@ -88,8 +281,7 @@
         ₹ {{ summary.total_advance|default_if_none:0|floatformat:-2|intcomma }}/-
       </div>
     </div>
-    <div
-      class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
+    <div class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
       <div class="text-sm font-semibold text-gray-500 mb-1">
         <i class="fas fa-wallet mr-2 text-red-500"></i>Balance Amount
       </div>
@@ -97,8 +289,7 @@
         ₹ {{ summary.total_balance|default_if_none:0|floatformat:-2|intcomma }}/-
       </div>
     </div>
-    <div
-      class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
+    <div class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
       <div class="text-sm font-semibold text-gray-500 mb-1">
         <i class="fas fa-truck-loading mr-2 text-purple-600"></i>Total Fare
       </div>
@@ -108,15 +299,13 @@
     </div>
   </div>
 
-  <!-- Truck Summary Title -->
+  <!-- Truck Summary -->
   <h4 class="text-2xl font-bold text-gray-800 mb-6 ml-4">
     <i class="fas fa-truck mr-2"></i>Truck-Expense Wise Summary - {{ selected_year }}
   </h4>
 
-  <!-- Truck Summary Cards -->
   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-4 mb-8">
-    <div
-      class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
+    <div class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
       <div class="text-sm font-semibold text-gray-500 mb-1">
         <i class="fas fa-coins mr-2 text-green-500"></i>Paid Amount
       </div>
@@ -124,8 +313,7 @@
         ₹ {{ truck_totals_summary.advance|floatformat:-2|intcomma }}/-
       </div>
     </div>
-    <div
-      class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
+    <div class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
       <div class="text-sm font-semibold text-gray-500 mb-1">
         <i class="fas fa-hourglass-half mr-2 text-yellow-500"></i>Total Balance
       </div>
@@ -133,8 +321,7 @@
         ₹ {{ truck_totals_summary.balance|floatformat:-2|intcomma }}/-
       </div>
     </div>
-    <div
-      class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
+    <div class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow hover:shadow-lg hover:scale-105 transition-transform duration-300">
       <div class="text-sm font-semibold text-gray-500 mb-1">
         <i class="fas fa-shipping-fast mr-2 text-blue-500"></i>Total Freight
       </div>
@@ -146,13 +333,11 @@
 
   <!-- Party-wise Summary -->
   <div class="my-8 bg-white p-5 rounded-lg shadow mb-10">
-    <!-- Title with Icon -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
       <h2 class="text-lg font-semibold text-gray-800">
         <i class="fas fa-table-list text-green-600 mr-2"></i> Party-wise Summary - {{ selected_year }}
       </h2>
 
-      <!-- Search Box with PDF Icon -->
       <div class="relative w-full sm:w-64 flex items-center gap-2">
         <div class="relative flex-grow">
           <input type="text" id="toPartySearch" placeholder="Search by From Party/To Party..."
@@ -160,20 +345,16 @@
           <i class="fas fa-search absolute top-2.5 left-3 text-gray-400"></i>
         </div>
 
-        <!-- PDF Icon -->
         <a id="pdfDownloadLink" href="{% url 'partywise_summary_pdf' selected_year %}" target="_blank"
           class="text-red-600 hover:text-red-800 text-xl" title="Download PDF">
           <i class="fas fa-file-pdf"></i>
         </a>
 
-        <!-- Excel Icon -->
         <a id="excelDownloadLink" href="{% url 'partywise_summary_excel' selected_year %}" target="_blank"
           class="text-green-600 hover:text-green-800 text-xl ml-3" title="Download Excel">
           <i class="fas fa-file-excel"></i>
         </a>
-
       </div>
-
     </div>
 
     <!-- Party Summary Table -->
@@ -199,6 +380,9 @@
             <th class="px-4 py-3 text-right">
               <i class="fas fa-money-bill-wave text-red-600 mr-1"></i> Balance (₹)
             </th>
+            <th class="px-4 py-3 text-center">
+              <i class="fas fa-gear mr-1 text-gray-500"></i>Action
+            </th>
           </tr>
         </thead>
 
@@ -218,6 +402,15 @@
             <td class="px-4 py-2 text-right text-red-600 font-semibold">
               {{ item.total_balance|floatformat:-2|intcomma }}/-
             </td>
+            <td class="px-4 py-2 text-center">
+              <button 
+                 class="whatsapp-btn text-green-500 hover:text-green-700 text-xl transition-transform hover:scale-110" 
+                 title="Send WhatsApp Payment Reminder" 
+                 onclick="event.stopPropagation(); openWhatsAppModal('{{ item.to_party.consignee_name|escapejs }}', '{{ item.contact_no|default:'' }}', {{ item.total_balance }})"
+                 {% if not item.contact_no %}title="No contact number available"{% endif %}>
+                <i class="fab fa-whatsapp"></i>
+              </button>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -236,16 +429,15 @@
             <td class="px-4 py-2 text-right text-red-700">
               {{ goods_summary_total.balance_amount|floatformat:-2|intcomma }}/-
             </td>
+            <td class="px-4 py-2"></td>
           </tr>
         </tfoot>
       </table>
     </div>
   </div>
 
-
   <!-- Truck-wise Summary Table -->
   <div class="bg-white p-5 rounded-lg shadow mb-10">
-    <!-- Title and Search Input in Same Row -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
       <h2 class="text-lg font-semibold text-gray-800">
         <i class="fas fa-truck-moving text-purple-600 mr-2"></i> Truck-wise Summary - {{ selected_year }}
@@ -297,7 +489,6 @@
     {% endif %}
   </div>
 
-
   <!-- Monthly Chart -->
   <div class="bg-white p-5 rounded-lg shadow mb-8">
     <h2 class="text-lg font-semibold text-gray-800 mb-4">Month-wise Summary - {{ selected_year }}</h2>
@@ -310,6 +501,58 @@
 
 </main>
 
+<!-- WhatsApp Confirmation Modal -->
+<div id="whatsappModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <i class="fab fa-whatsapp"></i>
+      <h3>Send Payment Reminder</h3>
+    </div>
+    
+    <div class="modal-body">
+      <div class="info-row">
+        <span class="info-label">Party Name:</span>
+        <span class="info-value" id="modalPartyName"></span>
+      </div>
+      
+      <div class="info-row">
+        <span class="info-label">Outstanding Balance:</span>
+        <span class="info-value balance" id="modalBalance"></span>
+      </div>
+      
+      <div class="form-group">
+        <label for="modalPhoneNumber">
+          <i class="fas fa-phone mr-1"></i> Contact Number
+        </label>
+        <input 
+          type="tel" 
+          id="modalPhoneNumber" 
+          placeholder="+91 9876543210" 
+          maxlength="13" 
+        />
+        <p class="form-hint">
+          <i class="fas fa-info-circle mr-1"></i> 
+          Enter 10-digit mobile number (with or without +91)
+        </p>
+      </div>
+
+      <div id="errorMessage" class="error-message"></div>
+      <div id="successMessage" class="success-message"></div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeWhatsAppModal()">
+        <i class="fas fa-times"></i> Cancel
+      </button>
+      <button class="btn btn-whatsapp" id="sendWhatsAppBtn" onclick="sendWhatsAppMessage()">
+        <i class="fas fa-paper-plane" id="sendIcon"></i>
+        <span id="btnText">Send Message</span>
+        <div class="loading-spinner" id="loadingSpinner"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Footer -->
 <footer id="pageFooter">
   <div class="mb-2">
@@ -321,6 +564,9 @@
 </footer>
 
 <script>
+  // Global variables
+  let currentPartyData = {};
+
   // Show footer on scroll
   document.addEventListener('scroll', function () {
     const footer = document.getElementById('pageFooter');
@@ -339,11 +585,161 @@
   function redirectToCumulative(toPartyName) {
     const url = `{% url 'cumulative_report' %}?global_search=` + encodeURIComponent(toPartyName);
     window.location.href = url;
-    console.log("Redirecting to:", url);
-
   }
 
-  // Search functionality for Party-wise Summary
+  // Open WhatsApp Modal
+  function openWhatsAppModal(partyName, phoneNumber, balance) {
+    currentPartyData = {
+      party_name: partyName,
+      phone_number: phoneNumber || '',
+      total_balance: balance
+    };
+
+    document.getElementById('modalPartyName').textContent = partyName;
+    document.getElementById('modalBalance').textContent = `₹${parseFloat(balance).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('modalPhoneNumber').value = phoneNumber || '';
+    
+    // Hide messages
+    document.getElementById('errorMessage').style.display = 'none';
+    document.getElementById('successMessage').style.display = 'none';
+    
+    document.getElementById('whatsappModal').classList.add('active');
+  }
+
+  // Close WhatsApp Modal
+  function closeWhatsAppModal() {
+    document.getElementById('whatsappModal').classList.remove('active');
+    document.getElementById('modalPhoneNumber').value = '';
+    document.getElementById('errorMessage').style.display = 'none';
+    document.getElementById('successMessage').style.display = 'none';
+    currentPartyData = {};
+  }
+
+  // Show error message
+  function showError(message) {
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    document.getElementById('successMessage').style.display = 'none';
+  }
+
+  // Show success message
+  function showSuccess(message) {
+    const successDiv = document.getElementById('successMessage');
+    successDiv.textContent = message;
+    successDiv.style.display = 'block';
+    document.getElementById('errorMessage').style.display = 'none';
+  }
+
+  // Send WhatsApp Message
+  async function sendWhatsAppMessage() {
+    const phoneInput = document.getElementById('modalPhoneNumber');
+    const phoneNumber = phoneInput.value.trim();
+    
+    // Hide previous messages
+    document.getElementById('errorMessage').style.display = 'none';
+    document.getElementById('successMessage').style.display = 'none';
+    
+    // Validate phone number
+    if (!phoneNumber) {
+      showError('❌ Please enter a phone number');
+      phoneInput.focus();
+      return;
+    }
+
+    // Clean and validate phone number format
+    const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+    if (cleanPhone.length < 10) {
+      showError('❌ Please enter a valid 10-digit phone number');
+      phoneInput.focus();
+      return;
+    }
+
+    // Show loading state
+    const btn = document.getElementById('sendWhatsAppBtn');
+    const btnText = document.getElementById('btnText');
+    const spinner = document.getElementById('loadingSpinner');
+    const sendIcon = document.getElementById('sendIcon');
+    
+    btn.disabled = true;
+    btnText.textContent = 'Sending...';
+    spinner.style.display = 'inline-block';
+    sendIcon.style.display = 'none';
+
+    try {
+      console.log('📤 Sending request to API...');
+      
+      const response = await fetch("{% url 'send_whatsapp' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+          party_name: currentPartyData.party_name,
+          phone_number: phoneNumber,
+          total_balance: currentPartyData.total_balance
+        })
+      });
+
+      const data = await response.json();
+      console.log('📥 Response:', data);
+
+      if (data.success) {
+        showSuccess(`✅ ${data.message}`);
+        setTimeout(() => {
+          closeWhatsAppModal();
+        }, 3000);
+      } else {
+        let errorMsg = data.error || 'Failed to send message';
+        if (data.hint) {
+          errorMsg += '\n\n' + data.hint;
+        }
+        showError(errorMsg);
+      }
+    } catch (error) {
+      console.error('❌ Error:', error);
+      showError('❌ Network error. Please check your connection and try again.');
+    } finally {
+      // Reset button state
+      btn.disabled = false;
+      btnText.textContent = 'Send Message';
+      spinner.style.display = 'none';
+      sendIcon.style.display = 'inline-block';
+    }
+  }
+
+  // Get CSRF Token
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  // Close modal on outside click
+  document.getElementById('whatsappModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeWhatsAppModal();
+    }
+  });
+
+  // Close modal on ESC key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeWhatsAppModal();
+    }
+  });
+
+  // DOMContentLoaded event
   document.addEventListener('DOMContentLoaded', function () {
     // Logout Confirmation
     window.confirmLogout = function () {
@@ -352,7 +748,7 @@
       }
     };
 
-    // Combined Party-wise Search (From Party + To Party)
+    // Combined Party-wise Search
     const toInput = document.getElementById('toPartySearch');
     const partySummaryTable = document.getElementById('partySummaryTable');
     const partyRows = partySummaryTable?.querySelectorAll('tbody tr') || [];
@@ -367,7 +763,6 @@
       });
     });
 
-
     // Truck-wise Search
     const truckInput = document.getElementById('truckSearch');
     const truckTable = document.getElementById('truckSummaryTable');
@@ -381,7 +776,7 @@
       });
     });
 
-    // Monthly Chart Rendering
+    // Monthly Chart
     try {
       const monthLabels = JSON.parse('{{ month_labels|escapejs }}' || '[]');
       const advanceValues = JSON.parse('{{ advance_values|escapejs }}' || '[]');
@@ -450,32 +845,21 @@
     } catch (e) {
       console.error("Chart loading error:", e);
     }
+
+    // Dynamic PDF and Excel Download Links
+    const searchInput = document.getElementById('toPartySearch');
+    const pdfLink = document.getElementById('pdfDownloadLink');
+    const excelLink = document.getElementById('excelDownloadLink');
+
+    searchInput?.addEventListener('input', () => {
+      const query = encodeURIComponent(searchInput.value.trim());
+      const basePdfUrl = "{% url 'partywise_summary_pdf' selected_year %}";
+      const baseExcelUrl = "{% url 'partywise_summary_excel' selected_year %}";
+
+      pdfLink.href = query ? `${basePdfUrl}?party=${query}` : basePdfUrl;
+      excelLink.href = query ? `${baseExcelUrl}?party=${query}` : baseExcelUrl;
+    });
   });
-
-  // Dynamic PDF Download Link
-  // Update the PDF link based on search input
-  const searchInput = document.getElementById('toPartySearch');
-  const pdfLink = document.getElementById('pdfDownloadLink');
-
-  searchInput.addEventListener('input', () => {
-    const query = encodeURIComponent(searchInput.value.trim());
-    const baseUrl = "{% url 'partywise_summary_pdf' selected_year %}";
-    pdfLink.href = query ? `${baseUrl}?party=${query}` : baseUrl;
-  });
-
-  // Dynamic Excel Download Link
-  // Update the Excel link based on search input
-  const excelLink = document.getElementById('excelDownloadLink');
-
-  searchInput.addEventListener('input', () => {
-    const query = encodeURIComponent(searchInput.value.trim());
-    const basePdfUrl = "{% url 'partywise_summary_pdf' selected_year %}";
-    const baseExcelUrl = "{% url 'partywise_summary_excel' selected_year %}";
-
-    pdfLink.href = query ? `${basePdfUrl}?party=${query}` : basePdfUrl;
-    excelLink.href = query ? `${baseExcelUrl}?party=${query}` : baseExcelUrl;
-  });
-
 </script>
 
 {% endblock %}

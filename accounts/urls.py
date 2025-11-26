@@ -8,6 +8,8 @@ urlpatterns = [
     path('', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
     path('dashboard/', views.dashboard_view, name='dashboard'),
+    path('api/send-whatsapp/', views.send_whatsapp_message, name='send_whatsapp'),
+    path('api/send-consignment-whatsapp/', views.send_consignment_whatsapp, name='send_consignment_whatsapp'),
     path('partywise-summary-pdf/<int:year>/', views.partywise_summary_pdf, name='partywise_summary_pdf'),
     path('partywise-summary/<int:year>/excel/', views.partywise_summary_excel, name='partywise_summary_excel'),
     path('reports/', views.reports_data_view, name='reports_page'),
@@ -15,7 +17,7 @@ urlpatterns = [
     path('export-builty-pdf/', views.export_builty_pdf, name='export_builty_pdf'),
 
 
-    #_______________Login and verification________________________
+    #_______________Login and verification ________________________
     
     path('verify-email/', views.verify_email_view, name='verify_email'),
     path('logout/', views.logout_view, name='logout'),
