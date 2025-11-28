@@ -4,6 +4,34 @@
 {% load humanize %}
 
 <style>
+  /* ✅ ADD THIS NEW STYLE */
+  .location-badge {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    font-weight: 600;
+    font-size: 14px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .location-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .location-badge i {
+    font-size: 18px;
+  }
+
   footer {
     position: fixed;
     bottom: 0;
@@ -246,6 +274,22 @@
 </style>
 
 <main class="flex-1 w-full max-w-7xl px-4 py-6 mx-auto">
+
+   <!-- ✅ ADD LOCATION BADGE HERE -->
+  <div class="location-badge">
+    <i class="fas fa-map-marker-alt"></i>
+    <strong>Location:</strong>
+    <span>
+      {% if request.session.db_location == 'default' %}
+        Kolkata
+      {% elif request.session.db_location == 'rajasthan' %}
+        Rajasthan
+      {% else %}
+        Kolkata
+      {% endif %}
+    </span>
+  </div>
+
 
   <!-- Year Filter -->
   <form id="yearFilterForm" class="mb-8 ml-4 flex items-center gap-3">

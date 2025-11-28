@@ -98,11 +98,30 @@ from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 from django.db.models import Sum, Q
 
 # ─────────────────────────────────────────────────────────────────────────────
+def get_db_for_request(request):
+    """Get database name from session"""
+    return request.session.get('db_location', 'default')
+
+def using_db(request):
+    """Context manager for database routing"""
+    return get_db_for_request(request)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # WEB: LOGIN VIEW
 # ─────────────────────────────────────────────────────────────────────────────
 def login_view(request):
     if request.method == "POST":
         form = LoginForm(request.POST)
+        # ✅ GET LOCATION FIRST (before form validation)
+        location = request.POST.get("location", "").strip()
+
+        # ✅ VALIDATE LOCATION FIRST
+        if not location or location not in ['default', 'rajasthan']:
+            return render(request, "login.html", {
+                "form": form, 
+                "error": "Please select a valid location"
+            })
         if form.is_valid():
             email = form.cleaned_data["email"]
             otp = form.cleaned_data.get("otp", "")
@@ -110,28 +129,31 @@ def login_view(request):
             try:
                 user = User.objects.get(email=email)
             except User.DoesNotExist:
-                return render(request, "login.html", {"form": form, "error": "User not found"})
+                return render(request, "login.html", {"form": form, "error": "User not found", "selected_location": location})
 
             if otp:
                 try:
                     otp_obj = OTPModel.objects.get(email=email)
                 except OTPModel.DoesNotExist:
-                    return render(request, "login.html", {"form": form, "error": "OTP not found or expired"})
+                    return render(request, "login.html", {"form": form, "error": "OTP not found or expired", "selected_location": location})
 
                 if otp == otp_obj.otp:
                     login(request, user)
                     Token.objects.filter(user=user).delete()
                     Token.objects.create(user=user)
                     otp_obj.delete()
+                    # ✅ STORE LOCATION IN SESSION
+                    request.session['db_location'] = location
                     return redirect("dashboard")
                 else:
-                    return render(request, "login.html", {"form": form, "error": "Invalid OTP"})
+                    return render(request, "login.html", {"form": form, "error": "Invalid OTP", "selected_location": location})
             else:
                 send_otp_to_email(email)
                 return render(request, "login.html", {
                     "form": form,
                     "message": "OTP sent to your email.",
-                    "otp_phase": True
+                    "otp_phase": True,
+                    "selected_location": location  # ✅ PRESERVE LOCATION
                 })
     else:
         form = LoginForm()
@@ -1052,11 +1074,19 @@ WHATSAPP_CONFIG = {
 
 @login_required(login_url="login")
 def dashboard_view(request):
+    db = using_db(request)  # ✅ GET DATABASE
     """Main dashboard view with financial summaries"""
     try:
         selected_year = int(request.GET.get("year", date.today().year))
     except (ValueError, TypeError):
         selected_year = date.today().year
+
+    # ✅ USE .using(db) FOR ALL QUERIES
+    goods_filtered = GoodsInfo.objects.using(db).filter(consignment__Booking_Date__year=selected_year)
+    goods_all = GoodsInfo.objects.using(db).filter(consignment__Booking_Date__year__in=[2024, 2025])
+
+    years = Consignment.objects.using(db).annotate(year=ExtractYear("Booking_Date")) \
+        .filter(year__gte=2024).values_list("year", flat=True).distinct().order_by("-year")
 
     goods_filtered = GoodsInfo.objects.filter(consignment__Booking_Date__year=selected_year)
     goods_all = GoodsInfo.objects.filter(consignment__Booking_Date__year__in=[2024, 2025])

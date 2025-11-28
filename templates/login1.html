@@ -1,7 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <title>Daapl Login</title>
@@ -37,7 +36,6 @@
         opacity: 0;
         transform: translateY(100%);
       }
-
       to {
         opacity: 1;
         transform: translateY(0);
@@ -188,7 +186,6 @@
     }
   </style>
 </head>
-
 <body>
   <div class="form-container">
     <div class="form-box">
@@ -206,17 +203,6 @@
 
       <form id="login-form" method="post">
         {% csrf_token %}
-
-        <!-- ✅ ADD LOCATION DROPDOWN -->
-        <label for="id_location">Select Location</label>
-        <select name="location" id="id_location" required
-          style="width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px;">
-          <option value="">-- Select Location --</option>
-          <option value="default" {% if selected_location == 'default' %}selected{% endif %}>Kolkata</option>
-          <option value="rajasthan" {% if selected_location == 'rajasthan' %}selected{% endif %}>Rajasthan</option>
-        </select>
-
-        <!-- ✅ ADD EMAIL -->
         <label for="id_email">Email</label>
         {{ form.email }}
         {% if form.email.errors %}
@@ -271,15 +257,32 @@
       document.getElementById("emailPopup").style.display = "none";
     }
 
+    //function verifyEmail() {
+     // const email = document.getElementById("emailInput").value.trim();
+     // const message = document.getElementById("emailMessage");
+     // if (email === "prajwalwarhade07@gmail.com") {
+     //   window.location.href = "{% url 'register' %}";
+      //} else {
+     //   message.textContent = "Access denied. You are not authorized to register.";
+     // }
+    //}
+
+
     function verifyEmail() {
       const email = document.getElementById("emailInput").value.trim();
       const message = document.getElementById("emailMessage");
-      if (email === "prajwalwarhade07@gmail.com", "sujata.awade@infimetrics.com") {
+
+      // List of allowed emails
+      const allowedEmails = ["prajwalwarhade07@gmail.com", "sujata.awade@infimetrics.com"];
+
+      if (allowedEmails.includes(email)) {
         window.location.href = "{% url 'register' %}";
       } else {
         message.textContent = "Access denied. You are not authorized to register.";
       }
     }
+
+
 
     // OTP Logic
     let otpTimerInterval;
@@ -312,7 +315,6 @@
       const form = document.getElementById("login-form");
       const loginBtn = document.getElementById("login-btn");
       const messageBox = document.getElementById("verify-message");
-      const locationDropdown = document.getElementById("id_location");  // ✅ ADD THIS
 
       otpInputs.forEach((input, index) => {
         input.addEventListener("input", () => {
@@ -330,17 +332,8 @@
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         const email = document.getElementById('id_email').value.trim();
-        const location = locationDropdown.value;  // ✅ GET LOCATION VALUE
 
         if (!otpSent) {
-          // ✅ VALIDATE LOCATION
-          if (!location) {
-            messageBox.textContent = "Please select a location.";
-            messageBox.style.color = "red";
-            locationDropdown.focus();  // ✅ Focus on dropdown
-            return;
-          }
-
           if (!email) {
             messageBox.textContent = "Please enter your email.";
             messageBox.style.color = "red";
@@ -366,10 +359,6 @@
                 messageBox.style.color = "green";
                 messageBox.textContent = "OTP sent. Please check your email.";
                 document.getElementById("otp-field").style.display = "block";
-
-                // ✅ DISABLE LOCATION DROPDOWN AFTER OTP SENT
-                locationDropdown.setAttribute("readonly", true);
-
                 startOtpTimer(300);
                 otpSent = true;
                 loginBtn.textContent = "Verify OTP to Continue";
@@ -415,5 +404,4 @@
     });
   </script>
 </body>
-
 </html>

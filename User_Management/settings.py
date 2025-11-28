@@ -54,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'accounts.middleware.LocationMiddleware',  # ✅ ADD THIS
 ]
 
 # --------------------------------
@@ -91,8 +92,17 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': 'root',
         'NAME': 'dappl_data',
+    },
+    'rajasthan': {
+        'ENGINE': 'django.db.backends.mysql',
+        'HOST': 'localhost',
+        'USER': 'root',
+        'PASSWORD': 'root',
+        'NAME': 'dappl_data_rajasthan',  # New database
     }
 }
+# Database Router
+DATABASE_ROUTERS = ['accounts.routers.LocationRouter']
 
 # --------------------------------
 # PASSWORD VALIDATION
